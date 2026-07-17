@@ -1,12 +1,16 @@
 # claude-lifecycle
 
-**Journeys are a function of your data — most tools pretend otherwise.** A store tracking `add_to_cart` → `purchase` can run a branched 8-step cart recovery; a startup with three tracked events cannot. claude-lifecycle is a [Claude Code](https://claude.com/claude-code) plugin that scores what your data actually supports first, then generates a portfolio of customer journeys — and rule-checked, sector-aware CRM copy for every step — sized to that reality, not a template.
+**Journeys are a function of your data: most tools pretend otherwise.** A store tracking `add_to_cart` → `purchase` can run a branched 8-step cart recovery; a startup with three tracked events cannot. claude-lifecycle is a [Claude Code](https://claude.com/claude-code) plugin that scores what your data actually supports first, then generates a portfolio of customer journeys, plus rule-checked, sector-aware CRM copy for every step, sized to that reality instead of a template.
 
 ![validate](https://github.com/ali-demirbas/claude-lifecycle/actions/workflows/validate.yml/badge.svg)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![claude-code](https://img.shields.io/badge/Claude_Code-plugin-d97706)
 ![patterns](https://img.shields.io/badge/journey_patterns-26-8b5cf6)
 ![industries](https://img.shields.io/badge/industries-9-10b981)
+
+![claude-lifecycle journey canvas: a channel-colored customer journey tree, generated from a real data quality score with entry rules, branching decisions, and per-step detail](docs/hero-screenshot.png)
+
+*Live output from the [zero-install demo](https://ali-demirbas.github.io/claude-lifecycle/demo/journey-canvas.html): every card, color, and number on this canvas comes from the sample dataset, not a mockup.*
 
 ---
 
@@ -24,7 +28,7 @@ Every lifecycle tool ships the same five template flows, regardless of what data
 
 Full walkthrough with design decisions: [docs/architecture.md](docs/architecture.md)
 
-**Zero-install demo:** the two HTML deliverables, rendered with sample data — [journey canvas](https://ali-demirbas.github.io/claude-lifecycle/demo/journey-canvas.html) · [channel copy canvas](https://ali-demirbas.github.io/claude-lifecycle/demo/iletisim-metinleri.html)
+**Zero-install demo:** the two HTML deliverables, rendered with sample data: [journey canvas](https://ali-demirbas.github.io/claude-lifecycle/demo/journey-canvas.html) · [channel copy canvas](https://ali-demirbas.github.io/claude-lifecycle/demo/iletisim-metinleri.html)
 
 ## Quickstart
 
