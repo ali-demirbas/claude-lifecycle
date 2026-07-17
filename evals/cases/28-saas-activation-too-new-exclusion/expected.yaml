@@ -1,0 +1,12 @@
+case: 28-saas-activation-too-new-exclusion
+company: Basliyo
+sector: saas
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/activation.md (Entry - sign_up >= N days ago; Exclude - accounts younger than N days are still welcome-onboarding's job)
+  - knowledge/journey-patterns/activation.md (Required-event signature - tutorial_complete required, blocked without it)
+run:
+  copy: false
+assertions:
+  must_generate: [activation]
+  audience_must_exclude: [U-02]

@@ -1,0 +1,815 @@
+<!--
+  claude-lifecycle COPY CANVAS output template — THE mandatory copy-output format,
+  the copy-side counterpart to templates/canvas.html.
+  Design: tab per journey + one card per step, each card showing the step's intent,
+  one or more copy variants (fields + real character counts against the channel
+  limit), a fallback block, and a review-status badge. Never a KPI table, never a
+  data-gaps section — those don't belong here (see CLAUDE.md rule 2 and the output-
+  authoring conventions it links to).
+  The engine reproduces this file EXACTLY, replacing only the JOURNEYS data array,
+  the <title>, and the header eyebrow/h1/lede text. Do NOT redesign; do not add extra views.
+  User-facing naming rule: title/header follow the USER'S language, and never use the
+  word "copy" for Turkish users (it reads as "duplicate") — TR: "İletişim Metinleri", EN: "Message Copy".
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MindRoute Message Copy — claude-lifecycle demo</title>
+<style>
+  :root {
+    --page-bg: #faf7f2;
+    --card-header: #b0693f;
+    --card-header-ink: #ffffff;
+    --card-body: #ffffff;
+    --card-line: #e6ddd0;
+    --ink: #241d17;
+    --ink-dim: #7a6b5a;
+    --pill: #fbeee4;
+    --pill-ink: #b0693f;
+    --good: #2d6a3e;
+    --shadow: 0 1px 2px rgba(90,60,30,0.06), 0 10px 24px rgba(90,60,30,0.08);
+    --font-display: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --font-body: -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+  }
+  :root[data-theme="dark"] {
+    --page-bg: #1c1712; --card-header: #d99a6f; --card-header-ink: #241d17;
+    --card-body: #2a231d; --card-line: #3d3226; --ink: #f3ece0; --ink-dim: #b3a390;
+    --pill: #3a2c1f; --pill-ink: #d99a6f; --good: #7cc491;
+    --shadow: 0 2px 6px rgba(0,0,0,0.35), 0 12px 30px rgba(0,0,0,0.4);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page-bg: #1c1712; --card-header: #d99a6f; --card-header-ink: #241d17;
+      --card-body: #2a231d; --card-line: #3d3226; --ink: #f3ece0; --ink-dim: #b3a390;
+      --pill: #3a2c1f; --pill-ink: #d99a6f; --good: #7cc491;
+      --shadow: 0 2px 6px rgba(0,0,0,0.35), 0 12px 30px rgba(0,0,0,0.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page-bg); color: var(--ink); font-family: var(--font-body); display: flex; justify-content: center; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 780px; padding: 32px 24px 48px; width: 100%; }
+
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--card-header); margin: 0 0 8px; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: 25px; letter-spacing: -0.01em; margin: 0 0 6px; }
+  .lede { color: var(--ink-dim); font-size: 13.5px; line-height: 1.55; margin: 0 0 20px; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
+  .tab { font-family: var(--font-body); font-size: 12.5px; font-weight: 600; color: var(--ink-dim); background: var(--card-body); border: 1.5px solid var(--card-line); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+  .tab.active { border-color: var(--card-header); background: var(--pill); color: var(--ink); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .step-card { background: var(--card-body); border: 1.5px solid var(--card-line); border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden; }
+  .step-head { background: var(--card-header); color: var(--card-header-ink); padding: 11px 16px; display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 700; }
+  .step-head .tag { font-family: var(--font-mono); font-weight: 600; font-size: 10.5px; opacity: 0.9; }
+  .pass-badge { background: rgba(255,255,255,0.18); color: #fff; font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 100px; }
+  .pass-badge.fix { background: #9c3b2e; }
+  .pass-badge.legal { background: #b45309; }
+
+  .step-body { padding: 14px 16px 4px; }
+  .intent { font-size: 12.5px; color: var(--ink-dim); margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--card-line); }
+  .intent b { color: var(--ink); }
+
+  .variant { margin-bottom: 14px; }
+  .variant-label { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pill-ink); background: var(--pill); display: inline-block; padding: 3px 9px; border-radius: 100px; margin-bottom: 7px; }
+  .field-row { display: grid; grid-template-columns: 80px 1fr 62px; gap: 8px; font-size: 12px; padding: 5px 0; border-bottom: 1px dashed var(--card-line); align-items: start; }
+  .field-row:last-child { border-bottom: none; }
+  .field-label { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; color: var(--ink-dim); padding-top: 2px; }
+  .field-content { line-height: 1.45; min-width: 0; overflow-wrap: anywhere; }
+  .char-count { font-family: var(--font-mono); font-size: 10px; color: var(--good); text-align: right; padding-top: 2px; white-space: nowrap; }
+
+  .fallback { font-size: 11.5px; color: var(--ink-dim); padding-top: 8px; border-top: 1px solid var(--card-line); margin-top: 4px; }
+  .fallback b { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; }
+  .review-note { font-size: 11.5px; color: #b45309; padding-top: 8px; }
+
+  code.variable { font-family: var(--font-mono); font-size: 10px; font-weight: 600; background: var(--pill); color: var(--pill-ink); padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">claude-lifecycle · MindRoute edtech · fictional sample data</p>
+  <h1>Message Copy</h1>
+  <p class="lede">Each tab shows the actual send copy for one journey: variants, character counts, review status. Every card in the journey canvas resolves to a block here. Tone: motivating, warm, mentor-like. No discounts, no SMS, push only to opted-in users.</p>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="panels"></div>
+</div>
+<script>
+// Placeholder example data — the engine replaces this array entirely per run.
+// Shape: one entry per journey; each journey has `steps`; each step has one or
+// more `variants` (omit the label/second variant for a single-variant step);
+// `fields` is [label, content, "count/limit" or bare count for in-app/no-limit
+// fields]; `fallback` and `note` are optional per step.
+const JOURNEYS = [
+ {
+  "id": "trial-conversion",
+  "label": "Trial Activation + Conversion",
+  "steps": [
+   {
+    "tag": "Step 1 · Email · Hour 1",
+    "intent": "Welcome with one clear ask; retires the old generic welcome email",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Variant A · action-first",
+      "fields": [
+       [
+        "Subject",
+        "Your first lesson takes 5 minutes",
+        "33/50"
+       ],
+       [
+        "Preview",
+        "Finish one lesson today and the rest gets easier.",
+        "49/90"
+       ],
+       [
+        "Body",
+        "Welcome to MindRoute. Your 7-day trial just started, and your first goal is simple: finish one lesson today, start to end. People who finish their first lesson find out on day one whether the method works for them. Start with a 5-minute lesson; we will build the rest together.",
+        "277/350"
+       ],
+       [
+        "CTA",
+        "Start the lesson",
+        "16/20"
+       ]
+      ]
+     },
+     {
+      "label": "Variant B · goal-first",
+      "fields": [
+       [
+        "Subject",
+        "Your trial started, first step today",
+        "36/50"
+       ],
+       [
+        "Preview",
+        "You have 7 days. The best start: one finished lesson.",
+        "53/90"
+       ],
+       [
+        "Body",
+        "Welcome. The next 7 days are enough to see whether the method fits you, and there is only one way to test that: finish your first lesson today. We prepared a 5-minute starter lesson. When you finish it, we will suggest the next step.",
+        "233/350"
+       ],
+       [
+        "CTA",
+        "Begin the lesson",
+        "16/20"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "Step 2 · Push · Day 2",
+    "intent": "Nudge for users with no finished lesson (opted-in only)",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Title",
+        "Got 5 minutes?",
+        "14/40"
+       ],
+       [
+        "Body",
+        "Your first lesson is still open. Give it 5 minutes today; finished work fuels the mind.",
+        "87/120"
+       ],
+       [
+        "CTA",
+        "Back to the lesson",
+        "18/20"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "Step 3 · In-app · Day 3",
+    "intent": "Resume banner for started-but-unfinished lessons",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Body (Banner)",
+        "Your unfinished lesson is waiting. Two minutes to complete it.",
+        "62/90"
+       ],
+       [
+        "CTA",
+        "Continue",
+        "8/20"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "Step 4 · Email · Day 5 (branched)",
+    "intent": "Branch A: progress and plan value. Branch B: clear the blocker",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Branch A · at least one lesson done",
+      "fields": [
+       [
+        "Subject",
+        "First lesson done. Here is what comes next",
+        "42/50"
+       ],
+       [
+        "Preview",
+        "Keep the rhythm: a short plan for your week.",
+        "44/90"
+       ],
+       [
+        "Body",
+        "You completed your first lesson; the hardest step is behind you. We built a short weekly plan to continue in <code class=\"variable\">{{course_category}}</code>. Your trial ends on <code class=\"variable\">{{trial_end_date}}</code>. When you pick a plan, your progress and badges carry over.",
+        "227/350"
+       ],
+       [
+        "CTA",
+        "See the plans",
+        "13/20"
+       ]
+      ]
+     },
+     {
+      "label": "Branch B · no lesson yet",
+      "fields": [
+       [
+        "Subject",
+        "Whatever is in the way, let's clear it",
+        "38/50"
+       ],
+       [
+        "Preview",
+        "No time, or unsure where to start? Both have a fix.",
+        "51/90"
+       ],
+       [
+        "Body",
+        "Your trial started but you have not finished a lesson yet. The blocker is usually small: no time, or no clear starting point. The fix is the same for both: the 5-minute starter lesson. Your access stays open until <code class=\"variable\">{{trial_end_date}}</code>.",
+        "233/350"
+       ],
+       [
+        "CTA",
+        "Start with 5 minutes",
+        "20/20"
+       ]
+      ]
+     }
+    ],
+    "fallback": "If {{course_category}} is empty, write \"your courses\". If {{trial_end_date}} is empty, write \"later this week\"."
+   },
+   {
+    "tag": "Step 5 · Push · 24h before trial end",
+    "intent": "A real deadline, no fake urgency, no discount",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Title",
+        "Your trial ends tomorrow",
+        "24/40"
+       ],
+       [
+        "Body",
+        "Access closes on <code class=\"variable\">{{trial_end_date}}</code>. Pick your plan today to keep your progress.",
+        "80/120"
+       ],
+       [
+        "CTA",
+        "Pick my plan",
+        "12/20"
+       ]
+      ]
+     }
+    ],
+    "fallback": "If {{trial_end_date}} is empty, open with \"Tomorrow\": \"Tomorrow your access closes.\""
+   }
+  ]
+ },
+ {
+  "id": "payment-failure",
+  "label": "Payment Recovery",
+  "steps": [
+   {
+    "tag": "Step 1 · Email · Hour 1",
+    "intent": "What happened, access is safe, one step to fix",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Subject",
+        "Your payment didn't go through; access is safe",
+        "46/50"
+       ],
+       [
+        "Preview",
+        "Updating your card takes about two minutes to do.",
+        "49/90"
+       ],
+       [
+        "Body",
+        "Your renewal payment was declined by your bank. This is common and usually temporary. Your access is open and your progress is safe. We will retry on <code class=\"variable\">{{next_retry_date}}</code>; or update your card now and skip the wait.",
+        "213/350"
+       ],
+       [
+        "CTA",
+        "Update my card",
+        "14/20"
+       ]
+      ]
+     }
+    ],
+    "fallback": "If {{next_retry_date}} is empty, write \"in a few days\"."
+   },
+   {
+    "tag": "Step 2 · In-app · Day 2",
+    "intent": "Access-still-on banner while payment stays unresolved",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Body (Banner)",
+        "We still couldn't collect your payment. Access is on; fixing it takes 2 minutes.",
+        "80/90"
+       ],
+       [
+        "CTA",
+        "Update",
+        "6/20"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "Step 3 · Email · Day 4",
+    "intent": "Last automatic retry plus a human door",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Subject",
+        "Let's fix this payment together",
+        "31/50"
+       ],
+       [
+        "Preview",
+        "The last automatic retry is coming up. One step is enough.",
+        "58/90"
+       ],
+       [
+        "Body",
+        "Your payment still hasn't gone through. The last automatic retry is on <code class=\"variable\">{{next_retry_date}}</code>. Checking your card limit and expiry date, or adding a different card, usually solves it. If you are stuck, reply to this email and we will look at it together.",
+        "251/350"
+       ],
+       [
+        "CTA",
+        "Update my card",
+        "14/20"
+       ]
+      ]
+     }
+    ],
+    "fallback": "If {{next_retry_date}} is empty, write \"in the coming days\" (no vague urgency)."
+   },
+   {
+    "tag": "Step 4 · Email · 48h before suspension",
+    "intent": "Final notice: clear date, progress is kept, no shaming",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Subject",
+        "Your access pauses in 48 hours",
+        "30/50"
+       ],
+       [
+        "Preview",
+        "Your progress is not deleted; one step brings it back.",
+        "54/90"
+       ],
+       [
+        "Body",
+        "Since the payment could not be collected, your access will pause on <code class=\"variable\">{{grace_end_date}}</code>. The important part: your lessons, progress and badges are not deleted. The moment you update your card, everything continues where it left off. This is our last reminder; you can come back any time.",
+        "286/350"
+       ],
+       [
+        "CTA",
+        "Keep my access",
+        "14/20"
+       ]
+      ]
+     }
+    ],
+    "fallback": "If {{grace_end_date}} is empty, write \"within 48 hours\"."
+   }
+  ]
+ },
+ {
+  "id": "activation",
+  "label": "Expired Trial Rescue",
+  "steps": [
+   {
+    "tag": "Step 1 · Email · Day 1 after expiry",
+    "intent": "Honest framing: time ran out, effort is saved",
+    "review": "fix",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Subject",
+        "Your trial ended. Your effort didn't",
+        "36/50"
+       ],
+       [
+        "Preview",
+        "Your account and progress are safe. One short lesson.",
+        "53/90"
+       ],
+       [
+        "Body",
+        "Your trial ran out before you could finish a lesson; it happens a lot. Your account and records are not deleted. We kept the 5-minute starter lesson open for you, so you can see whether the method fits before deciding anything. Just finish that one lesson.",
+        "256/350"
+       ],
+       [
+        "CTA",
+        "Finish the lesson",
+        "17/20"
+       ]
+      ]
+     }
+    ],
+    "note": "Flagged product assumption: the starter lesson must stay open after trial expiry."
+   },
+   {
+    "tag": "Step 2 · Push · Day 4 (opted-in)",
+    "intent": "The unfinished-lesson frame",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Title",
+        "Your unfinished lesson is waiting",
+        "33/40"
+       ],
+       [
+        "Body",
+        "Your 5-minute starter lesson is still open. Finish it today, decide afterwards.",
+        "79/120"
+       ],
+       [
+        "CTA",
+        "Back to it",
+        "10/20"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "Step 3 · Email · Day 8",
+    "intent": "One question; replies land with a real person",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Subject",
+        "What stopped you?",
+        "17/50"
+       ],
+       [
+        "Preview",
+        "Even a one-sentence answer helps us help you.",
+        "45/90"
+       ],
+       [
+        "Body",
+        "You started the trial but didn't continue, and we genuinely want to know why: time, content, price, something else? Reply with one sentence; a real person will read it and get back to you. Whatever the answer, your account stays open and you can return when ready.",
+        "264/350"
+       ],
+       [
+        "CTA",
+        "Write back",
+        "10/20"
+       ]
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "lead-nurture",
+  "label": "Lead Nurture",
+  "steps": [
+   {
+    "tag": "Step 1 · Email · Minute 15",
+    "intent": "Deliver the promised asset, set expectations openly",
+    "review": "legal",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Subject",
+        "The guide you asked for",
+        "23/50"
+       ],
+       [
+        "Preview",
+        "Your download link is inside. The rest is up to you.",
+        "52/90"
+       ],
+       [
+        "Body",
+        "<code class=\"variable\">{{lead_asset_name}}</code> is ready; download it with the button below. Over the next few weeks we will send a few short, useful notes on this topic. If you'd rather not get them, one click below removes you from the list.",
+        "215/350"
+       ],
+       [
+        "CTA",
+        "Download the guide",
+        "18/20"
+       ]
+      ]
+     }
+    ],
+    "fallback": "If {{lead_asset_name}} is empty, write \"Your requested guide\".",
+    "note": "Legal gate: requires a separate marketing-consent checkbox on the lead form."
+   },
+   {
+    "tag": "Step 2 · Email · Day 7",
+    "intent": "One actionable insight from the guide, zero selling",
+    "review": "legal",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Subject",
+        "The most skipped step in the guide",
+        "34/50"
+       ],
+       [
+        "Preview",
+        "Most people read past it. The ones who do it win.",
+        "49/90"
+       ],
+       [
+        "Body",
+        "The method in your guide works on one condition: small, regular steps. Today's suggestion is simple: take 10 minutes and actually do the first exercise in the guide. Reading gives ideas; doing builds skill.",
+        "206/350"
+       ],
+       [
+        "CTA",
+        "Open the exercise",
+        "17/20"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "Step 3 · Email · Day 14",
+    "intent": "Self-serve path vs the planned path",
+    "review": "legal",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Subject",
+        "On your own, or with a plan",
+        "27/50"
+       ],
+       [
+        "Preview",
+        "Two roads to the same goal; the difference in 2 minutes.",
+        "56/90"
+       ],
+       [
+        "Body",
+        "You can apply the guide's method on your own; MindRoute is the planned version of it. Level assessment, 5-minute daily lessons and progress tracking in one place. See how it works in a 2-minute intro lesson; no account needed.",
+        "226/350"
+       ],
+       [
+        "CTA",
+        "Watch the intro",
+        "15/20"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "Step 4 · Email · Day 21",
+    "intent": "Soft trial invitation, no discount",
+    "review": "legal",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Subject",
+        "When you're ready, a 7-day trial is open",
+        "40/50"
+       ],
+       [
+        "Preview",
+        "Finish one lesson and see if the method fits you.",
+        "49/90"
+       ],
+       [
+        "Body",
+        "You have been thinking about this for three weeks; it might be the right time to test it. The 7-day trial opens every lesson. Our suggestion is clear: finish the 5-minute starter lesson on day one. If it doesn't fit, you leave with one click and nobody chases you with emails.",
+        "276/350"
+       ],
+       [
+        "CTA",
+        "Start the trial",
+        "15/20"
+       ]
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "churn-prevention",
+  "label": "Rhythm Guard",
+  "steps": [
+   {
+    "tag": "Step 1 · In-app · next session",
+    "intent": "Lowest-friction return: the last lesson as one card",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Body (Banner)",
+        "Your last lesson is waiting. Two minutes brings your rhythm back.",
+        "65/90"
+       ],
+       [
+        "CTA",
+        "Continue",
+        "8/20"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "tag": "Step 2 · Email · Day 3",
+    "intent": "Real progress recap plus one small step",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Subject",
+        "Taking a short break?",
+        "21/50"
+       ],
+       [
+        "Preview",
+        "No problem. One small step is enough to come back.",
+        "50/90"
+       ],
+       [
+        "Body",
+        "So far you have finished <code class=\"variable\">{{completed_lessons}}</code> lessons; that effort is not lost. Breaks are a natural part of learning; what matters is keeping the comeback step small. Today's suggestion is one thing: finish one 5-minute lesson. Rhythm returns with small steps, not big decisions.",
+        "281/350"
+       ],
+       [
+        "CTA",
+        "Give it 5 minutes",
+        "17/20"
+       ]
+      ]
+     }
+    ],
+    "fallback": "If {{completed_lessons}} is empty, write \"So far you have finished many lessons\"."
+   },
+   {
+    "tag": "Step 3 · Email · Day 10",
+    "intent": "Difficulty or time: both adjustable, plus a human door",
+    "review": "pass",
+    "variants": [
+     {
+      "label": "Single variant",
+      "fields": [
+       [
+        "Subject",
+        "Let's tune the lessons to you",
+        "29/50"
+       ],
+       [
+        "Preview",
+        "Too hard, or no time? Both have a one-minute fix.",
+        "49/90"
+       ],
+       [
+        "Body",
+        "You haven't studied for two weeks. There are usually two reasons: the lessons felt hard, or time ran out. Both are fixable. You can reset your level and daily goal in one minute. If something else is in the way, reply to this email and we will look at it together.",
+        "264/350"
+       ],
+       [
+        "CTA",
+        "Adjust my goal",
+        "14/20"
+       ]
+      ]
+     }
+    ]
+   }
+  ]
+ }
+];
+
+function badgeClass(review) {
+  if (review === "fix") return "pass-badge fix";
+  if (review === "legal") return "pass-badge legal";
+  return "pass-badge";
+}
+function badgeLabel(review) {
+  if (review === "fix") return "⚠️ Passed with a note";
+  if (review === "legal") return "⚖️ Legal review";
+  return "✅ Passed";
+}
+
+function render() {
+  const tabsEl = document.getElementById('tabs');
+  const panelsEl = document.getElementById('panels');
+  tabsEl.innerHTML = '';
+  panelsEl.innerHTML = '';
+  JOURNEYS.forEach((j, idx) => {
+    const tab = document.createElement('button');
+    tab.className = 'tab' + (idx === 0 ? ' active' : '');
+    tab.textContent = j.label;
+    tab.onclick = () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + j.id).classList.add('active');
+    };
+    tabsEl.appendChild(tab);
+
+    const panel = document.createElement('div');
+    panel.className = 'panel' + (idx === 0 ? ' active' : '');
+    panel.id = 'panel-' + j.id;
+    panel.innerHTML = j.steps.map(s => `
+      <div class="step-card">
+        <div class="step-head"><span class="tag">${s.tag}</span><span class="${badgeClass(s.review)}">${badgeLabel(s.review)}</span></div>
+        <div class="step-body">
+          <div class="intent"><b>Intent:</b> ${s.intent}</div>
+          ${s.variants.map(v => `
+            <div class="variant">
+              <span class="variant-label">${v.label}</span>
+              ${v.fields.map(f => `<div class="field-row"><span class="field-label">${f[0]}</span><span class="field-content">${f[1]}</span><span class="char-count">${f[2]}</span></div>`).join('')}
+            </div>
+          `).join('')}
+          ${s.fallback ? `<div class="fallback"><b>Fallback</b><br>${s.fallback}</div>` : ''}
+          ${s.note ? `<div class="review-note">${s.note}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+    panelsEl.appendChild(panel);
+  });
+}
+render();
+</script>
+</body>
+</html>

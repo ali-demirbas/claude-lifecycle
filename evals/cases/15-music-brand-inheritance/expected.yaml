@@ -1,0 +1,15 @@
+case: 15-music-brand-inheritance
+company: Melodika
+sector: subscription-media
+tier: T1
+rule_refs:
+  - CLAUDE.md (rule 8 - inheritance Company > Sector > Global; bans only tighten, never loosen)
+  - knowledge/brands/_template.md (extra_banned_words are added to lexicon/channel ban lists; max_discount_pct may never be exceeded)
+  - skills/lifecycle-copy/SKILL.md (inputs - brand file loaded first, extra_banned_words extend all ban lists)
+run:
+  copy: true
+assertions:
+  copy:
+    forbidden: [indirim, bedava, süper fırsat]
+    must_pass_validator: true
+    max_discount: 0

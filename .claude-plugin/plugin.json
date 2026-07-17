@@ -1,0 +1,22 @@
+{
+  "name": "claude-lifecycle",
+  "version": "0.1.0",
+  "description": "Data-adaptive lifecycle marketing engine for Claude Code. Connects GA4 or other data sources (or just an industry), scores data quality, and generates a prioritized portfolio of customer journeys with channel-ready CRM copy.",
+  "author": {
+    "name": "Ali Demirbaş"
+  },
+  "homepage": "https://github.com/ali-demirbas/claude-lifecycle",
+  "repository": "https://github.com/ali-demirbas/claude-lifecycle",
+  "license": "MIT",
+  "keywords": [
+    "lifecycle-marketing",
+    "crm",
+    "customer-journeys",
+    "ga4",
+    "marketing-automation",
+    "email-marketing",
+    "push-notifications",
+    "claude-code",
+    "claude-skills"
+  ]
+}

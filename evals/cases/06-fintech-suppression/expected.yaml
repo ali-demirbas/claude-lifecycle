@@ -1,0 +1,12 @@
+case: 06-fintech-suppression
+company: Aktarix
+sector: fintech
+tier: T2
+rule_refs:
+  - knowledge/compliance/consent-and-quiet-hours.md (journey-level rule 4 - negative-signal override is portfolio-wide, detractor NPS suppresses from every standard marketing journey)
+  - skills/lifecycle-journeys/SKILL.md (step 5 precedence order - 1. negative-signal suppression beats everything)
+run:
+  copy: false
+assertions:
+  suppressed_accounts_include: [U-07]
+  audience_must_exclude: [U-07]

@@ -1,0 +1,12 @@
+case: 18-ecom-results-guardrail-override
+company: Sepetful
+sector: ecommerce
+tier: T1
+rule_refs:
+  - skills/lifecycle-results/SKILL.md (Step 3 - guardrail breaches, unsubscribe/complaint over ceiling, override everything; recommend pause even on positive lift)
+  - skills/lifecycle-results/SKILL.md (Step 4 - failed-strategies log accepts guardrail-class absolute signals, exempt from the sample-size gate)
+run:
+  copy: false
+assertions:
+  required_anywhere: [guardrail, durdur]
+  forbidden_anywhere: [promote]

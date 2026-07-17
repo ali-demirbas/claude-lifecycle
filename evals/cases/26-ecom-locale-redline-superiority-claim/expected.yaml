@@ -1,0 +1,13 @@
+case: 26-ecom-locale-redline-superiority-claim
+company: Ucuzal
+sector: ecommerce
+tier: T2
+rule_refs:
+  - knowledge/lexicons/locales/tr.md (Market red lines - unverifiable superiority claims like "en ucuz"/"piyasanın en iyisi" are banned unless tied to data)
+  - agents/copy-reviewer.md (Locale red lines check - the target language's Market red lines section is enforced in addition to sector bans)
+run:
+  copy: true
+assertions:
+  copy:
+    forbidden: [en ucuz, piyasanın en iyisi, en iyisi]
+    must_pass_validator: true

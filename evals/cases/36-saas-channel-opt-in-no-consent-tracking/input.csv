@@ -1,0 +1,10 @@
+user_id,event_timestamp,event_name,feature,value
+U-01,2026-06-01T09:00:00,sign_up,,
+U-01,2026-06-01T09:20:00,session_start,,
+U-01,2026-06-02T10:00:00,feature_used,reports,
+U-01,2026-06-09T10:00:00,session_start,,
+U-02,2026-06-03T11:00:00,sign_up,,
+U-02,2026-06-03T11:30:00,session_start,,
+U-02,2026-06-05T14:00:00,feature_used,reports,
+U-03,2026-06-04T08:00:00,sign_up,,
+U-03,2026-06-04T08:05:00,session_start,,

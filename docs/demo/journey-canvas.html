@@ -1,0 +1,852 @@
+<!--
+  claude-lifecycle CANVAS output template — THE user-approved output format.
+  Design: journey tabs + meta card (SEGMENT/AMAC/PRIMARY METRIC) + vertical tree canvas
+  (entry/decision/message/exit nodes, Evet/Hayir branch pills, SVG connectors, tooltips,
+  DETAYLAR toggles) + print view + HTML/PDF download hints.
+  The engine reproduces this file EXACTLY, replacing only the JOURNEYS data array,
+  eyebrow/h1/lede texts, and HOLDOUT_TIP/DATA_NOTE constants with the current project's
+  real data. Do NOT redesign; do not add extra views. Keep <meta charset="utf-8">.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MindRoute Journeys — claude-lifecycle demo</title>
+<style>
+  :root {
+    --page-bg: #faf7f2;
+    --canvas-bg-a: #f3ece0;
+    --canvas-bg-b: #faf6ee;
+    --card-header: #b0693f;
+    --card-header-ink: #ffffff;
+    --card-body: #ffffff;
+    --card-line: #e6ddd0;
+    --ink: #241d17;
+    --ink-dim: #7a6b5a;
+    --pill: #fbeee4;
+    --pill-ink: #b0693f;
+    --line: #d9cdbb;
+    --good: #2d6a3e;
+    --good-bg: #e2f0e3;
+    --bad: #9c3b2e;
+    --bad-bg: #f6e3de;
+    --wait: #b0693f;
+    --wait-bg: #fbeee4;
+    --decision: #5b7d99;
+    --decision-ink: #ffffff;
+    --ch-email: #a35b3d;
+    --ch-push: #8a6b2a;
+    --ch-sms: #29796d;
+    --ch-inapp: #7d5f9e;
+    --ch-wa: #3f7a4e;
+    --ch-ink: #ffffff;
+    --entry-bg: #33241a;
+    --entry-bg-b: #1f1610;
+    --entry-ink: #f6ede1;
+    --entry-accent: #e0a678;
+    --shadow: 0 1px 2px rgba(90,60,30,0.06), 0 10px 24px rgba(90,60,30,0.08);
+    --font-display: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --font-body: -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+  }
+  :root[data-theme="dark"] {
+    --page-bg: #1c1712; --canvas-bg-a: #241d17; --canvas-bg-b: #1a1510;
+    --card-header: #d99a6f; --card-header-ink: #241d17;
+    --card-body: #2a231d; --card-line: #3d3226;
+    --ink: #f3ece0; --ink-dim: #b3a390;
+    --pill: #3a2c1f; --pill-ink: #d99a6f;
+    --line: #4a3d2e;
+    --good: #7cc491; --good-bg: #1e3324;
+    --bad: #e08d7d; --bad-bg: #3a2019;
+    --wait: #d99a6f; --wait-bg: #3a2c1f;
+    --decision: #8fb8d6; --decision-ink: #1c2530;
+    --ch-email: #c98d63; --ch-push: #b99a4e; --ch-sms: #5fb3a4; --ch-inapp: #a98fd0; --ch-wa: #74b586; --ch-ink: #241d17;
+    --entry-bg: #3a2a1d; --entry-bg-b: #231913; --entry-ink: #f6ede1; --entry-accent: #e8b48a;
+    --shadow: 0 2px 6px rgba(0,0,0,0.35), 0 12px 30px rgba(0,0,0,0.4);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page-bg: #1c1712; --canvas-bg-a: #241d17; --canvas-bg-b: #1a1510;
+      --card-header: #d99a6f; --card-header-ink: #241d17;
+      --card-body: #2a231d; --card-line: #3d3226;
+      --ink: #f3ece0; --ink-dim: #b3a390;
+      --pill: #3a2c1f; --pill-ink: #d99a6f;
+      --line: #4a3d2e;
+      --good: #7cc491; --good-bg: #1e3324;
+      --bad: #e08d7d; --bad-bg: #3a2019;
+      --wait: #d99a6f; --wait-bg: #3a2c1f;
+      --decision: #8fb8d6; --decision-ink: #1c2530;
+      --ch-email: #c98d63; --ch-push: #b99a4e; --ch-sms: #5fb3a4; --ch-inapp: #a98fd0; --ch-wa: #74b586; --ch-ink: #241d17;
+      --entry-bg: #3a2a1d; --entry-bg-b: #231913; --entry-ink: #f6ede1; --entry-accent: #e8b48a;
+      --shadow: 0 2px 6px rgba(0,0,0,0.35), 0 12px 30px rgba(0,0,0,0.4);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page-bg); color: var(--ink); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 40px 20px 96px; }
+
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--card-header); margin: 0 0 10px; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: 29px; letter-spacing: -0.015em; line-height: 1.15; margin: 0 0 10px; text-wrap: balance; }
+  .lede { color: var(--ink-dim); font-size: 14.5px; line-height: 1.6; max-width: 64ch; margin: 0 0 8px; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+  .tab {
+    font-family: var(--font-body); font-size: 13px; font-weight: 600; color: var(--ink-dim);
+    background: var(--card-body); border: 1.5px solid var(--card-line); border-radius: 12px;
+    padding: 9px 13px; cursor: pointer; text-align: left; line-height: 1.3;
+    display: flex; flex-direction: column; gap: 2px; min-width: 140px; flex: 1 1 140px;
+  }
+  .tab .tab-purpose { font-weight: 400; font-size: 11px; color: var(--ink-dim); }
+  .tab[aria-selected="true"] { border-color: var(--card-header); background: var(--pill); color: var(--ink); }
+  .tab:focus-visible { outline: 2px solid var(--card-header); outline-offset: 1px; }
+
+  .journey-meta { margin-top: 20px; padding: 18px 22px; background: var(--card-body); border: 1px solid var(--card-line); border-radius: 14px; box-shadow: var(--shadow); }
+  .journey-meta h2 { font-family: var(--font-display); font-size: 19px; font-weight: 700; letter-spacing: -0.005em; margin: 0 0 4px; }
+  .meta-row { display: grid; grid-template-columns: 92px 1fr; gap: 3px 12px; font-size: 12.5px; margin-top: 6px; }
+  .meta-row dt { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-dim); padding-top: 1px; }
+  .meta-row dd { margin: 0; color: var(--ink); line-height: 1.5; min-width: 0; overflow-wrap: anywhere; }
+
+  .canvas-shell {
+    position: relative;
+    margin-top: 22px;
+    border-radius: 16px;
+    background: linear-gradient(160deg, var(--canvas-bg-a), var(--canvas-bg-b));
+    padding: 44px 20px 56px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+    overflow-x: auto;
+  }
+  .canvas-inner { position: relative; min-width: 320px; width: 100%; max-width: 900px; margin: 0 auto; }
+  .connectors { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; }
+  .connectors path { fill: none; stroke: var(--line); stroke-width: 2; }
+
+  .tree-node { display: flex; flex-direction: column; align-items: center; position: relative; }
+  .branch-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 28px; margin-top: 30px; }
+  .branch-col { display: flex; flex-direction: column; align-items: center; }
+  .branch-tag {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 3px 10px; border-radius: 100px; margin-bottom: 8px; position: relative; z-index: 2;
+  }
+  .branch-tag.yes { background: var(--good-bg); color: var(--good); }
+  .branch-tag.no { background: var(--bad-bg); color: var(--bad); }
+
+  .node-card {
+    position: relative; z-index: 2;
+    width: 268px;
+    background: var(--card-body);
+    border: 1.5px solid var(--card-line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .node-card.is-exit {
+    width: auto; min-width: 200px; border-radius: 100px;
+    display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+    font-size: 13px; font-weight: 700;
+  }
+  .node-card.is-exit.good { background: var(--good-bg); color: var(--good); border-color: transparent; }
+  .node-card.is-exit.bad { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+
+  .node-card.kind-decision { border-color: var(--decision); }
+  .node-card.kind-decision .nc-header { background: var(--decision); color: var(--decision-ink); }
+  .node-card.kind-decision .nc-row-icon { color: var(--decision); }
+  .node-card.kind-message.ch-email .nc-header { background: var(--ch-email); color: var(--ch-ink); }
+  .node-card.kind-message.ch-push .nc-header { background: var(--ch-push); color: var(--ch-ink); }
+  .node-card.kind-message.ch-sms .nc-header { background: var(--ch-sms); color: var(--ch-ink); }
+  .node-card.kind-message.ch-inapp .nc-header { background: var(--ch-inapp); color: var(--ch-ink); }
+  .node-card.kind-message.ch-wa .nc-header { background: var(--ch-wa); color: var(--ch-ink); }
+  .node-card.kind-message.ch-email .nc-row-icon { color: var(--ch-email); }
+  .node-card.kind-message.ch-push .nc-row-icon { color: var(--ch-push); }
+  .node-card.kind-message.ch-sms .nc-row-icon { color: var(--ch-sms); }
+  .node-card.kind-message.ch-inapp .nc-row-icon { color: var(--ch-inapp); }
+  .node-card.kind-message.ch-wa .nc-row-icon { color: var(--ch-wa); }
+  .node-card.kind-wait { border-left: 3px solid var(--wait); }
+  .node-card.is-wait {
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    background: var(--wait-bg);
+    color: var(--wait);
+    border: 1.5px dashed var(--wait);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: none;
+  }
+  .node-card.is-wait svg { flex: none; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 5px 16px; align-items: center; margin-top: 16px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.03em; color: var(--ink-dim); }
+  .legend .lg { display: inline-flex; align-items: center; gap: 5px; }
+  .legend .dot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+  .legend .dot.round { border-radius: 100px; }
+  .legend .dot.dash { border: 1.5px dashed var(--line); background: transparent; }
+
+  .node-card.kind-entry { background: linear-gradient(165deg, var(--entry-bg), var(--entry-bg-b)); border-color: transparent; border-top: 3px solid var(--entry-accent); }
+  .node-card.kind-entry .nc-header { background: transparent; color: var(--entry-ink); }
+  .node-card.kind-entry .nc-body { color: var(--entry-ink); }
+  .node-card.kind-entry .nc-row { border-bottom-color: rgba(255,255,255,0.12); }
+  .node-card.kind-entry .nc-row-icon { color: var(--entry-ink); opacity: 0.9; }
+  .node-card.kind-entry b { color: var(--entry-ink); }
+
+  .nc-header {
+    background: var(--card-header); color: var(--card-header-ink);
+    padding: 9px 12px; display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-weight: 700;
+  }
+  .nc-header .nc-icon { flex: none; opacity: 0.9; }
+  .nc-header .nc-tag { margin-left: auto; font-family: var(--font-mono); font-weight: 600; font-size: 10px; opacity: 0.85; white-space: nowrap; }
+
+  .nc-body { padding: 11px 12px 6px; }
+  .nc-row { display: flex; gap: 8px; align-items: flex-start; padding: 5px 0; font-size: 12px; line-height: 1.45; border-bottom: 1px dashed var(--card-line); }
+  .nc-row:last-child { border-bottom: none; }
+  .nc-row .nc-row-icon { flex: none; width: 15px; height: 15px; color: var(--card-header); opacity: 0.8; margin-top: 1px; }
+  .nc-row b { font-weight: 600; }
+  .nc-row > *:last-child { min-width: 0; overflow-wrap: anywhere; }
+
+  code.variable {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+    background: var(--pill); color: var(--pill-ink);
+    padding: 1px 5px; border-radius: 4px; white-space: nowrap;
+  }
+
+  .tt { position: relative; display: inline-block; }
+  .tt-trigger { border-bottom: 1px dotted var(--ink-dim); cursor: help; }
+  .tt-bubble {
+    position: absolute; left: 50%; bottom: calc(100% + 7px); transform: translateX(-50%) translateY(4px);
+    width: max-content; max-width: 220px;
+    background: var(--ink); color: var(--page-bg);
+    font-family: var(--font-body); font-size: 11.5px; font-weight: 400; line-height: 1.45;
+    padding: 8px 10px; border-radius: 8px; box-shadow: var(--shadow);
+    opacity: 0; pointer-events: none; transition: opacity 0.12s ease, transform 0.12s ease;
+    z-index: 20;
+  }
+  .tt-bubble::after {
+    content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: var(--ink);
+  }
+  .tt:hover .tt-bubble, .tt:focus-within .tt-bubble { opacity: 1; transform: translateX(-50%) translateY(0); }
+  @media (prefers-reduced-motion: reduce) { .tt-bubble { transition: none; } }
+
+  .nc-toggle {
+    width: 100%; background: none; border: none; border-top: 1px solid var(--card-line);
+    color: var(--card-header); font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em;
+    padding: 7px 12px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 6px;
+    text-transform: uppercase; font-weight: 600;
+  }
+  .nc-toggle svg { transition: transform 0.16s ease; }
+  .node-card[data-open="true"] .nc-toggle svg { transform: rotate(90deg); }
+  .nc-extra { display: none; padding: 4px 12px 12px; }
+  .node-card[data-open="true"] .nc-extra { display: block; }
+  .nc-extra dl { margin: 0; display: grid; grid-template-columns: 84px 1fr; gap: 6px 10px; }
+  .nc-extra dt { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink-dim); }
+  .nc-extra dd { margin: 0; font-size: 12px; line-height: 1.5; min-width: 0; overflow-wrap: anywhere; }
+
+  @media (prefers-reduced-motion: reduce) { .nc-toggle svg { transition: none; } }
+
+  .toolbar { display: flex; gap: 8px; margin-top: 18px; }
+  .dl-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--font-body); font-size: 12.5px; font-weight: 600; color: var(--ink);
+    background: var(--card-body); border: 1.5px solid var(--card-line); border-radius: 10px;
+    padding: 8px 13px; cursor: pointer;
+  }
+  .dl-btn:hover { border-color: var(--card-header); }
+  .dl-btn:focus-visible { outline: 2px solid var(--card-header); outline-offset: 1px; }
+  .dl-btn svg { flex: none; color: var(--card-header); }
+
+  #print-view { display: none; }
+
+  #dl-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--page-bg); font: 600 12.5px var(--font-body); padding: 10px 18px; border-radius: 100px; box-shadow: var(--shadow); z-index: 999; max-width: 88vw; text-align: center; opacity: 0; transition: opacity 0.2s ease; pointer-events: none; }
+  #dl-toast.show { opacity: 1; }
+  #dl-toast kbd { font-family: var(--font-mono); background: rgba(255,255,255,0.15); padding: 1px 5px; border-radius: 4px; }
+
+  @media print {
+    body { background: #fff; }
+    .toolbar, .tabs { display: none !important; }
+    .journey-meta, .canvas-shell { display: none !important; }
+    #print-view { display: block; }
+    .print-journey { page-break-after: always; padding-top: 8px; }
+    .print-journey:last-child { page-break-after: auto; }
+    .print-journey h2 { font-family: var(--font-display); font-size: 22px; margin: 0 0 4px; }
+    .print-journey .pj-meta { font-size: 12px; color: #444; margin: 0 0 18px; }
+    .print-step { border: 1px solid #ccc; border-radius: 8px; margin-bottom: 10px; padding: 10px 14px; break-inside: avoid; }
+    .print-step .ps-tag { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; color: #555; }
+    .print-step .ps-title { font-weight: 700; font-size: 13.5px; margin: 3px 0 6px; }
+    .print-step .ps-row { font-size: 12px; margin: 2px 0; }
+    .print-step.exit-good { background: #eef7f0; }
+    .print-step.exit-bad { background: #fbeeec; }
+    .print-branch-label { font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; margin: 10px 0 4px; }
+    code.variable { background: #eef1e9; border: 1px solid #ccc; }
+    .tt-bubble { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">claude-lifecycle · MindRoute edtech · T2 CSV · fictional sample data</p>
+  <h1>MindRoute Journeys</h1>
+  <p class="lede">Five customer journeys generated from a fictional 40-user edtech dataset (Data Quality Score 59/100, standard depth). Pick a journey above to see who gets which message, when, and what makes them exit. Segment sizes come from the actual dataset; message copy is a draft to be validated live.</p>
+
+  <div class="toolbar">
+    <button class="dl-btn" id="btn-html">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg>
+      Download as HTML
+    </button>
+    <button class="dl-btn" id="btn-pdf">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h9l3 3v3M6 13h12M6 17h8M6 9H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2v3h12v-3h2a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1H6Z"></path></svg>
+      Download as PDF
+    </button>
+  </div>
+
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="journey-meta" id="journey-meta"></div>
+  <div class="legend" aria-hidden="true">
+    <span class="lg"><span class="dot" style="background:var(--entry-bg);border:1px solid var(--entry-accent)"></span>Giriş</span>
+    <span class="lg"><span class="dot" style="background:var(--ch-email)"></span>Email</span>
+    <span class="lg"><span class="dot" style="background:var(--ch-push)"></span>Push</span>
+    <span class="lg"><span class="dot" style="background:var(--ch-sms)"></span>SMS</span>
+    <span class="lg"><span class="dot" style="background:var(--ch-inapp)"></span>In-app</span>
+    <span class="lg"><span class="dot" style="background:var(--ch-wa)"></span>WhatsApp</span>
+    <span class="lg"><span class="dot" style="background:var(--decision)"></span>Karar</span>
+    <span class="lg"><span class="dot round dash"></span>Bekleme</span>
+    <span class="lg"><span class="dot round" style="background:var(--good)"></span>Çıkış ✓</span>
+    <span class="lg"><span class="dot round" style="background:var(--bad)"></span>Çıkış ✕</span>
+  </div>
+  <div class="canvas-shell">
+    <div class="canvas-inner" id="canvas-inner"></div>
+  </div>
+  <div id="print-view"></div>
+</div>
+<div id="dl-toast" role="status"></div>
+<script>
+
+const ICONS = {
+  clock: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+  target: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
+  smartphone: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>',
+  bell: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
+  chat: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg>',
+  filter: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3Z"/></svg>',
+  flag: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>',
+  check: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 5-5"/></svg>',
+  alertCircle: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 15.5v.01"/></svg>'
+};
+function chev() { return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>'; }
+
+let ttCount = 0;
+function tip(label, explain) {
+  const id = `tt-${ttCount++}`;
+  return `<span class="tt" tabindex="0" aria-describedby="${id}"><span class="tt-trigger">${label}</span><span class="tt-bubble" id="${id}" role="tooltip">${explain}</span></span>`;
+}
+function highlightVars(html) {
+  return html.replace(/\{\{[^}]+\}\}/g, (m) => `<code class="variable">${m}</code>`);
+}
+function escapeHtml(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+
+const HOLDOUT_TIP = tip("Holdout: not feasible at this data size", "A trustworthy lift read needs roughly 200 control-group conversions. At this volume that takes months, so impact is tracked through leading indicators such as first-lesson completion within 72 hours.");
+
+const DATA_NOTE = "Data note: segment sizes and thresholds are computed from the sample dataset; message steps are design decisions on edtech practice, to be validated live through leading indicators.";
+
+const JOURNEYS = [
+  {
+    id: "trial-conversion", skill: "trial-conversion", label: "Trial Activation + Conversion", purpose: "trial_start to subscription_start, inside the 7-day trial clock",
+    segment: "29 trials: 17 converted, 12 lost. The decisive finding: all 10 users who finished their first lesson subscribed; none of the 12 non-converters ever finished one",
+    goal: "This journey's real job is activation, not sales: get the first lesson finished within 72 hours and conversion follows",
+    primaryMetric: "Trial-to-paid rate · leading indicator: first lesson finished within 72h",
+    root: {
+      kind: "entry", tag: "Entry Rules", title: "trial_start · no active subscription",
+      rows: [
+        { icon: "clock", html: "<b>Trigger:</b> fires on trial_start; one entry per trial" },
+        { icon: "target", html: `<b>Audience:</b> every new trial. Email reaches everyone; push only the 40% who opted in. ${HOLDOUT_TIP}` },
+        { icon: "gear", html: "<b>Guardrail:</b> users in dunning are suppressed from all marketing. Step 1 retires the old generic welcome email." }
+      ],
+      children: [{ label: null, node: {
+        kind: "message", tag: "Hour 1 · Email", title: "Welcome, with one clear ask: finish your first lesson today",
+        rows: [{ icon: "mail", html: "One goal, one button: a 5-minute starter lesson. A/B test: action-first angle vs goal-first framing." }],
+        extra: { "Data note": DATA_NOTE },
+        children: [{ label: null, node: {
+          kind: "decision", tag: "Day 2", title: "Completed a lesson yet?",
+          rows: [{ icon: "filter", html: "The backbone split. In the data, every single user who finished a lesson converted, and no one who skipped it did. Each branch gets its own tone and content." }],
+          children: [
+            { label: "Yes: activated", node: {
+              kind: "message", tag: "Day 5 · Email (A)", title: "Momentum, and what a plan unlocks",
+              rows: [{ icon: "mail", html: `A weekly mini plan built around <code class="variable">{{course_category}}</code>. The end date <code class="variable">{{trial_end_date}}</code> is shared as information, never as pressure.` }],
+              children: [{ label: null, node: {
+                kind: "decision", tag: "Trial end", title: "Subscribed?",
+                rows: [{ icon: "filter", html: "Window: 10 days (7-day trial, plus 3 days to decide)" }],
+                children: [
+                  { label: "Yes", node: { kind: "exit", exit: "good", title: "Subscribed; handed to the Rhythm Guard journey" } },
+                  { label: "No", node: { kind: "exit", exit: "bad", title: "Rare case, none in the data: quiet close, stays on the general list" } }
+                ]
+              } }]
+            } },
+            { label: "No: not yet active", node: {
+              kind: "message", tag: "Day 2 · Push (opted-in)", title: "The five-minute reframe",
+              rows: [{ icon: "bell", html: "One short, single-action nudge. Users without push permission skip this and are caught by the Day 5 email." }],
+              children: [{ label: null, node: {
+                kind: "message", tag: "Day 3 · In-app", title: "Pick up where you left off",
+                rows: [{ icon: "bell", html: "Shown only to users with an unfinished lesson: two minutes to complete it. Unfinished tasks pull harder than new ones." }],
+                children: [{ label: null, node: {
+                  kind: "message", tag: "Day 5 · Email (B)", title: "Name the blocker, clear the blocker",
+                  rows: [{ icon: "mail", html: "Zero guilt. Two usual suspects (no time, unclear starting point) and one fix: the 5-minute lesson." }],
+                  children: [{ label: null, node: {
+                    kind: "message", tag: "Day 6 · Push", title: "A real deadline, stated plainly",
+                    rows: [{ icon: "bell", html: "No fake urgency: access really ends tomorrow, progress is kept. No discount; that is a brand rule." }],
+                    children: [{ label: null, node: {
+                      kind: "decision", tag: "Trial end", title: "Subscribed?",
+                      rows: [{ icon: "filter", html: "Window: 10 days" }],
+                      children: [
+                        { label: "Yes", node: { kind: "exit", exit: "good", title: "Subscribed" } },
+                        { label: "No", node: { kind: "exit", exit: "bad", title: "Handed to the Expired Trial Rescue journey (separate audience, no overlap)" } }
+                      ]
+                    } }]
+                  } }]
+                } }]
+              } }]
+            } }
+          ]
+        } }]
+      } }]
+    }
+  },
+  {
+    id: "payment-failure", skill: "payment-failure", label: "Payment Recovery", purpose: "payment_failed to recovery, before access is cut",
+    segment: "4 payment_failed users in the data and none of them were recovered; one ended in cancellation. Today this flow simply does not exist",
+    goal: "Cut involuntary churn with calm, technical, blame-free dunning across a 10-day grace window",
+    primaryMetric: "Recovery rate · proxy event: subscription_start (payment_succeeded does not exist yet; tracking plan P0)",
+    root: {
+      kind: "entry", tag: "Entry Rules", title: "payment_failed · subscription not suspended",
+      rows: [
+        { icon: "clock", html: "<b>Trigger:</b> payment_failed event (the failure_reason parameter picks the message tone); one entry per billing cycle" },
+        { icon: "target", html: `<b>Audience:</b> subscribers whose renewal payment failed. ${HOLDOUT_TIP}` },
+        { icon: "gear", html: "<b>Guardrail:</b> while dunning runs, this user is suppressed from ALL marketing, campaigns included. Only this flow speaks." }
+      ],
+      children: [{ label: null, node: {
+        kind: "message", tag: "Hour 1 · Email", title: "What happened, your access is safe, one step to fix it",
+        rows: [{ icon: "mail", html: `Banks decline payments for temporary reasons; no blame. The retry date <code class="variable">{{next_retry_date}}</code> is stated plainly.` }],
+        extra: { "Data note": DATA_NOTE },
+        children: [{ label: null, node: {
+          kind: "decision", tag: "Continuous check", title: "Payment resolved?",
+          rows: [{ icon: "filter", html: "Re-checked before every step; once resolved, remaining steps are cancelled" }],
+          children: [
+            { label: "Yes", node: { kind: "exit", exit: "good", title: "Recovered; a short thank-you and the flow ends" } },
+            { label: "No", node: {
+              kind: "message", tag: "Day 2 · In-app", title: "Access-still-on banner",
+              rows: [{ icon: "bell", html: "A quiet banner for users already in the app: access is on, updating the card takes two minutes" }],
+              children: [{ label: null, node: {
+                kind: "message", tag: "Day 4 · Email", title: "Last automatic retry, plus a human door",
+                rows: [{ icon: "mail", html: "Card limit, expiry date, or a different card usually solves it. Replies land with a real person." }],
+                children: [{ label: null, node: {
+                  kind: "message", tag: "Day 8 · Email", title: "Final notice, 48 hours ahead",
+                  rows: [{ icon: "mail", html: "A clear date and a clear consequence: access pauses, progress is never deleted. No shaming; the door stays open." }],
+                  children: [{ label: null, node: {
+                    kind: "decision", tag: "Day 10", title: "Payment received?",
+                    rows: [{ icon: "filter", html: "End of the grace window" }],
+                    children: [
+                      { label: "Yes", node: { kind: "exit", exit: "good", title: "Recovered" } },
+                      { label: "No", node: { kind: "exit", exit: "bad", title: "Access pauses; progress is kept and self-serve return stays open" } }
+                    ]
+                  } }]
+                } }]
+              } }]
+            } }
+          ]
+        } }]
+      } }]
+    }
+  },
+  {
+    id: "activation", skill: "activation", label: "Expired Trial Rescue", purpose: "A second chance for trials that expired without a single finished lesson",
+    segment: "12 users: trial expired, zero lessons finished, zero subscriptions. The data shows this group closing at exactly 0% conversion",
+    goal: "Activation, not sales: get the 5-minute starter lesson finished; the decision follows from there",
+    primaryMetric: "lesson_completed ≥ 1 within 14 days",
+    root: {
+      kind: "entry", tag: "Entry Rules", title: "trial expired · lesson_completed = 0 · no subscription",
+      rows: [
+        { icon: "clock", html: "<b>Trigger:</b> segment entry (trial end + 1 day); once per user" },
+        { icon: "target", html: `<b>Audience:</b> the 12 expired, never-activated trial users. No overlap with the trial journey; entry requires the trial to be over. ${HOLDOUT_TIP}` },
+        { icon: "gear", html: "<b>Guardrail:</b> flagged product assumption: the starter lesson must stay open after trial expiry. If the product cannot support that, this journey does not ship." }
+      ],
+      children: [{ label: null, node: {
+        kind: "message", tag: "Day 1 · Email", title: "Honest framing: your time ran out, your effort didn't",
+        rows: [{ icon: "mail", html: "Saved-effort framing instead of loss-scare. One action: the starter lesson we kept open." }],
+        extra: { "Data note": DATA_NOTE },
+        children: [{ label: null, node: {
+          kind: "decision", tag: "Continuous check", title: "Lesson finished?",
+          rows: [{ icon: "filter", html: "If lesson_completed arrives, remaining steps are cancelled; reopening the trial becomes a separate conversation" }],
+          children: [
+            { label: "Yes", node: { kind: "exit", exit: "good", title: "Activated; the conversion conversation starts here" } },
+            { label: "No", node: {
+              kind: "message", tag: "Day 4 · Push (opted-in)", title: "The unfinished-lesson frame",
+              rows: [{ icon: "bell", html: "Only for the few with push permission; everyone else falls through to the Day 8 email" }],
+              children: [{ label: null, node: {
+                kind: "message", tag: "Day 8 · Email", title: "One question: what stopped you?",
+                rows: [{ icon: "phone", html: "Replies land with a real person; even a one-sentence answer is product signal. Not a single sales line in it." }],
+                children: [{ label: null, node: {
+                  kind: "decision", tag: "Day 14", title: "A lesson or a reply?",
+                  rows: [{ icon: "filter", html: "Filter: lesson_completed OR an email reply" }],
+                  children: [
+                    { label: "Yes", node: { kind: "exit", exit: "good", title: "Signal received; a human takes over" } },
+                    { label: "No", node: { kind: "exit", exit: "bad", title: "Quiet close; no aggressive winback (brand tone)" } }
+                  ]
+                } }]
+              } }]
+            } }
+          ]
+        } }]
+      } }]
+    }
+  },
+  {
+    id: "lead-nurture", skill: "lead-nurture", label: "Lead Nurture", purpose: "generate_lead to sign_up inside a 30-day window",
+    segment: "11 of 12 leads never created an account; today this group receives nothing at all",
+    goal: "Move guide-downloaders to sign-up without pushing: deliver the promised value first, then one short insight per week",
+    primaryMetric: "Lead-to-signup rate (30 days)",
+    root: {
+      kind: "entry", tag: "Entry Rules", title: "generate_lead · SEPARATE marketing consent · no sign_up",
+      rows: [
+        { icon: "clock", html: "<b>Trigger:</b> generate_lead event (the lead_source parameter picks the content); once per user" },
+        { icon: "target", html: `<b>Audience:</b> leads without an account. ${HOLDOUT_TIP}` },
+        { icon: "gear", html: "<b>Legal gate:</b> if the lead form has no separate marketing-consent checkbox, this journey does NOT go live. The asset-delivery email (step 1) still goes out as a service message." }
+      ],
+      children: [{ label: null, node: {
+        kind: "message", tag: "Minute 15 · Email", title: "Deliver the promised guide, set expectations openly",
+        rows: [{ icon: "mail", html: `<code class="variable">{{lead_asset_name}}</code> is delivered; what comes next and the one-click exit are stated in plain sight` }],
+        extra: { "Data note": DATA_NOTE },
+        children: [{ label: null, node: {
+          kind: "decision", tag: "Continuous check", title: "Signed up?",
+          rows: [{ icon: "filter", html: "Checked before every step; a sign-up exits instantly and the Trial journey takes over" }],
+          children: [
+            { label: "Yes", node: { kind: "exit", exit: "good", title: "Signed up; handed to the Trial Activation journey" } },
+            { label: "No", node: {
+              kind: "message", tag: "Day 7 · Email", title: "The most skipped step in the guide",
+              rows: [{ icon: "mail", html: "No selling: one actionable exercise from the guide they downloaded. Doing beats reading." }],
+              children: [{ label: null, node: {
+                kind: "message", tag: "Day 14 · Email", title: "On your own, or with a plan",
+                rows: [{ icon: "mail", html: "They already have the method; MindRoute is the planned version. A 2-minute intro lesson, no account required." }],
+                children: [{ label: null, node: {
+                  kind: "message", tag: "Day 21 · Email", title: "A soft trial invitation, no discount",
+                  rows: [{ icon: "mail", html: "A clear promise: finish one lesson on day one, leave with one click if it does not fit. Brand rule: no discount offers." }],
+                  children: [{ label: null, node: {
+                    kind: "decision", tag: "Day 30", title: "Signed up?",
+                    rows: [{ icon: "filter", html: "End of window" }],
+                    children: [
+                      { label: "Yes", node: { kind: "exit", exit: "good", title: "Signed up; handed to the Trial journey" } },
+                      { label: "No", node: { kind: "exit", exit: "bad", title: "Flow ends; stays on a low-frequency general list if consented" } }
+                    ]
+                  } }]
+                } }]
+              } }]
+            } }
+          ]
+        } }]
+      } }]
+    }
+  },
+  {
+    id: "churn-prevention", skill: "churn-prevention", label: "Rhythm Guard", purpose: "Win the subscriber back before the cancel, not after",
+    segment: "17 active subscribers; all 3 cancellations in the data came after a long study silence. The signal: 7 days without a finished lesson",
+    goal: "Early repair instead of an exit survey: the first week after the rhythm breaks is the intervention window",
+    primaryMetric: "Rhythm repaired within 21 days (lesson_completed) · guardrail: cancel rate inside the window",
+    root: {
+      kind: "entry", tag: "Entry Rules", title: "active subscription · no lesson for 7 days",
+      rows: [
+        { icon: "clock", html: "<b>Trigger:</b> daily segment scan; at most one entry per 30 days" },
+        { icon: "target", html: `<b>Audience:</b> subscribers whose rhythm broke. ${HOLDOUT_TIP}` },
+        { icon: "gear", html: "<b>Guardrail:</b> users in payment_failed are excluded (while Payment Recovery speaks, this journey stays silent)" }
+      ],
+      children: [{ label: null, node: {
+        kind: "message", tag: "Next session · In-app", title: "Your last lesson, one card",
+        rows: [{ icon: "bell", html: "If the user is already in the app, this is the lowest-friction return: a two-minute frame, zero guilt" }],
+        extra: { "Data note": DATA_NOTE },
+        children: [{ label: null, node: {
+          kind: "decision", tag: "Continuous check", title: "Lesson finished?",
+          rows: [{ icon: "filter", html: "If lesson_completed arrives, remaining steps are cancelled" }],
+          children: [
+            { label: "Yes", node: { kind: "exit", exit: "good", title: "Rhythm repaired" } },
+            { label: "No", node: {
+              kind: "message", tag: "Day 3 · Email", title: "A real progress recap, one small step",
+              rows: [{ icon: "mail", html: `The real number <code class="variable">{{completed_lessons}}</code> recalls the effort already banked; breaks are normalized and the comeback step is kept small` }],
+              children: [{ label: null, node: {
+                kind: "message", tag: "Day 10 · Email", title: "Difficulty or time? Both are adjustable",
+                rows: [{ icon: "phone", html: "A one-minute level and daily-goal reset for the two usual causes; replies land with a real person" }],
+                children: [{ label: null, node: {
+                  kind: "decision", tag: "Day 21", title: "Rhythm repaired?",
+                  rows: [{ icon: "filter", html: "End of window" }],
+                  children: [
+                    { label: "Yes", node: { kind: "exit", exit: "good", title: "Repaired" } },
+                    { label: "No", node: { kind: "exit", exit: "bad", title: "High-risk flag; if a cancel arrives they become a winback candidate (winback is blocked at this data volume)" } }
+                  ]
+                } }]
+              } }]
+            } }
+          ]
+        } }]
+      } }]
+    }
+  }
+];
+
+const tabsEl = document.getElementById('tabs');
+const metaEl = document.getElementById('journey-meta');
+const canvasInner = document.getElementById('canvas-inner');
+let current = JOURNEYS[0].id;
+const links = [];
+
+function nodeIcon(kind) {
+  if (kind === 'entry') return ICONS.flag;
+  if (kind === 'decision') return ICONS.filter;
+  if (kind === 'wait') return ICONS.clock;
+  if (kind === 'message') return ICONS.mail;
+  return ICONS.bolt;
+}
+function kindLabel(kind) {
+  return { entry: 'Entry', message: 'Message', decision: 'Decision', wait: 'Wait' }[kind] || '';
+}
+
+const CHANNELS = {
+  email:    { label: 'Email',    icon: 'mail',       cls: 'ch-email' },
+  push:     { label: 'Push',     icon: 'bell',       cls: 'ch-push' },
+  sms:      { label: 'SMS',      icon: 'chat',       cls: 'ch-sms' },
+  inapp:    { label: 'In-app',   icon: 'smartphone', cls: 'ch-inapp' },
+  whatsapp: { label: 'WhatsApp', icon: 'phone',      cls: 'ch-wa' }
+};
+function detectChannel(node) {
+  if (node.channel && CHANNELS[node.channel]) return node.channel;
+  const t = (node.tag || '').toLowerCase();
+  if (t.includes('whatsapp')) return 'whatsapp';
+  if (t.includes('push')) return 'push';
+  if (t.includes('sms')) return 'sms';
+  if (t.includes('in-app') || t.includes('inapp') || t.includes('in‑app')) return 'inapp';
+  return 'email';
+}
+
+function buildCard(node) {
+  if (node.kind === 'exit') {
+    const el = document.createElement('div');
+    el.className = `node-card is-exit ${node.exit}`;
+    const exitIcon = node.exit === 'good' ? ICONS.check : ICONS.alertCircle;
+    el.innerHTML = `${exitIcon}<span>${escapeHtml(node.title)}</span>`;
+    return el;
+  }
+  if (node.kind === 'wait') {
+    const el = document.createElement('div');
+    el.className = 'node-card is-wait kind-wait';
+    el.innerHTML = `${ICONS.clock}<span>${escapeHtml(node.title || node.tag || 'Wait')}</span>`;
+    return el;
+  }
+  const ch = node.kind === 'message' ? CHANNELS[detectChannel(node)] : null;
+  let tagText = node.tag || '';
+  if (ch) tagText = tagText.split('·').map(s => s.trim()).filter(s => s.toLowerCase() !== ch.label.toLowerCase()).join(' · ');
+  const el = document.createElement('div');
+  el.className = `node-card kind-${node.kind}${ch ? ' ' + ch.cls : ''}`;
+  el.dataset.open = 'false';
+  const hasExtra = node.extra && Object.keys(node.extra).length;
+  el.innerHTML = `
+    <div class="nc-header">
+      <span class="nc-icon">${ch ? ICONS[ch.icon] : nodeIcon(node.kind)}</span>
+      <span>${ch ? ch.label : kindLabel(node.kind)}</span>
+      <span class="nc-tag">${escapeHtml(node.kind === 'message' ? tagText : (node.tag || ''))}</span>
+    </div>
+    <div class="nc-body">
+      ${node.title ? `<div class="nc-row"><span class="nc-row-icon"></span><b>${escapeHtml(node.title)}</b></div>` : ''}
+      ${(node.rows || []).map(r => `<div class="nc-row"><span class="nc-row-icon">${ICONS[r.icon] || ''}</span><span>${highlightVars(r.html)}</span></div>`).join('')}
+    </div>
+    ${hasExtra ? `
+      <button class="nc-toggle" onclick="toggleCard(this)">${chev()} Details</button>
+      <div class="nc-extra"><dl>${Object.entries(node.extra).map(([k,v]) => `<dt>${escapeHtml(k)}</dt><dd>${highlightVars(escapeHtml(String(v)))}</dd>`).join('')}</dl></div>
+    ` : ''}
+  `;
+  return el;
+}
+
+function buildTree(node, parentEl) {
+  const wrap = document.createElement('div');
+  wrap.className = 'tree-node';
+  const card = buildCard(node);
+  wrap.appendChild(card);
+  if (parentEl) links.push({ parent: parentEl, child: card });
+
+  if (node.children && node.children.length) {
+    const row = document.createElement('div');
+    row.className = 'branch-row';
+    node.children.forEach(({ label, node: childNode }) => {
+      const col = document.createElement('div');
+      col.className = 'branch-col';
+      if (label) {
+        const NEGATIVE_LABELS = ['Hayır', 'Olumsuz'];
+        const isNegative = NEGATIVE_LABELS.includes(label);
+        const tag = document.createElement('span');
+        tag.className = `branch-tag ${isNegative ? 'no' : 'yes'}`;
+        tag.textContent = label;
+        col.appendChild(tag);
+      }
+      col.appendChild(buildTree(childNode, card));
+      row.appendChild(col);
+    });
+    wrap.appendChild(row);
+  }
+  return wrap;
+}
+
+function drawConnectors(svg, containerRect) {
+  svg.innerHTML = '';
+  links.forEach(({ parent, child }) => {
+    const a = parent.getBoundingClientRect();
+    const b = child.getBoundingClientRect();
+    const x1 = a.left + a.width / 2 - containerRect.left;
+    const y1 = a.bottom - containerRect.top;
+    const x2 = b.left + b.width / 2 - containerRect.left;
+    const y2 = b.top - containerRect.top;
+    const midY = (y1 + y2) / 2;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`);
+    svg.appendChild(path);
+  });
+}
+
+function toggleCard(btn) {
+  const card = btn.closest('.node-card');
+  card.dataset.open = card.dataset.open === 'true' ? 'false' : 'true';
+}
+window.toggleCard = toggleCard;
+
+function selectTab(id, focusIndex) {
+  current = id;
+  render();
+  if (focusIndex != null) tabsEl.children[focusIndex]?.focus();
+}
+
+function renderTabs() {
+  tabsEl.innerHTML = '';
+  JOURNEYS.forEach((j, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab'; btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', j.id === current);
+    btn.setAttribute('tabindex', j.id === current ? '0' : '-1');
+    btn.innerHTML = `<span>${escapeHtml(j.label)}</span><span class="tab-purpose">${escapeHtml(j.purpose)}</span>`;
+    btn.addEventListener('click', () => selectTab(j.id));
+    btn.addEventListener('keydown', (e) => {
+      const last = JOURNEYS.length - 1;
+      let next = null;
+      if (e.key === 'ArrowRight') next = i === last ? 0 : i + 1;
+      else if (e.key === 'ArrowLeft') next = i === 0 ? last : i - 1;
+      else if (e.key === 'Home') next = 0;
+      else if (e.key === 'End') next = last;
+      if (next !== null) {
+        e.preventDefault();
+        selectTab(JOURNEYS[next].id, next);
+      }
+    });
+    tabsEl.appendChild(btn);
+  });
+}
+
+function renderMeta(j) {
+  metaEl.innerHTML = `
+    <h2>${escapeHtml(j.label)} <span style="font-family:var(--font-mono);font-size:11.5px;color:var(--ink-dim);font-weight:400;">· ${escapeHtml(j.skill)}</span></h2>
+    <dl class="meta-row">
+      <dt>Segment</dt><dd>${escapeHtml(j.segment)}</dd>
+      <dt>Goal</dt><dd>${escapeHtml(j.goal)}</dd>
+      <dt>Primary metric</dt><dd>${escapeHtml(j.primaryMetric)}</dd>
+    </dl>`;
+}
+
+function redrawConnectors() {
+  const svg = document.querySelector('.connectors');
+  if (!svg) return;
+  const rect = canvasInner.getBoundingClientRect();
+  svg.setAttribute('width', canvasInner.scrollWidth);
+  svg.setAttribute('height', canvasInner.scrollHeight);
+  drawConnectors(svg, rect);
+}
+
+function render() {
+  const journey = JOURNEYS.find(j => j.id === current);
+  links.length = 0;
+  renderTabs();
+  renderMeta(journey);
+  canvasInner.innerHTML = '';
+  canvasInner.appendChild(buildTree(journey.root, null));
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'connectors');
+  canvasInner.prepend(svg);
+
+  requestAnimationFrame(redrawConnectors);
+  setTimeout(redrawConnectors, 80);
+  buildPrintView();
+}
+
+render();
+window.addEventListener('resize', redrawConnectors);
+new ResizeObserver(redrawConnectors).observe(canvasInner);
+
+function flattenForPrint(node, label, depth, out) {
+  out.push({ label, node, depth });
+  if (node.kind !== 'exit' && node.children) {
+    node.children.forEach(c => flattenForPrint(c.node, c.label, depth + 1, out));
+  }
+  return out;
+}
+
+function buildPrintView() {
+  const printRoot = document.getElementById('print-view');
+  printRoot.innerHTML = JOURNEYS.map(j => {
+    const steps = flattenForPrint(j.root, null, 0, []);
+    const stepsHtml = steps.map(({ label, node, depth }) => {
+      const cls = node.kind === 'exit' ? `exit-${node.exit}` : '';
+      const indent = `style="margin-left:${Math.min(depth, 6) * 18}px"`;
+      const labelHtml = label ? `<div class="print-branch-label" ${indent}>${escapeHtml(label)} →</div>` : '';
+      if (node.kind === 'exit') {
+        const mark = node.exit === 'good' ? '✓' : '✕';
+        return `${labelHtml}<div class="print-step ${cls}" ${indent}><div class="ps-title">${mark} ${escapeHtml(node.title)}</div></div>`;
+      }
+      const rows = (node.rows || []).map(r => `<div class="ps-row">${highlightVars(r.html)}</div>`).join('');
+      const extra = node.extra ? Object.entries(node.extra).map(([k, v]) => `<div class="ps-row"><b>${escapeHtml(k)}:</b> ${escapeHtml(v)}</div>`).join('') : '';
+      return `${labelHtml}<div class="print-step ${cls}" ${indent}>
+        <div class="ps-tag">${kindLabel(node.kind)} · ${escapeHtml(node.tag || '')}</div>
+        <div class="ps-title">${escapeHtml(node.title)}</div>
+        ${rows}${extra}
+      </div>`;
+    }).join('');
+    return `<section class="print-journey">
+      <h2>${escapeHtml(j.label)} <span style="font-weight:400;font-size:14px;">· ${escapeHtml(j.skill)}</span></h2>
+      <p class="pj-meta"><b>Segment:</b> ${escapeHtml(j.segment)} &nbsp;·&nbsp; <b>Goal:</b> ${escapeHtml(j.goal)} &nbsp;·&nbsp; <b>Primary metric:</b> ${escapeHtml(j.primaryMetric)}</p>
+      ${stepsHtml}
+    </section>`;
+  }).join('');
+}
+
+const isMac = navigator.platform.toUpperCase().includes('MAC');
+const mod = isMac ? 'Cmd' : 'Ctrl';
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('dl-toast');
+  t.innerHTML = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 4200);
+}
+
+document.getElementById('btn-html').addEventListener('click', () => {
+  showToast(`Use your browser's <kbd>${mod}+S</kbd> shortcut to save this page as .html.`);
+});
+
+document.getElementById('btn-pdf').addEventListener('click', () => {
+  showToast(`Use <kbd>${mod}+P</kbd> to print, then choose "Save as PDF" in the dialog.`);
+});
+
+</script>
+</body>
+</html>

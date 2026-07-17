@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "output-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8377", "--directory", "output/anadolu-ev-yasam"],
+      "port": 8377
+    },
+    {
+      "name": "templates-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8378", "--directory", "templates"],
+      "port": 8378
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+case: 37-mobile-channel-opt-in-generates
+company: Adimtakip
+sector: mobile-app
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/channel-opt-in.md (Required-event signature — consent_updated instrumented + channel_consent_status present; entry segment exists: users open on in-app, closed on push)
+  - knowledge/industries/mobile-app.md (pattern_priorities — channel-opt-in P1)
+run:
+  copy: false
+assertions:
+  must_generate: [channel-opt-in]

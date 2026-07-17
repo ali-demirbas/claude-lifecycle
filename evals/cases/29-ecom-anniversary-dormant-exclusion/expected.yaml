@@ -1,0 +1,12 @@
+case: 29-ecom-anniversary-dormant-exclusion
+company: Senelik
+sector: ecommerce
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/anniversary.md (Exclude - churned/dormant users; a happy-anniversary send to an abandoned account reads as unaware, dormant belongs to winback)
+  - knowledge/journey-patterns/anniversary.md (Required-event signature - anniversary_date attribute is the scheduler key)
+run:
+  copy: false
+assertions:
+  must_generate: [anniversary]
+  audience_must_exclude: [U-02]

@@ -1,0 +1,13 @@
+case: 11-travel-informational-short
+company: Uçakçepte
+sector: travel
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/price-drop.md (Depth scaling - depth does not scale with DQS, depth_range max 3)
+  - skills/lifecycle-journeys/SKILL.md (depth assignment - informational patterns keep 1-3 steps regardless of DQS)
+run:
+  copy: false
+assertions:
+  must_generate: [price-drop]
+  max_steps:
+    price-drop: 3

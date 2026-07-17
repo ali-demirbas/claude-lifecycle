@@ -1,0 +1,12 @@
+case: 24-marketplace-loyalty-pending-refund-exclusion
+company: Puanla
+sector: marketplace
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/loyalty.md (Exclude - pending refund that would reverse the triggering points)
+  - knowledge/journey-patterns/loyalty.md (Required-event signature - earn_virtual_currency required, blocked without it)
+run:
+  copy: false
+assertions:
+  must_generate: [loyalty]
+  audience_must_exclude: [U-02]

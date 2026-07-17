@@ -1,0 +1,149 @@
+{
+  "id": "ecom-abandoned-cart-01",
+  "version": "1.0.0",
+  "constraints": {
+    "max_discount_pct": 10,
+    "allowed_channels": [
+      "email",
+      "push"
+    ]
+  },
+  "name": "Cart Recovery",
+  "pattern": "abandoned-cart",
+  "stage": "revenue",
+  "priority": "P0",
+  "data_tier": "T1",
+  "dqs": 74,
+  "objective": "Recover revenue from abandoned carts; primary KPI is cart recovery rate (purchases within the 7-day window / journeys entered).",
+  "trigger": {
+    "type": "event",
+    "value": "add_to_cart",
+    "entry_conditions": [
+      "no purchase within 1h arming window",
+      "cart non-empty after arming window",
+      "messageable on >= 1 channel (consent checked per channel per step)",
+      "identified user (user_id present)"
+    ],
+    "reentry_policy": "once per 7 days"
+  },
+  "audience": {
+    "include": "Identified users whose cart is non-empty 1 hour after the last add_to_cart, with no purchase since",
+    "exclude": [
+      "purchased in last 24h (identity-stitched)",
+      "currently in a transactional flow (order/shipping)",
+      "cart value below 150 TL (low-value floor from intake)",
+      "users in ecom-post-purchase-01"
+    ],
+    "estimated_volume": 650
+  },
+  "exit": {
+    "success_event": "purchase",
+    "success_window_days": 7,
+    "other_exits": [
+      "unsubscribe (exits that channel's steps; whole journey if single consented channel)",
+      "journey completed",
+      "cart emptied by user",
+      "entered higher-priority transactional flow"
+    ]
+  },
+  "steps": [
+    {
+      "index": 1,
+      "wait": "PT1H",
+      "channel": "email",
+      "intent": "Cart reminder: contents + free-shipping threshold, zero pressure",
+      "branch_condition": null,
+      "copy_ref": "step-1"
+    },
+    {
+      "index": 2,
+      "wait": "PT4H",
+      "channel": "push",
+      "intent": "Checkout continuation: resume payment step, deeplink to checkout",
+      "branch_condition": "begin_checkout fired, no purchase",
+      "copy_ref": "step-2"
+    },
+    {
+      "index": 3,
+      "wait": "PT16H",
+      "channel": "push",
+      "intent": "Short cart nudge, deeplink to cart",
+      "branch_condition": "no begin_checkout AND step 1 not opened",
+      "copy_ref": "step-3"
+    },
+    {
+      "index": 4,
+      "wait": "P1D",
+      "channel": "email",
+      "intent": "Objection handling: shipping cost, 30-day returns, payment options",
+      "branch_condition": null,
+      "copy_ref": "step-4"
+    },
+    {
+      "index": 5,
+      "wait": "P2D",
+      "channel": "email",
+      "intent": "Social proof on cart items (reviews and purchase counts from real data)",
+      "branch_condition": "cart_value < 1500 TL",
+      "copy_ref": "step-5"
+    },
+    {
+      "index": 6,
+      "wait": "P2D",
+      "channel": "email",
+      "intent": "High-value cart: personal styling help offer (human reply-to)",
+      "branch_condition": "cart_value >= 1500 TL",
+      "copy_ref": "step-6"
+    },
+    {
+      "index": 7,
+      "wait": "P2D",
+      "channel": "push",
+      "intent": "Real expiry notice: cart purges on {{cart_expiry_date}} (true system date)",
+      "branch_condition": null,
+      "copy_ref": "step-7"
+    },
+    {
+      "index": 8,
+      "wait": "P1D",
+      "channel": "email",
+      "intent": "Incentive (max 10%), approval-gated per intake policy",
+      "branch_condition": "cart_value >= 1500 TL AND incentive approved",
+      "copy_ref": "step-8"
+    }
+  ],
+  "kpis": [
+    {
+      "name": "Cart recovery rate",
+      "type": "primary",
+      "definition": "purchase within 7-day window / journeys entered",
+      "target": "baseline after 4 weeks"
+    },
+    {
+      "name": "Revenue per entrant",
+      "type": "secondary",
+      "definition": "recovered purchase.value (TRY) / journeys entered",
+      "target": "baseline after 4 weeks"
+    },
+    {
+      "name": "Unsubscribe rate per send",
+      "type": "guardrail",
+      "definition": "unsubscribes / delivered, per email step",
+      "target": "< 0.3% per send"
+    },
+    {
+      "name": "Push opt-out rate",
+      "type": "guardrail",
+      "definition": "push permission revocations / push delivered",
+      "target": "< 0.5% per send"
+    }
+  ],
+  "experiment": {
+    "holdout_pct": 10,
+    "ab_test": "step-1 subject line: Variant A (Sepetin seni bekliyor...) vs Variant B ({{product_name}} hala sepetinde)"
+  },
+  "data_gaps": [
+    "cart_value computed CRM-side from synced add_to_cart/remove_from_cart events; native cart-state attribute would remove drift risk",
+    "RFM attributes would allow suppressing the step-8 incentive for discount-affine users"
+  ]
+}

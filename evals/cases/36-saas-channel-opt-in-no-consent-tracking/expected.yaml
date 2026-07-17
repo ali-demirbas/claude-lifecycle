@@ -1,0 +1,10 @@
+case: 36-saas-channel-opt-in-no-consent-tracking
+company: Panovar
+sector: saas
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/channel-opt-in.md (Required-event signature — consent_updated missing means the grant can neither be measured nor legally evidenced; pattern is blocked)
+run:
+  copy: false
+assertions:
+  must_not_generate: [channel-opt-in]

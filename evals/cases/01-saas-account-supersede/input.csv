@@ -1,0 +1,11 @@
+account_id,contact_id,contact_role,event_timestamp,event_name,feature_name,seats_purchased,seats_active
+ACC-01,ACC-01-C1,champion,2026-06-01T09:00:00,sign_up,,12,1
+ACC-01,ACC-01-C1,champion,2026-06-01T09:20:00,feature_used,board_created,12,1
+ACC-01,ACC-01-C2,end_user,2026-06-02T10:00:00,login,,12,2
+ACC-01,ACC-01-C3,economic_buyer,2026-06-03T11:00:00,login,,12,2
+ACC-02,ACC-02-C1,champion,2026-06-05T09:00:00,sign_up,,8,1
+ACC-02,ACC-02-C1,champion,2026-06-05T09:30:00,feature_used,report_export,8,1
+ACC-02,ACC-02-C2,technical,2026-06-06T14:00:00,integration_connected,,8,2
+ACC-03,ACC-03-C1,champion,2026-06-08T09:00:00,sign_up,,20,1
+ACC-03,ACC-03-C2,end_user,2026-06-09T10:00:00,login,,20,3
+ACC-03,ACC-03-C3,end_user,2026-06-09T11:00:00,feature_used,board_created,20,3

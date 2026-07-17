@@ -1,0 +1,12 @@
+case: 14-insurance-unknown-sector
+company: Poliçevim
+sector: unknown
+tier: T3
+rule_refs:
+  - skills/lifecycle/SKILL.md (pipeline logic item 1, T3 branch - if no industry file matches, use the closest and say so, or offer _template.md)
+  - CLAUDE.md (rule 3 - never fabricate; a nonexistent sector playbook may not be invented)
+run:
+  copy: false
+assertions:
+  required_anywhere: [en yakın, playbook]
+  forbidden_anywhere: [insurance.md]

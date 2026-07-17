@@ -1,0 +1,12 @@
+case: 23-travel-nps-detractor-suppression
+company: Yorumcu
+sector: travel
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/feedback-nps.md (Step 2b - detractors 0-6 get service recovery + marketing suppression for a 14-30 day cooldown)
+  - knowledge/journey-patterns/feedback-nps.md (Common mistakes - skipping the marketing suppression turns a detractor into a public detractor)
+run:
+  copy: false
+assertions:
+  must_generate: [feedback-nps]
+  suppressed_accounts_include: [U-01]

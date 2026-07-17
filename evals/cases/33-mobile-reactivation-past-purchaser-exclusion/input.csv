@@ -1,0 +1,8 @@
+user_id,event_timestamp,event_name
+U-01,2026-03-01T09:00:00,first_open
+U-01,2026-03-01T09:05:00,sign_up
+U-01,2026-03-05T10:00:00,session_start
+U-02,2026-03-01T09:00:00,first_open
+U-02,2026-03-01T09:05:00,sign_up
+U-02,2026-03-10T10:00:00,session_start
+U-02,2026-03-10T10:30:00,purchase

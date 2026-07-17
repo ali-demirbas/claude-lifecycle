@@ -1,0 +1,8 @@
+user_id,event_timestamp,event_name,survey_score
+U-01,2026-05-01T09:00:00,sign_up,
+U-01,2026-05-15T10:00:00,survey_response,10
+U-01,2026-05-16T09:00:00,share,
+U-01,2026-05-20T11:00:00,invite_sent,
+U-02,2026-05-01T09:30:00,sign_up,
+U-02,2026-05-15T10:30:00,survey_response,2
+U-02,2026-05-16T09:00:00,login,

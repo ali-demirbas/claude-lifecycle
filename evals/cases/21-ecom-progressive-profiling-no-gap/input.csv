@@ -1,0 +1,9 @@
+user_id,event_timestamp,event_name,item_id,value
+U-01,2026-05-01T09:00:00,session_start,,
+U-01,2026-05-01T09:03:00,view_item,SKU-201,
+U-01,2026-05-01T09:10:00,add_to_cart,SKU-201,450
+U-01,2026-05-01T09:20:00,purchase,SKU-201,450
+U-02,2026-05-02T10:00:00,session_start,,
+U-02,2026-05-02T10:05:00,view_item,SKU-305,
+U-02,2026-05-02T10:15:00,add_to_cart,SKU-305,220
+U-02,2026-05-05T11:00:00,purchase,SKU-305,220

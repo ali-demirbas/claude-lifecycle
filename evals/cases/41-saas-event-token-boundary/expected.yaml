@@ -1,0 +1,12 @@
+case: 41-saas-event-token-boundary
+company: Kalemİşi
+sector: saas
+tier: T2
+rule_refs:
+  - knowledge/event-taxonomy/stage-mapping-rules.md (Rule 3 - token-based matching, not substring: "use" must not match "user_deleted"/"user_invited")
+  - knowledge/event-taxonomy/stage-mapping-rules.md (Rule 3 - inflectional-form tolerance: "delete" matches "deleted", "invite" matches "invited")
+run:
+  copy: false
+assertions:
+  required_anywhere: ["use_feature => engagement", "user_deleted => winback-adjacent", "user_invited => engagement"]
+  forbidden_anywhere: ["user_deleted => engagement", "user_deleted (token: use)", "user_invited => winback-adjacent"]

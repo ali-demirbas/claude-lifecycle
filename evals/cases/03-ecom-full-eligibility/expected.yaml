@@ -1,0 +1,11 @@
+case: 03-ecom-full-eligibility
+company: Modarina
+sector: ecommerce
+tier: T1
+rule_refs:
+  - knowledge/industries/ecommerce.md (pattern_priorities - abandoned-cart, browse-abandonment, post-purchase, winback are P0)
+  - skills/lifecycle-journeys/SKILL.md (step 1 eligibility pass - all required_events present -> eligible)
+run:
+  copy: false
+assertions:
+  must_generate: [abandoned-cart, browse-abandonment, post-purchase, winback]

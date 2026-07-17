@@ -1,0 +1,12 @@
+case: 19-saas-solo-welcome-onboarding
+company: Tekliste
+sector: saas
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/account-onboarding.md (Entry - use only when account_id + user_role exist and seats > 1; single-seat signup runs person-level welcome-onboarding instead)
+  - skills/lifecycle-journeys/SKILL.md (eligibility special case, negative direction - single-seat account does not qualify for account-onboarding)
+run:
+  copy: false
+assertions:
+  must_generate: [welcome-onboarding]
+  must_not_generate: [account-onboarding]

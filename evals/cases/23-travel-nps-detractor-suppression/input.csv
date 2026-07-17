@@ -1,0 +1,5 @@
+user_id,event_timestamp,event_name,item_id,survey_score
+U-01,2026-05-01T09:00:00,purchase,TRIP-101,
+U-01,2026-05-10T14:00:00,survey_response,,3
+U-02,2026-05-02T09:00:00,purchase,TRIP-102,
+U-02,2026-05-11T14:00:00,survey_response,,9

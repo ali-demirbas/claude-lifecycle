@@ -1,0 +1,108 @@
+<svg viewBox="0 0 1650 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pd-title pd-desc">
+<title id="pd-title">claude-lifecycle pipeline</title>
+<desc id="pd-desc">Three data-input tiers feed a Connect stage that scores a 0-100 Data Quality Score, then a Map stage turns events into a stage map. An "enough context?" check either routes to a short Intake or straight to the Journeys portfolio engine. Journeys produces both channel Copy (write, review, fix loop) and a Tracking Plan for blocked journeys, both converging on Export as JSON, Mermaid, or CSV.</desc>
+<style>
+  :root {
+    --pd-bg: #FBF7EF; --pd-card: #FFFEFA; --pd-line-card: #E2D6C2;
+    --pd-ink: #33291B; --pd-ink-dim: #8C7C63;
+    --pd-accent: #BE5A2C; --pd-diamond-fill: #F6E7CE; --pd-diamond-ink: #7A4A22;
+    --pd-arrow: #9A8465;
+    --pd-hero-bg: #33291B; --pd-hero-ink: #FBF7EF; --pd-hero-sub: #CBB795; --pd-hero-tag-bg: rgba(190,90,44,0.45); --pd-hero-tag-ink: #F6E7CE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --pd-bg: #1E1811; --pd-card: #2A2218; --pd-line-card: #453A29;
+      --pd-ink: #F3ECE0; --pd-ink-dim: #B3A390;
+      --pd-accent: #E0916A; --pd-diamond-fill: #3D3223; --pd-diamond-ink: #E0AD84;
+      --pd-arrow: #5C5036;
+      --pd-hero-bg: #100C08; --pd-hero-ink: #F3ECE0; --pd-hero-sub: #C9A97E; --pd-hero-tag-bg: rgba(224,145,106,0.25); --pd-hero-tag-ink: #F3D8C2;
+    }
+  }
+  text { font-family: Helvetica, Arial, sans-serif; fill: var(--pd-ink); }
+  .title { font-size: 16px; font-weight: 700; }
+  .sub { font-size: 12px; fill: var(--pd-ink-dim); }
+  .pill-text { font-size: 13px; font-weight: 600; }
+  .diamond-label { font-size: 13px; font-weight: 700; fill: var(--pd-diamond-ink); }
+  .branch-label { font-size: 12px; font-weight: 700; fill: var(--pd-accent); }
+  .hero-title { font-size: 20px; font-weight: 700; fill: var(--pd-hero-ink); }
+  .hero-sub { font-size: 12px; fill: var(--pd-hero-sub); }
+  .tag { font-family: Menlo, Consolas, monospace; font-size: 11px; fill: var(--pd-hero-tag-ink); }
+  .card-bg { fill: var(--pd-card); stroke: var(--pd-line-card); stroke-width: 1.5; }
+  .arrow { stroke: var(--pd-arrow); stroke-width: 2; fill: none; marker-end: url(#arw); }
+</style>
+<defs>
+  <marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M 0 1 L 9 5 L 0 9 z" fill="var(--pd-arrow)"></path>
+  </marker>
+</defs>
+
+<rect width="1650" height="470" fill="var(--pd-bg)"/>
+
+<!-- connectors -->
+<line x1="185" y1="200" x2="222" y2="260" class="arrow" marker-end=""/>
+<line x1="185" y1="260" x2="222" y2="260" class="arrow" marker-end=""/>
+<line x1="185" y1="320" x2="222" y2="260" class="arrow" marker-end=""/>
+<circle cx="222" cy="260" r="4" fill="var(--pd-arrow)"/>
+<line x1="222" y1="260" x2="248" y2="260" class="arrow"/>
+<line x1="410" y1="260" x2="468" y2="260" class="arrow"/>
+<line x1="630" y1="260" x2="678" y2="260" class="arrow"/>
+<polygon points="680,260 790,205 900,260 790,315" fill="var(--pd-diamond-fill)" stroke="var(--pd-accent)" stroke-width="2"/>
+<line x1="900" y1="260" x2="948" y2="260" class="arrow"/>
+<line x1="790" y1="315" x2="790" y2="370" class="arrow"/>
+<polyline points="885,405 1050,405 1050,322" stroke="var(--pd-arrow)" stroke-width="2" fill="none" marker-end="url(#arw)"/>
+<line x1="1150" y1="260" x2="1208" y2="197" class="arrow"/>
+<line x1="1150" y1="260" x2="1208" y2="323" class="arrow"/>
+<line x1="1380" y1="195" x2="1438" y2="258" class="arrow"/>
+<line x1="1380" y1="325" x2="1438" y2="262" class="arrow"/>
+
+<!-- input tiers -->
+<rect x="35" y="179" width="150" height="42" rx="8" class="card-bg"/>
+<text x="110" y="204" text-anchor="middle" class="pill-text">GA4 · MCP</text>
+<rect x="35" y="239" width="150" height="42" rx="8" class="card-bg"/>
+<text x="110" y="264" text-anchor="middle" class="pill-text">CSV export</text>
+<rect x="35" y="299" width="150" height="42" rx="8" class="card-bg"/>
+<text x="110" y="324" text-anchor="middle" class="pill-text">Industry only</text>
+
+<!-- connect -->
+<rect x="250" y="222" width="160" height="76" rx="10" class="card-bg"/>
+<text x="330" y="254" text-anchor="middle" class="title">Connect</text>
+<text x="330" y="274" text-anchor="middle" class="sub">DQS score 0–100</text>
+
+<!-- map -->
+<rect x="470" y="222" width="160" height="76" rx="10" class="card-bg"/>
+<text x="550" y="254" text-anchor="middle" class="title">Map</text>
+<text x="550" y="274" text-anchor="middle" class="sub">Events → stages</text>
+
+<!-- decision -->
+<text x="790" y="264" text-anchor="middle" class="diamond-label">Enough context?</text>
+<text x="912" y="244" class="branch-label">No</text>
+<text x="800" y="337" class="branch-label">Yes</text>
+
+<!-- intake -->
+<rect x="695" y="372" width="190" height="66" rx="10" class="card-bg"/>
+<text x="790" y="399" text-anchor="middle" class="title" font-size="15">Intake</text>
+<text x="790" y="419" text-anchor="middle" class="sub">Max 2 rounds, defaultable</text>
+
+<!-- journeys hero -->
+<rect x="950" y="200" width="200" height="120" rx="12" fill="var(--pd-hero-bg)"/>
+<text x="1050" y="242" text-anchor="middle" class="hero-title">Journeys</text>
+<text x="1050" y="263" text-anchor="middle" class="hero-sub">Portfolio engine</text>
+<rect x="980" y="274" width="140" height="22" rx="11" fill="var(--pd-hero-tag-bg)"/>
+<text x="1050" y="289" text-anchor="middle" class="tag">26 journey patterns</text>
+
+<!-- copy -->
+<rect x="1210" y="162" width="170" height="66" rx="10" class="card-bg"/>
+<text x="1295" y="189" text-anchor="middle" class="title" font-size="15">Copy</text>
+<text x="1295" y="209" text-anchor="middle" class="sub">Write → review → fix</text>
+
+<!-- tracking plan -->
+<rect x="1210" y="292" width="170" height="66" rx="10" class="card-bg"/>
+<text x="1295" y="319" text-anchor="middle" class="title" font-size="15">Tracking plan</text>
+<text x="1295" y="339" text-anchor="middle" class="sub">Blocked → events</text>
+
+<!-- export -->
+<rect x="1440" y="220" width="170" height="80" rx="10" fill="var(--pd-card)" stroke="var(--pd-accent)" stroke-width="2"/>
+<text x="1525" y="254" text-anchor="middle" class="title">Export</text>
+<text x="1525" y="274" text-anchor="middle" class="sub">JSON · Mermaid · CSV</text>
+
+</svg>

@@ -1,0 +1,20 @@
+{
+  "id": "saas-nonexistent-pattern-01",
+  "version": "1.0.0",
+  "name": "Bogus Pattern Journey",
+  "pattern": "this-pattern-does-not-exist",
+  "stage": "revenue",
+  "priority": "P0",
+  "data_tier": "T2",
+  "dqs": 69,
+  "objective": "Test unknown-pattern cross-reference",
+  "trigger": { "type": "event", "value": "trial_start" },
+  "audience": { "include": "trial account admins" },
+  "exit": { "success_event": "subscription_start" },
+  "steps": [
+    { "index": 1, "wait": "PT1H", "channel": "email", "intent": "welcome" }
+  ],
+  "kpis": [
+    { "name": "trial to paid", "type": "primary", "definition": "conversions vs entered" }
+  ]
+}

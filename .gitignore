@@ -1,0 +1,23 @@
+# User data must never be committed
+*.csv
+!examples/**/*.csv
+!evals/cases/**/*.csv
+!scripts/tests/fixtures/**/*.csv
+user-data/
+exports/
+output/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+__pycache__/
+*.pyc
+
+# Local Claude session files
+.claude/settings.local.json
+
+# Eval run outputs are per-run artifacts
+evals/out/

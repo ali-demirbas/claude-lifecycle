@@ -1,0 +1,8 @@
+user_id,event_timestamp,event_name
+U-01,2026-04-01T09:00:00,sign_up
+U-01,2026-04-02T10:00:00,login
+U-02,2026-04-19T09:00:00,sign_up
+U-02,2026-04-19T09:30:00,login
+U-03,2026-03-15T09:00:00,sign_up
+U-03,2026-03-15T09:20:00,login
+U-03,2026-03-15T09:40:00,tutorial_complete

@@ -1,0 +1,6 @@
+user_id,event_timestamp,event_name,anniversary_date
+U-01,2025-05-01T09:00:00,sign_up,2025-05-01
+U-01,2026-03-20T10:00:00,session_start,
+U-01,2026-04-05T11:00:00,purchase,
+U-02,2024-05-01T09:00:00,sign_up,2024-05-01
+U-02,2024-06-01T09:00:00,purchase,

@@ -1,0 +1,14 @@
+case: 25-ecom-diacritic-integrity
+company: Çiçekçim
+sector: ecommerce
+tier: T2
+rule_refs:
+  - agents/copy-reviewer.md (Mechanics check 11 - ASCII-folded diacritics outside the approved SMS exception is a FIX)
+  - knowledge/lexicons/locales/tr.md (Character set - ç, ğ, ı, İ, ö, ş, ü preserved by default in every channel; SMS folding is the only exception)
+run:
+  copy: true
+assertions:
+  copy:
+    required: [Çiçekçim]
+    forbidden: [Cicekcim]
+    must_pass_validator: true

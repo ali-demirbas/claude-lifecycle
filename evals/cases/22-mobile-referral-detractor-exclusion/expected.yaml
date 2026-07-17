@@ -1,0 +1,12 @@
+case: 22-mobile-referral-detractor-exclusion
+company: Tavsiyer
+sector: mobile-app
+tier: T1
+rule_refs:
+  - knowledge/journey-patterns/referral.md (Entry segment - NPS promoter or organic share qualifies)
+  - knowledge/journey-patterns/referral.md (Exclude - detractors and anyone in a service-recovery cooldown)
+run:
+  copy: false
+assertions:
+  must_generate: [referral]
+  audience_must_exclude: [U-02]

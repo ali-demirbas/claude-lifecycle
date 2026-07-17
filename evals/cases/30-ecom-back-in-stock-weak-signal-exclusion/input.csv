@@ -1,0 +1,9 @@
+user_id,event_timestamp,event_name,item_id,value
+U-01,2026-05-01T09:00:00,view_item,SKU-A,
+U-01,2026-05-01T09:05:00,add_to_wishlist,SKU-A,
+U-01,2026-05-10T10:00:00,item_back_in_stock,SKU-A,
+U-02,2026-05-02T09:00:00,view_item,SKU-B,
+U-02,2026-05-10T10:00:00,item_back_in_stock,SKU-B,
+U-03,2026-04-15T09:00:00,view_item,SKU-C,
+U-03,2026-04-15T09:10:00,add_to_cart,SKU-C,300
+U-03,2026-04-15T09:25:00,purchase,SKU-C,300

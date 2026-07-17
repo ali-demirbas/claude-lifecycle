@@ -1,0 +1,8 @@
+user_id,event_timestamp,event_name,feature
+U-01,2026-04-01T09:00:00,subscription_start,
+U-01,2026-05-01T09:00:00,session_start,
+U-01,2026-05-01T09:10:00,feature_used,seats_limit_reached
+U-02,2026-04-01T09:00:00,subscription_start,
+U-02,2026-05-01T09:00:00,session_start,
+U-02,2026-05-01T09:10:00,feature_used,seats_limit_reached
+U-02,2026-05-03T10:00:00,payment_failed,

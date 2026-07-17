@@ -1,0 +1,1 @@
+{ "pattern": "trial-conversion", "steps": [ {"index":1}, {"index":2}, {"index":3} ], "audience": {"include": "trial admins"} }

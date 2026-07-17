@@ -1,0 +1,12 @@
+case: 32-ecom-milestone-dunning-exclusion
+company: Kutlarim
+sector: ecommerce
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/milestone.md (Exclude - user in a service-recovery or dunning flow; celebration next to a failed payment reads as tone-deaf)
+  - knowledge/journey-patterns/milestone.md (Required-event signature - milestone_reached with milestone_type + milestone_value params)
+run:
+  copy: false
+assertions:
+  must_generate: [milestone]
+  audience_must_exclude: [U-02]

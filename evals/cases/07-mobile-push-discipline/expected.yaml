@@ -1,0 +1,12 @@
+case: 07-mobile-push-discipline
+company: Zıpzıp Games
+sector: mobile-app
+tier: T1
+rule_refs:
+  - knowledge/channels/push.md (Permission priming (hard rule) - never fire the OS dialog cold, in-app priming at a point of demonstrated value)
+  - knowledge/industries/mobile-app.md (pattern_priorities - welcome-onboarding is P0)
+run:
+  copy: false
+assertions:
+  must_generate: [welcome-onboarding]
+  required_anywhere: [priming]

@@ -1,0 +1,6 @@
+account_id,contact_id,contact_role,event_timestamp,event_name,feature_name,seats_purchased
+ACC-01,ACC-01-C1,champion,2026-05-01T09:00:00,sign_up,,6
+ACC-01,ACC-01-C1,champion,2026-05-01T09:20:00,feature_used,dashboard_setup,6
+ACC-01,ACC-01-C2,end_user,2026-05-02T10:00:00,login,,6
+ACC-02,ACC-02-C1,champion,2026-05-03T09:00:00,sign_up,,4
+ACC-02,ACC-02-C1,champion,2026-05-03T09:30:00,feature_used,dashboard_setup,4

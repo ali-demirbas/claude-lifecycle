@@ -1,0 +1,11 @@
+case: 21-ecom-progressive-profiling-no-gap
+company: Alisverel
+sector: ecommerce
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/progressive-profiling.md (Required-event signature - profile_gap is the target; no named gap means do not run)
+  - knowledge/journey-patterns/progressive-profiling.md (Common mistakes - asking without a named consumer is questionnaire theater)
+run:
+  copy: false
+assertions:
+  must_not_generate: [progressive-profiling]

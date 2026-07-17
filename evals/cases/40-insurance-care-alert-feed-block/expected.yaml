@@ -1,0 +1,10 @@
+case: 40-insurance-care-alert-feed-block
+company: Poliga
+sector: insurance
+tier: T3
+rule_refs:
+  - knowledge/journey-patterns/care-alert.md (Required-event signature — no official feed, no external_alert; pattern is blocked, not simulated)
+run:
+  copy: false
+assertions:
+  must_not_generate: [care-alert]

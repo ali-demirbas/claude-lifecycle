@@ -1,0 +1,4 @@
+user_id,event_timestamp,event_name,item_id,quantity
+U-01,2026-04-01T09:00:00,purchase,COFFEE-250G,1
+U-02,2026-04-01T09:00:00,purchase,COFFEE-250G,1
+U-02,2026-04-01T09:05:00,subscription_start,COFFEE-250G,

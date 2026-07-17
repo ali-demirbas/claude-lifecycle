@@ -1,0 +1,14 @@
+case: mini-case
+company: Kurgusal AŞ
+sector: saas
+tier: T2
+rule_refs:
+  - skills/lifecycle-journeys/SKILL.md (eligibility)
+run:
+  copy: false
+assertions:
+  must_generate: [trial-conversion]
+  must_block:
+    - pattern: abandoned-cart
+      reason_contains: purchase
+  max_steps: {any: 7}

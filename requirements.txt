@@ -1,0 +1,4 @@
+# Optional dependency for scripts/validate_output.py's full JSON-schema pass.
+# Without it (or with an older version lacking Draft202012Validator) the
+# validator degrades to a structural required-fields check — it does not crash.
+jsonschema>=4.18

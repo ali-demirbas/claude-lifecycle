@@ -1,0 +1,12 @@
+case: 35-saas-upsell-health-gate-exclusion
+company: Genislet
+sector: saas
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/upsell-cross-sell.md (Exclude - payment_failed unresolved; declining usage is churn-prevention's audience, not upsell's)
+  - knowledge/journey-patterns/upsell-cross-sell.md (Entry - engagement health at or above baseline is a mandatory gate, not advisory)
+run:
+  copy: false
+assertions:
+  must_generate: [upsell-cross-sell]
+  audience_must_exclude: [U-02]

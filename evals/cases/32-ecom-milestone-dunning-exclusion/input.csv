@@ -1,0 +1,6 @@
+user_id,event_timestamp,event_name,milestone_type,milestone_value
+U-01,2026-05-01T09:00:00,purchase,,
+U-01,2026-05-10T10:00:00,milestone_reached,purchase_count,10
+U-02,2026-05-01T09:00:00,purchase,,
+U-02,2026-05-08T10:00:00,payment_failed,,
+U-02,2026-05-10T10:00:00,milestone_reached,purchase_count,10

@@ -1,0 +1,12 @@
+case: 01-saas-account-supersede
+company: Panovera
+sector: saas
+tier: T2
+rule_refs:
+  - skills/lifecycle-journeys/SKILL.md (eligibility special case - account-onboarding supersedes welcome-onboarding)
+  - knowledge/journey-patterns/account-onboarding.md (Entry)
+run:
+  copy: false
+assertions:
+  must_generate: [account-onboarding]
+  must_not_generate: [welcome-onboarding]

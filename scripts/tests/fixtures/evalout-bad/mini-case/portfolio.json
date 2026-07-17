@@ -1,0 +1,3 @@
+{ "journeys": [ { "id": "saas-welcome-onboarding-01", "pattern": "welcome-onboarding",
+  "channels": ["email"], "audience_group": "x", "est_msgs_per_week": { "email": 1 } } ],
+  "blocked": [], "suppressed_accounts": [] }

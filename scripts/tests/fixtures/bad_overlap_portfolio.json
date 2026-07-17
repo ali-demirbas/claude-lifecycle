@@ -1,0 +1,10 @@
+{ "brand": "demo",
+  "audience_overlaps": [["new_signups", "cart_abandoners"]],
+  "journeys": [
+  { "id": "ecom-welcome-onboarding-01", "pattern": "welcome-onboarding", "stage": "activation", "priority": "P1",
+    "channels": ["email", "push"], "audience_group": "new_signups",
+    "est_msgs_per_week": { "email": 3, "push": 2 } },
+  { "id": "ecom-abandoned-cart-01", "pattern": "abandoned-cart", "stage": "revenue", "priority": "P0",
+    "channels": ["email", "push", "sms"], "audience_group": "cart_abandoners",
+    "est_msgs_per_week": { "email": 2, "push": 1, "sms": 1 } }
+] }

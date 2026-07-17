@@ -1,0 +1,13 @@
+case: 02-saas-prosumer-branched
+company: Kodviyo
+sector: saas
+tier: T1
+rule_refs:
+  - skills/lifecycle-journeys/SKILL.md (step 3 depth assignment - DQS >= 70 + unlocked branch events -> branched)
+  - knowledge/journey-patterns/trial-conversion.md (Depth scaling - Branched 8-10 when DQS >= 70 + feature_used with feature param)
+run:
+  copy: false
+assertions:
+  must_generate: [trial-conversion]
+  min_steps:
+    trial-conversion: 7

@@ -1,0 +1,11 @@
+user_id,event_timestamp,event_name,item_id,value
+U-01,2026-05-01T09:00:00,session_start,,
+U-01,2026-05-01T09:03:00,view_item,SKU-810,
+U-01,2026-05-01T09:10:00,add_to_cart,SKU-810,540
+U-02,2026-05-02T10:00:00,session_start,,
+U-02,2026-05-02T10:05:00,view_item,SKU-811,
+U-02,2026-05-02T10:15:00,add_to_cart,SKU-811,275
+U-03,2026-04-20T09:00:00,session_start,,
+U-03,2026-04-20T09:03:00,view_item,SKU-809,
+U-03,2026-04-20T09:10:00,add_to_cart,SKU-809,395
+U-03,2026-04-20T09:25:00,purchase,SKU-809,395

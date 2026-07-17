@@ -1,0 +1,202 @@
+<!--
+  claude-lifecycle HTML output template — REFERENCE IMPLEMENTATION.
+  The engine (lifecycle-journeys / lifecycle-export) reproduces this file's structure,
+  design tokens, and interaction patterns, replacing all demo data with the current
+  project's real assessment/portfolio/journey data. Both themes are token-based;
+  keep <meta charset="utf-8"> — Turkish content breaks without it.
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lifecycle Raporu — Demo B2B SaaS</title>
+<style>
+  :root{
+    --bg:#FAFBFC; --surface:#FFFFFF; --ink:#1B2530; --ink-2:#5A6B7A; --line:#E3E9EE;
+    --accent:#0F7B78; --accent-soft:#E4F1F0;
+    --crit:#C0483C; --crit-soft:#F9ECEA; --warn:#B98A2F; --warn-soft:#F8F1E2; --ok:#3E8E5A; --ok-soft:#E9F3ED;
+    --mono:"SF Mono",ui-monospace,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){:root{
+    --bg:#10141A; --surface:#171D25; --ink:#E6ECF2; --ink-2:#93A3B1; --line:#28313C;
+    --accent:#4BB8B2; --accent-soft:#173534;
+    --crit:#E07B6F; --crit-soft:#3A2320; --warn:#D9AC55; --warn-soft:#382E18; --ok:#6DBB8A; --ok-soft:#1C3226;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#10141A; --surface:#171D25; --ink:#E6ECF2; --ink-2:#93A3B1; --line:#28313C;
+    --accent:#4BB8B2; --accent-soft:#173534;
+    --crit:#E07B6F; --crit-soft:#3A2320; --warn:#D9AC55; --warn-soft:#382E18; --ok:#6DBB8A; --ok-soft:#1C3226;
+  }
+  :root[data-theme="light"]{
+    --bg:#FAFBFC; --surface:#FFFFFF; --ink:#1B2530; --ink-2:#5A6B7A; --line:#E3E9EE;
+    --accent:#0F7B78; --accent-soft:#E4F1F0;
+    --crit:#C0483C; --crit-soft:#F9ECEA; --warn:#B98A2F; --warn-soft:#F8F1E2; --ok:#3E8E5A; --ok-soft:#E9F3ED;
+  }
+  body{background:var(--bg);color:var(--ink);font:16px/1.6 "Avenir Next","Segoe UI",system-ui,sans-serif;margin:0;}
+  .wrap{max-width:960px;margin:0 auto;padding:40px 24px 80px;}
+  header{border-bottom:2px solid var(--ink);padding-bottom:20px;margin-bottom:36px;}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 6px;}
+  h1{font-size:30px;line-height:1.2;margin:0 0 14px;text-wrap:balance;font-weight:700;}
+  h2{font-size:20px;margin:0 0 4px;font-weight:700;}
+  .sec{margin-bottom:44px;}
+  .sec-label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin:0 0 14px;display:flex;align-items:center;gap:10px;}
+  .sec-label::after{content:"";flex:1;height:1px;background:var(--line);}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{font-size:13px;padding:3px 10px;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--ink-2);}
+  .chip b{color:var(--ink);font-weight:600;}
+  .dqs-grid{display:grid;grid-template-columns:150px 1fr;gap:24px;align-items:start;}
+  .dqs-num{font-size:56px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+  .dqs-num small{font-size:18px;color:var(--ink-2);font-weight:500;}
+  .dqs-class{display:inline-block;margin-top:8px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--warn);background:var(--warn-soft);padding:3px 8px;border-radius:3px;}
+  .bars{display:grid;gap:10px;}
+  .bar-row{display:grid;grid-template-columns:170px 1fr 64px;gap:12px;align-items:center;font-size:14px;}
+  .bar-track{height:10px;background:var(--line);border-radius:2px;overflow:hidden;}
+  .bar-fill{height:100%;background:var(--accent);}
+  .bar-fill.low{background:var(--crit);}
+  .bar-val{font-family:var(--mono);font-size:13px;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums;}
+  .note{font-size:14px;color:var(--ink-2);margin-top:14px;}
+  .cards{display:grid;gap:12px;}
+  .card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--ink-2);border-radius:4px;padding:14px 18px;}
+  .card.crit{border-left-color:var(--crit);}
+  .card.warn{border-left-color:var(--warn);}
+  .card h3{margin:0 0 4px;font-size:15px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;}
+  .card p{margin:0;font-size:14px;color:var(--ink-2);}
+  .tag{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;}
+  .tag.crit{background:var(--crit-soft);color:var(--crit);}
+  .tag.warn{background:var(--warn-soft);color:var(--warn);}
+  .tag.ok{background:var(--ok-soft);color:var(--ok);}
+  .tag.acc{background:var(--accent-soft);color:var(--accent);}
+  .mono{font-family:var(--mono);font-size:.92em;}
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--surface);}
+  table{border-collapse:collapse;width:100%;font-size:14px;}
+  th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  td{padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .steps{counter-reset:s;display:grid;gap:0;}
+  .step{display:grid;grid-template-columns:34px 110px 1fr;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .step:last-child{border-bottom:none;}
+  .step::before{counter-increment:s;content:counter(s);width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;}
+  .step .meta{color:var(--ink-2);font-size:13px;}
+  .step .meta b{display:block;color:var(--ink);font-family:var(--mono);font-size:12px;}
+  .honest{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px 18px;font-size:14px;}
+  .honest strong{color:var(--crit);}
+  .road{display:grid;gap:10px;}
+  .road-row{display:grid;grid-template-columns:92px 1fr;gap:16px;font-size:14px;align-items:baseline;}
+  .road-row .when{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;}
+  footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-2);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  @media(max-width:640px){.dqs-grid{grid-template-columns:1fr;}.bar-row{grid-template-columns:110px 1fr 50px;font-size:13px;}.step{grid-template-columns:34px 1fr;}.step .meta{grid-column:2;}}
+</style>
+<div class="wrap">
+<header>
+  <p class="eyebrow">claude-lifecycle · veri değerlendirme + journey portföyü</p>
+  <h1>Demo B2B SaaS — Lifecycle Raporu</h1>
+  <div class="chips">
+    <span class="chip">Tier <b>T2 · CSV</b></span>
+    <span class="chip"><b>3.069</b> event</span>
+    <span class="chip"><b>40</b> hesap · <b>155</b> kişi</span>
+    <span class="chip"><b>494</b> gün <span class="mono">(2025-03-05 → 2026-07-12)</span></span>
+    <span class="chip">Hedef: <b>retention-first</b></span>
+  </div>
+</header>
+
+<section class="sec">
+  <p class="sec-label">Data Quality Score</p>
+  <div class="dqs-grid">
+    <div>
+      <div class="dqs-num">69<small>/100</small></div>
+      <span class="dqs-class">Standard · 4–7 adım</span>
+    </div>
+    <div>
+      <div class="bars">
+        <div class="bar-row"><span>Event çeşitliliği</span><div class="bar-track"><div class="bar-fill" style="width:84%"></div></div><span class="bar-val">21/25</span></div>
+        <div class="bar-row"><span>Conversion</span><div class="bar-track"><div class="bar-fill" style="width:76%"></div></div><span class="bar-val">19/25</span></div>
+        <div class="bar-row"><span>Funnel bütünlüğü</span><div class="bar-track"><div class="bar-fill" style="width:60%"></div></div><span class="bar-val">12/20</span></div>
+        <div class="bar-row"><span>Attribute'lar</span><div class="bar-track"><div class="bar-fill" style="width:93%"></div></div><span class="bar-val">14/15</span></div>
+        <div class="bar-row"><span>Hacim</span><div class="bar-track"><div class="bar-fill low" style="width:20%"></div></div><span class="bar-val">3/15</span></div>
+      </div>
+      <p class="note">Branched sınıfa (≥70) tek puan uzakta. Onu verecek şey: <span class="mono">sign_up</span> + <span class="mono">session_start</span> üst-funnel event'lerinin eklenmesi (projeksiyon: ~78). Attribute zenginliği istisnai — 4 rol, koltuk, kontrat tarihi, MRR, plan. Hacim düşüklüğü B2B'de normal; hesap-düzeyi derinliği hacim değil attribute taşır.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <p class="sec-label">Bugün müdahale — journey beklemez</p>
+  <div class="cards">
+    <div class="card crit">
+      <h3><span class="mono">ACC-1023</span> <span class="tag crit">Kritik</span> <span class="tag acc">5.080 MRR</span></h3>
+      <p>Enterprise · renewal'a <b>23 gün</b> · koltuk kullanımı <b>%23</b> (53/235). Flat-düşük kullanımla renewal'a giden en büyük gelir riski. Exec-level müdahale.</p>
+    </div>
+    <div class="card crit">
+      <h3><span class="mono">ACC-1014</span> <span class="tag crit">Bastırma aktif</span> <span class="tag acc">10.280 MRR</span></h3>
+      <p>Teknik kullanıcıdan <b>NPS 4</b> · renewal'a <b>30 gün</b>. Negatif-sinyal kuralı: tüm marketing durdu → CSM/insan rotası. Portföyün 2. büyük hesabı.</p>
+    </div>
+    <div class="card warn">
+      <h3><span class="mono">ACC-1024</span> + <span class="mono">ACC-1031</span> <span class="tag warn">İzle</span> <span class="tag acc">~22.5k MRR</span></h3>
+      <p>İkisi de pasif NPS (6), ikisi de renewal'a <b>20 gün</b>; 1031'de ayrıca 2 destek bileti. Upsell kapısı kapalı, churn-prevention hafif varyantla giriyor.</p>
+    </div>
+    <div class="card warn">
+      <h3>Champion değişimi — 6 hesap <span class="tag warn">Son 30 gün</span></h3>
+      <p><span class="mono">1006 · 1012 · 1017 · 1021 · 1028 · 1030</span> — 1017'de renewal (47 gün) ile çakışıyor. Yeni champion'lar champion-watch journey'sine giriyor.</p>
+    </div>
+    <div class="card warn">
+      <h3>2 canlı dönüşmemiş trial <span class="tag warn">Saat işliyor</span></h3>
+      <p><span class="mono">ACC-1000</span> (28 Haz, kullanım 2/51) ve <span class="mono">ACC-1011</span> (6 Tem). İki trial zaten iptalle kaybedildi (1027, 1033) — trial-conversion journey'sinin yokluğunun bedeli veride görünüyor.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <p class="sec-label">Journey portföyü — 7 üretildi · 1 bloke · 1 devralındı</p>
+  <div class="tbl-wrap"><table>
+    <tr><th>Journey</th><th>ID</th><th>Stage</th><th>Öncelik</th><th>Derinlik</th><th>Durum</th></tr>
+    <tr><td>Renewal-risk churn prevention</td><td class="num">saas-churn-prevention-01</td><td>Retention</td><td><span class="tag crit">P0</span></td><td>6 adım · hesap-düzeyi</td><td><span class="tag ok">Üretildi</span></td></tr>
+    <tr><td>Trial conversion</td><td class="num">saas-trial-conversion-01</td><td>Revenue</td><td><span class="tag crit">P0</span></td><td>6 adım</td><td><span class="tag ok">Üretildi</span></td></tr>
+    <tr><td>Account onboarding / koltuk aktivasyonu</td><td class="num">saas-account-onboarding-01</td><td>Activation</td><td><span class="tag crit">P0</span></td><td>6 adım · rol fan-out</td><td><span class="tag ok">Üretildi</span></td></tr>
+    <tr><td>Champion-turnover watch</td><td class="num">saas-churn-prevention-02</td><td>Retention</td><td><span class="tag warn">P1</span></td><td>4 adım</td><td><span class="tag ok">Üretildi</span></td></tr>
+    <tr><td>Seat-expansion upsell (sağlık kapılı)</td><td class="num">saas-upsell-cross-sell-01</td><td>Revenue</td><td><span class="tag warn">P1</span></td><td>4 adım</td><td><span class="tag ok">Üretildi</span></td></tr>
+    <tr><td>NPS döngüsü (recovery + referral)</td><td class="num">saas-feedback-nps-01</td><td>Retention</td><td><span class="tag warn">P1</span></td><td>5 adım</td><td><span class="tag ok">Üretildi</span></td></tr>
+    <tr><td>Feature adoption</td><td class="num">saas-feature-adoption-01</td><td>Engagement</td><td><span class="tag acc">P2</span></td><td>3 adım</td><td><span class="tag ok">Üretildi</span></td></tr>
+    <tr><td>Dunning</td><td class="num">—</td><td>Revenue</td><td><span class="tag crit">P0</span></td><td>—</td><td><span class="tag crit">Bloke — payment_failed yok</span></td></tr>
+    <tr><td>Welcome onboarding (kişi-düzeyi)</td><td class="num">—</td><td>Activation</td><td>—</td><td>—</td><td><span class="tag warn">Devralındı — account-onboarding</span></td></tr>
+  </table></div>
+  <p class="note">Çatışma incelemesi: churn-prevention ↔ upsell aynı hesapta asla (sağlık kapısı); champion haftada maks 2 dokunuş, economic buyer 1; tüm e-postalar Salı–Perşembe, hesap saat diliminde. Hiçbir senaryoda haftalık tavan aşılmıyor.</p>
+</section>
+
+<section class="sec">
+  <p class="sec-label">Vitrin journey — saas-churn-prevention-01</p>
+  <h2>Renewal-Risk Churn Prevention</h2>
+  <p class="note" style="margin:4px 0 18px">Tetik: renewal ≤ 90 gün VE (koltuk kullanımı &lt; %50 VEYA login trendi taban çizgisinin &lt; %50'si) · haftalık tarama · kontrat dönemi başına 1 giriş · <b>bugün giren 4 hesap:</b> <span class="mono">1023 · 1037 · 1024 · 1031</span></p>
+  <div class="steps">
+    <div class="step"><div class="meta"><b>+0 · email</b>champion</div><div>Değer hatırlatma: hesabın gerçek kullanımından somut çıktı ("Mart'tan beri 47 rapor export'u") + tek soru: engel ne?</div></div>
+    <div class="step"><div class="meta"><b>+4g · in-app</b>champion</div><div>En çok kullanılan feature'ın bir adım ötesi — yanıt yoksa. <i>(workflow_builder → alert_configured önerisi)</i></div></div>
+    <div class="step"><div class="meta"><b>+5g · email</b>economic buyer</div><div>Adoption özeti: koltuk kullanımı, aktif kullanıcı, atıl koltuk maliyeti. Çıplak rakam, süsleme yok.</div></div>
+    <div class="step"><div class="meta"><b>+7g · email</b>champion</div><div>Engel kaldırma: CSM oturumu teklifi — insan eskalasyonu, daha yüksek sesli mesaj değil.</div></div>
+    <div class="step"><div class="meta"><b>+7g · email</b>economic buyer</div><div>Renewal öncesi durum: ne değişti, ne kaldı. Dürüst tablo.</div></div>
+    <div class="step"><div class="meta"><b>+5g · in-app</b>champion</div><div>Son kontrol: kalan engelin tek-tık bildirimi → toparlanmadıysa watch buffer.</div></div>
+  </div>
+  <p class="note">Her adımda exception check: gönderim anında kullanım trendi yeniden hesaplanır — toparlanan hesap anında çıkar; <span class="mono">subscription_renewed</span> geldiyse journey biter; renewal'a &lt; 14 gün kalan hesap 4. adımdan ileri gitmez, CSM'e devrolur.</p>
+</section>
+
+<section class="sec">
+  <p class="sec-label">Ölçüm — dürüstlük notu</p>
+  <div class="honest">
+    <p style="margin:0 0 8px"><strong>40 hesapta anlamlı holdout matematiksel olarak imkânsız</strong> (kontrol grubunda ~200 conversion kuralı). Bu rapor bunu saklamıyor: holdout'suz başla, sonuçları <b>"unmeasured"</b> işaretle, kullanım-toparlanması öncü göstergesiyle yönet. Ölçülemiyor ≠ çalışmıyor — ama ölçülmüş gibi de raporlanmaz.</p>
+    <p style="margin:0">Birincil KPI: renewal oranı (hesap tabanı büyüyünce holdout'a karşı artış) · Öncü: 30 günde taban çizgisinin ≥ %80'ine dönen hesap oranı · Guardrail: gönderim başına unsubscribe/şikâyet.</p>
+  </div>
+</section>
+
+<section class="sec">
+  <p class="sec-label">Yol haritası</p>
+  <div class="road">
+    <div class="road-row"><span class="when">Bugün</span><span>ACC-1014 + ACC-1034 → CSM (bastırma) · ACC-1023 → exec müdahale. Journey değil, insan.</span></div>
+    <div class="road-row"><span class="when">Hafta 1</span><span>Renewal-risk churn prevention (20-günlük renewal dalgası) + trial conversion (1000, 1011 — saat işliyor).</span></div>
+    <div class="road-row"><span class="when">Hafta 2</span><span>Account onboarding (Mayıs–Haziran kohortu: 6 düşük-aktivasyonlu hesap) + champion watch.</span></div>
+    <div class="road-row"><span class="when">Hafta 3–4</span><span>Seat-expansion upsell (1010, 1015 — tam doluluk + renewal) · NPS döngüsü · feature adoption.</span></div>
+    <div class="road-row"><span class="when">Paralel</span><span>Tracking plan: <span class="mono">payment_failed</span> (dunning'i açar) + <span class="mono">sign_up/session_start</span> (DQS 69 → ~78, branched sınıf) → sonra <span class="mono">/lifecycle connect</span> yeniden.</span></div>
+  </div>
+</section>
+
+<footer>
+  <span>claude-lifecycle · T2 değerlendirmesi · 2026-07-12</span>
+  <span>Tüm hedefler "baseline sonrası" — uydurma benchmark yok</span>
+</footer>
+</div>

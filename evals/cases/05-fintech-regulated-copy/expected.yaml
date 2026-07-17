@@ -1,0 +1,17 @@
+case: 05-fintech-regulated-copy
+company: Birikimo
+sector: fintech
+tier: T3
+rule_refs:
+  - knowledge/lexicons/fintech.md (regulated true + urgency_allowed false + Banned outright list)
+  - agents/copy-reviewer.md (LEGAL verdict - regulated true borderline claims get legal-review stamp, banned words are FIX)
+  - skills/lifecycle-journeys/SKILL.md (step 3 depth assignment - T3 -> simple, steps = depth_range min, 3-5 typical)
+run:
+  copy: true
+assertions:
+  max_steps:
+    any: 5
+  copy:
+    forbidden: [garantili, kaçırmayın, son şans, getiri fırsatı]
+    must_pass_validator: true
+    max_discount: 0

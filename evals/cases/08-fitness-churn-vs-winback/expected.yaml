@@ -1,0 +1,13 @@
+case: 08-fitness-churn-vs-winback
+company: Formadam
+sector: subscription-media
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/churn-prevention.md (Failure exit watch buffer - hand off to winback through a quiet observation state, never both in the same window)
+  - knowledge/journey-patterns/winback.md (Entry - never run winback and churn-prevention on the same user in the same window)
+  - skills/lifecycle-journeys/SKILL.md (step 5 precedence order - 4. churn-prevention / winback mutually exclusive via the watch buffer)
+run:
+  copy: false
+assertions:
+  must_generate: [churn-prevention, winback]
+  required_anywhere: [watch buffer]

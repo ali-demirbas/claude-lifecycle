@@ -1,0 +1,12 @@
+case: 27-saas-copy-claim-traceability
+company: Memnun
+sector: saas
+tier: T2
+rule_refs:
+  - agents/copy-reviewer.md (Claim traceability check 9 - every factual/numeric claim traces to a provided data variable or a knowledge-base statement; an untraceable claim is a FIX)
+run:
+  copy: true
+assertions:
+  copy:
+    forbidden: ['binlerce kullanıcı', 'herkes seviyor', '%100 memnuniyet', 'kanıtlanmış sonuç']
+    must_pass_validator: true

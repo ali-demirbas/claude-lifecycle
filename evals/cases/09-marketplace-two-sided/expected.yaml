@@ -1,0 +1,12 @@
+case: 09-marketplace-two-sided
+company: Takasola
+sector: marketplace
+tier: T2
+rule_refs:
+  - knowledge/industries/marketplace.md (Pattern priorities rationale - post-purchase P0 review ask; trial-conversion and payment-failure not applicable buyer-side)
+  - skills/lifecycle-journeys/SKILL.md (step 1 eligibility pass - only patterns whose applicable_industries include the active sector)
+run:
+  copy: false
+assertions:
+  must_generate: [post-purchase]
+  must_not_generate: [trial-conversion, payment-failure]

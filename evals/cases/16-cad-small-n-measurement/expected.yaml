@@ -1,0 +1,12 @@
+case: 16-cad-small-n-measurement
+company: Çizimist
+sector: saas
+tier: T2
+rule_refs:
+  - knowledge/measurement.md (sample-size honesty - ~200 control conversions minimum; below that say "unmeasured", not "doesn't work")
+  - templates/journey-doc.md (section 6 - holdout required for T1/T2; infeasible at n=12 must be declared, not papered over with a default 10% split)
+run:
+  copy: false
+assertions:
+  forbidden_anywhere: [%10 holdout, 10% holdout]
+  required_anywhere: [kurulamaz]

@@ -1,0 +1,6 @@
+{ "brand": "demo", "journeys": [
+  { "id": "a-b-01", "channels": ["email"], "audience_group": "same",
+    "est_msgs_per_week": { "email": 3 } },
+  { "id": "a-b-01", "channels": ["email", "sms"], "audience_group": "same",
+    "est_msgs_per_week": { "email": 3, "sms": 3 } }
+] }

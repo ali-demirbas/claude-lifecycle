@@ -1,0 +1,14 @@
+case: 10-streaming-dunning-transactional
+company: Dizilig
+sector: subscription-media
+tier: T1
+rule_refs:
+  - knowledge/journey-patterns/payment-failure.md (first dunning notices are transactional - no promo content)
+  - knowledge/compliance/consent-and-quiet-hours.md (Transactional vs marketing - zero promotional content)
+run:
+  copy: true
+assertions:
+  must_generate: [payment-failure]
+  copy:
+    forbidden: [indirim, kampanya, fırsat]
+    must_pass_validator: true

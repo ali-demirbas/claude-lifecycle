@@ -1,0 +1,10 @@
+user_id,event_timestamp,event_name,lead_source
+L-01,2026-06-01T10:00:00,generate_lead,webinar
+L-01,2026-06-04T09:00:00,file_download,
+L-01,2026-06-12T14:00:00,sign_up,
+L-02,2026-06-02T11:00:00,generate_lead,pricing-form
+L-02,2026-06-05T16:00:00,session_start,
+L-03,2026-06-03T09:30:00,generate_lead,guide-download
+U-04,2026-06-01T08:00:00,sign_up,
+U-04,2026-06-02T10:00:00,session_start,
+U-04,2026-06-06T10:00:00,feature_used,

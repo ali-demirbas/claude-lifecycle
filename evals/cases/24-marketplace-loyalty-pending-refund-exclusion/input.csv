@@ -1,0 +1,6 @@
+user_id,event_timestamp,event_name,item_id,points_delta
+U-01,2026-05-01T09:00:00,purchase,LST-401,
+U-01,2026-05-01T09:05:00,earn_virtual_currency,,150
+U-02,2026-05-02T09:00:00,purchase,LST-402,
+U-02,2026-05-02T09:05:00,earn_virtual_currency,,300
+U-02,2026-05-03T11:00:00,refund,LST-402,-300

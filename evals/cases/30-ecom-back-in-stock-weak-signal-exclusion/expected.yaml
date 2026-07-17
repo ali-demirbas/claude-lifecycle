@@ -1,0 +1,12 @@
+case: 30-ecom-back-in-stock-weak-signal-exclusion
+company: Depoda
+sector: ecommerce
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/back-in-stock.md (Required-event signature - add_to_wishlist defines who gets notified; view_item alone is too weak)
+  - knowledge/journey-patterns/back-in-stock.md (Common mistakes - treating a single view_item as interest)
+run:
+  copy: false
+assertions:
+  must_generate: [back-in-stock]
+  audience_must_exclude: [U-02]

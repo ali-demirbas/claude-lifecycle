@@ -1,0 +1,15 @@
+case: 04-ecom-missing-purchase
+company: Sepetane
+sector: ecommerce
+tier: T2
+rule_refs:
+  - skills/lifecycle-journeys/SKILL.md (eligibility pass - required_events missing -> blocked + tracking plan)
+  - knowledge/journey-patterns/abandoned-cart.md (required-event signature - purchase is success exit)
+run:
+  copy: false
+assertions:
+  must_not_generate: [abandoned-cart]
+  must_block:
+    - pattern: abandoned-cart
+      reason_contains: purchase
+  required_anywhere: [tracking]

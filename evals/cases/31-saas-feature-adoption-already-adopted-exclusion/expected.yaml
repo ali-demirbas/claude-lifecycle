@@ -1,0 +1,12 @@
+case: 31-saas-feature-adoption-already-adopted-exclusion
+company: Ozellikci
+sector: saas
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/feature-adoption.md (Entry segment - has never fired feature_used for target_feature)
+  - knowledge/journey-patterns/feature-adoption.md (Exclude - users who tried the feature and stopped is a re-adoption problem with different copy, not this pattern)
+run:
+  copy: false
+assertions:
+  must_generate: [feature-adoption]
+  audience_must_exclude: [U-02]

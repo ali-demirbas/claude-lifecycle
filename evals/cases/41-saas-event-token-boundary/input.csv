@@ -1,0 +1,4 @@
+user_id,event_timestamp,event_name,value
+U-01,2026-05-01T10:00:00,use_feature,
+U-02,2026-05-01T10:05:00,user_deleted,
+U-03,2026-05-01T10:10:00,user_invited,

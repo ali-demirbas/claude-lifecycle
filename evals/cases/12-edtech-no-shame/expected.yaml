@@ -1,0 +1,16 @@
+case: 12-edtech-no-shame
+company: Sınavio
+sector: edtech
+tier: T3
+rule_refs:
+  - knowledge/lexicons/edtech.md (Banned outright - shame constructions, streak-loss threats, peer comparison, failure vocabulary)
+  - knowledge/lexicons/edtech.md (Tone calibration - streak-break rescue is the gentlest message, zero guilt)
+  - skills/lifecycle-journeys/SKILL.md (depth assignment - T3 means simple depth class, depth_range min)
+run:
+  copy: true
+assertions:
+  max_steps:
+    any: 5
+  copy:
+    forbidden: [geride kaldın, serini kaybettin, serin tehlikede, yine mi bıraktın, başarısızlık]
+    must_pass_validator: true

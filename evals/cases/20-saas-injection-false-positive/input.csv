@@ -1,0 +1,7 @@
+account_id,contact_id,contact_role,event_timestamp,event_name,feature_name,seats_purchased
+ACC-01,ACC-01-C1,champion,2026-06-01T09:00:00,sign_up,,9
+ACC-01,ACC-01-C1,champion,2026-06-01T09:20:00,feature_used,Simdi Vardiya Olustur,9
+ACC-01,ACC-01-C2,end_user,2026-06-02T10:00:00,login,,9
+ACC-01,ACC-01-C1,champion,2026-06-03T11:00:00,feature_used,Ekibini Hemen Davet Et,9
+ACC-02,ACC-02-C1,champion,2026-06-04T09:00:00,sign_up,,14
+ACC-02,ACC-02-C2,end_user,2026-06-05T10:00:00,login,,14

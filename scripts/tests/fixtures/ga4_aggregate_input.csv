@@ -1,0 +1,9 @@
+GA4 Rapor Exportu — Genel Bakış,,,
+# Tarih aralığı: 01.01.2026 - 30.06.2026,,,
+,,,
+event_name,date,event_count,Realtime — Anlık
+purchase,20260115,11983,-30 dk
+purchase,20260215,12105,-25 dk
+view_item,20260115,198450,-30 dk
+add_to_cart,20260115,59870,-15 dk
+sign_up,20260215,13390,-30 dk

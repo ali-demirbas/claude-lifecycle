@@ -1,0 +1,12 @@
+case: 34-ecom-replenishment-auto-delivery-exclusion
+company: Tazele
+sector: ecommerce
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/replenishment.md (Exclude - item on auto-delivery subscription)
+  - knowledge/journey-patterns/replenishment.md (Common mistakes - continuing reminders after subscription_start on the item is the fastest route to an unsubscribe)
+run:
+  copy: false
+assertions:
+  must_generate: [replenishment]
+  audience_must_exclude: [U-02]

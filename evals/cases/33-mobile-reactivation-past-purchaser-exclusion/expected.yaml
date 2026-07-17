@@ -1,0 +1,12 @@
+case: 33-mobile-reactivation-past-purchaser-exclusion
+company: Yenidenbak
+sector: mobile-app
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/reactivation.md (Exclude - any past purchase routes the user to winback instead)
+  - knowledge/journey-patterns/reactivation.md (Common mistakes - letting past customers into the audience wastes winback economics on users who never had any)
+run:
+  copy: false
+assertions:
+  must_generate: [reactivation]
+  audience_must_exclude: [U-02]

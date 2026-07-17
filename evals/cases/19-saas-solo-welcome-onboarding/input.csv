@@ -1,0 +1,6 @@
+account_id,contact_id,contact_role,event_timestamp,event_name,feature_name,seats_purchased,seats_active
+ACC-01,ACC-01-C1,champion,2026-06-01T09:00:00,sign_up,,1,1
+ACC-01,ACC-01-C1,champion,2026-06-01T09:15:00,feature_used,todo_created,1,1
+ACC-01,ACC-01-C1,champion,2026-06-02T10:00:00,login,,1,1
+ACC-01,ACC-01-C1,champion,2026-06-03T10:00:00,login,,1,1
+ACC-01,ACC-01-C1,champion,2026-06-04T09:30:00,feature_used,report_export,1,1

@@ -1,0 +1,11 @@
+case: 42-saas-trial-start-value-promotion
+company: Kalemİşi
+sector: saas
+tier: T2
+rule_refs:
+  - knowledge/event-taxonomy/stage-mapping-rules.md (Rule 4 - parameter-based promotion, scope broadened from engagement-only to acquisition/activation/engagement)
+run:
+  copy: false
+assertions:
+  required_anywhere: ["trial_start => revenue-intent"]
+  forbidden_anywhere: ["trial_start => activation"]

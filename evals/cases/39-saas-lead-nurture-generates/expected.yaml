@@ -1,0 +1,11 @@
+case: 39-saas-lead-nurture-generates
+company: Rapora
+sector: saas
+tier: T2
+rule_refs:
+  - knowledge/journey-patterns/lead-nurture.md (Required-event signature — generate_lead + sign_up both instrumented; pre-signup leads exist)
+  - knowledge/industries/saas.md (pattern_priorities — lead-nurture P1)
+run:
+  copy: false
+assertions:
+  must_generate: [lead-nurture]

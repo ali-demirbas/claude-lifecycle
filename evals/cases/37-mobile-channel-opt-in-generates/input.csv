@@ -1,0 +1,13 @@
+user_id,event_timestamp,event_name,channel,status
+U-01,2026-06-01T09:00:00,first_open,,
+U-01,2026-06-01T09:10:00,tutorial_complete,,
+U-01,2026-06-02T19:00:00,session_start,,
+U-01,2026-06-05T19:30:00,session_start,,
+U-02,2026-06-02T08:00:00,first_open,,
+U-02,2026-06-02T08:15:00,tutorial_complete,,
+U-02,2026-06-04T21:00:00,session_start,,
+U-02,2026-06-04T21:05:00,consent_updated,email,granted
+U-03,2026-06-03T12:00:00,first_open,,
+U-03,2026-06-03T12:20:00,tutorial_complete,,
+U-03,2026-06-06T12:00:00,session_start,,
+U-03,2026-06-06T12:02:00,consent_updated,push,granted

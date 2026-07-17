@@ -1,0 +1,8 @@
+{ "brand": "demo", "journeys": [
+  { "id": "saas-trial-conversion-01", "pattern": "trial-conversion", "stage": "revenue", "priority": "P0",
+    "channels": ["email", "in_app"], "audience_group": "trial-admins",
+    "est_msgs_per_week": { "email": 2, "in_app": 1 } },
+  { "id": "saas-churn-prevention-01", "pattern": "churn-prevention", "stage": "retention", "priority": "P0",
+    "channels": ["email", "in_app"], "audience_group": "renewal-risk",
+    "est_msgs_per_week": { "email": 2, "in_app": 1 } }
+] }

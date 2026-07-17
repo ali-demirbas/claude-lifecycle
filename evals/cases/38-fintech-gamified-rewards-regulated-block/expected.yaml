@@ -1,0 +1,11 @@
+case: 38-fintech-gamified-rewards-regulated-block
+company: Parakolay
+sector: fintech
+tier: T3
+rule_refs:
+  - knowledge/journey-patterns/gamified-rewards.md (applicable_industries — fintech deliberately absent; regulated sectors resolve to "don't" via strictest-wins)
+  - knowledge/journey-patterns/gamified-rewards.md (The honesty contract, point 3 — legal review assumed; regulated: true lexicons ban the mechanic outright)
+run:
+  copy: false
+assertions:
+  must_not_generate: [gamified-rewards]

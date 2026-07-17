@@ -1,0 +1,9 @@
+user_id,event_timestamp,event_name,item_id
+U-01,2026-06-01T10:00:00,view_item,SKU-1
+U-01,2026-06-01T10:05:00,add_to_cart,SKU-1
+U-02,2026-06-02T11:00:00,view_item,SKU-2
+U-02,2026-06-02T11:04:00,add_to_cart,SKU-2
+U-03,2026-06-03T12:00:00,view_item,SKU-3
+U-04,2026-06-04T13:00:00,view_item,SKU-1
+U-04,2026-06-04T13:06:00,add_to_cart,SKU-1
+U-05,2026-06-05T14:00:00,view_item,SKU-4

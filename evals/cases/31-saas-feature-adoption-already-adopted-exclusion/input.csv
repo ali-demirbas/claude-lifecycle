@@ -1,0 +1,6 @@
+user_id,event_timestamp,event_name,feature
+U-01,2026-05-01T09:00:00,login,
+U-01,2026-05-02T10:00:00,feature_used,manual_report_export
+U-01,2026-05-05T10:00:00,feature_used,manual_report_export
+U-02,2026-05-01T09:00:00,login,
+U-02,2026-05-02T10:00:00,feature_used,scheduled_export
