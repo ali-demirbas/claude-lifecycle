@@ -29,7 +29,7 @@ import os
 import re
 import sys
 
-from _validate_common import fail, failures, tr_fold, warn, warnings
+from _validate_common import fail, failures, tr_diacritic_stripped_hits, tr_fold, warn, warnings
 
 CHANNELS = {"email", "push", "sms", "in_app", "whatsapp"}
 ISO_WAIT = re.compile(r"^P(?!$)(?:\d+W|(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?)$")
@@ -257,6 +257,34 @@ def check_journey(path):
         fail(f"{path}: expected exactly 1 primary KPI, found {len(prim)}")
     if not any(k.get("type") == "guardrail" for k in kpis):
         warn(f"{path}: no guardrail KPI")
+
+    # 5. flow tree text is customer/canvas-facing (rendered directly into the
+    # Mermaid diagram and the canvas the marketer/customer reads) — unlike the
+    # flat steps[]/objective/kpis fields, which this repo's own production data
+    # already writes in English as internal design language (see
+    # tr_diacritic_stripped_hits' docstring), so only flow is checked here.
+    flow = doc.get("flow")
+    if flow:
+        hits = []
+
+        def _walk_flow(node):
+            if not isinstance(node, dict):
+                return
+            hits.extend(tr_diacritic_stripped_hits(node.get("title")))
+            hits.extend(tr_diacritic_stripped_hits(node.get("tag")))
+            for row in node.get("rows", []) or []:
+                hits.extend(tr_diacritic_stripped_hits(row.get("html")))
+            for child in node.get("children", []) or []:
+                _walk_flow(child.get("node"))
+
+        _walk_flow(flow)
+        if hits:
+            sample = ", ".join(sorted(set(h.lower() for h in hits))[:8])
+            fail(
+                f"{path}: flow tree text reads like Turkish with dropped diacritics "
+                f"(found: {sample}) — flow.title/tag/rows[].html is customer-facing "
+                f"canvas text; preserve every diacritic"
+            )
 
 
 # ------------------------------------------------------------------- copy
@@ -645,6 +673,18 @@ def _md_section(text, heading_re):
     return rest[: nxt.start()] if nxt else rest
 
 
+def _journey_render():
+    """Import scripts/journey_render.py (same dir) — the single source of truth
+    for the generated §5 table and §8 Mermaid, so this check compares the doc
+    against exactly what the pipeline emits, never a second hand-authored copy."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    if here not in sys.path:
+        sys.path.insert(0, here)
+    import journey_render  # noqa: PLC0415
+
+    return journey_render
+
+
 def check_consistency(md_path, json_path):
     print(f"== consistency: {md_path} vs {json_path}")
     try:
@@ -676,29 +716,50 @@ def check_consistency(md_path, json_path):
         else:
             warn(f"{json_path}: markdown declares depth class '{md_depth}' but JSON has no depth_class field")
 
-    steps_section = _md_section(md, re.compile(r"^## 5\. Steps", re.M))
-    md_steps = []
-    for row in MD_STEP_ROW.finditer(steps_section):
-        idx, _wait, channel, _intent, branch, _copyref = (g.strip() for g in row.groups())
-        if not idx.isdigit():
-            continue  # header row ("#") or separator ("---") — not a data row
-        md_steps.append({"channel": channel.strip("` "), "has_branch": branch not in EMPTY_CELL})
-    json_steps = doc.get("steps", [])
-    if md_steps:
-        if len(md_steps) != len(json_steps):
-            fail(f"{md_path}: {len(md_steps)} step rows vs {json_path}: {len(json_steps)} steps — count mismatch")
-        else:
-            for i, (ms, js) in enumerate(zip(md_steps, json_steps), 1):
-                if ms["channel"] and ms["channel"] != js.get("channel"):
-                    fail(f"{md_path} step {i}: channel '{ms['channel']}' != {json_path} step {i}: channel '{js.get('channel')}'")
-                js_has_branch = bool(js.get("branch_condition"))
-                if ms["has_branch"] != js_has_branch:
-                    fail(
-                        f"{md_path} step {i}: branch-condition presence ({ms['has_branch']}) != "
-                        f"{json_path} step {i}: ({js_has_branch})"
-                    )
+    if doc.get("flow"):
+        # Explicit-branch-tree journeys: the §5 step table and §8 Mermaid are
+        # GENERATED, not hand-authored. Regenerate both from the JSON and require
+        # the doc to reproduce them exactly. The exact §5 match subsumes the old
+        # per-row channel + branch-presence checks (they are just columns of that
+        # table) and is strictly stronger; the §8 match is a check the hand-authored
+        # path never had at all.
+        jr = _journey_render()
+        if jr._norm(jr.extract_step_table(md)) != jr._norm(jr.render_step_table(doc)):
+            fail(
+                f"{md_path}: §5 step table does not match scripts/journey_render.py output for {json_path} "
+                f"— it is generated from the JSON's steps, not hand-edited; regenerate with "
+                f"`python3 scripts/journey_render.py {json_path} --section table`"
+            )
+        if jr._norm(jr.extract_mermaid(md)) != jr._norm(jr.render_mermaid(doc)):
+            fail(
+                f"{md_path}: §8 Mermaid diagram does not match scripts/journey_render.py output for {json_path} "
+                f"— it is generated from the JSON's flow, not hand-edited; regenerate with "
+                f"`python3 scripts/journey_render.py {json_path} --section mermaid`"
+            )
     else:
-        warn(f"{md_path}: no parseable rows in section 5 (Steps) — skipping step comparison")
+        steps_section = _md_section(md, re.compile(r"^## 5\. Steps", re.M))
+        md_steps = []
+        for row in MD_STEP_ROW.finditer(steps_section):
+            idx, _wait, channel, _intent, branch, _copyref = (g.strip() for g in row.groups())
+            if not idx.isdigit():
+                continue  # header row ("#") or separator ("---") — not a data row
+            md_steps.append({"channel": channel.strip("` "), "has_branch": branch not in EMPTY_CELL})
+        json_steps = doc.get("steps", [])
+        if md_steps:
+            if len(md_steps) != len(json_steps):
+                fail(f"{md_path}: {len(md_steps)} step rows vs {json_path}: {len(json_steps)} steps — count mismatch")
+            else:
+                for i, (ms, js) in enumerate(zip(md_steps, json_steps), 1):
+                    if ms["channel"] and ms["channel"] != js.get("channel"):
+                        fail(f"{md_path} step {i}: channel '{ms['channel']}' != {json_path} step {i}: channel '{js.get('channel')}'")
+                    js_has_branch = bool(js.get("branch_condition"))
+                    if ms["has_branch"] != js_has_branch:
+                        fail(
+                            f"{md_path} step {i}: branch-condition presence ({ms['has_branch']}) != "
+                            f"{json_path} step {i}: ({js_has_branch})"
+                        )
+        else:
+            warn(f"{md_path}: no parseable rows in section 5 (Steps) — skipping step comparison")
 
     kpi_section = _md_section(md, re.compile(r"^## 6\. Measurement", re.M))
     md_kpis = [
@@ -716,7 +777,10 @@ def check_consistency(md_path, json_path):
         warn(f"{md_path}: no parseable rows in section 6 (Measurement) — skipping KPI comparison")
 
     if len(failures) == before:
-        ok("markdown/JSON agree on id, depth_class, step count+channels+branch-presence, KPI count+types")
+        if doc.get("flow"):
+            ok("markdown/JSON agree on id, depth_class, KPI count+types; §5 table and §8 diagram match journey_render.py output")
+        else:
+            ok("markdown/JSON agree on id, depth_class, step count+channels+branch-presence, KPI count+types")
 
 
 # -------------------------------------------------------------- portfolio

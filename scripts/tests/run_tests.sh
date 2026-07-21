@@ -104,6 +104,54 @@ expect_contains "build_canvas self-verify reports skeleton match" "skeleton matc
 expect 0 "build_canvas output passes the independent canvas validator" python3 "$VO" canvas /tmp/lc_build_canvas_out.html --template templates/canvas.html
 expect 2 "build_canvas rejects a template with no JOURNEYS region" python3 "$DIR/../build_canvas.py" --template "$FX/good_copy.md" --journeys "$FX/build_canvas_journeys.json" --meta "$FX/build_canvas_meta.json" --out /tmp/lc_build_canvas_bad.html
 
+echo "== explicit flow tree (schema + journey_render + flow-path consistency + flow canvas) =="
+# Schema: the optional `flow` node-tree validates, and is constrained (not a free object)
+expect 0 "journey WITH a flow tree validates"                python3 "$VO" journey "$FX/flow_journey.json"
+expect 1 "invalid flow node kind rejected by schema"         python3 "$VO" journey "$FX/bad_flow_schema_journey.json"
+expect_contains "bad flow kind names the allowed enum" "is not one of ['entry', 'decision', 'message', 'wait', 'exit']" python3 "$VO" journey "$FX/bad_flow_schema_journey.json"
+# journey_render: emits §5 table + §8 diagram from flow/steps; exits 2 without flow; branch-faithful
+expect 0 "journey_render renders a flow journey"             python3 "$DIR/../journey_render.py" "$FX/flow_journey.json"
+expect 2 "journey_render exits 2 on a no-flow journey"       python3 "$DIR/../journey_render.py" "$FX/good_journey.json"
+expect_contains "journey_render mermaid has labeled branch edges (not a linear approximation)" "|Evet| S2" python3 "$DIR/../journey_render.py" "$FX/flow_journey.json" --section mermaid
+expect_contains "journey_render round-trips the fixture doc's §5 table + §8 diagram" "ROUNDTRIP_OK" \
+  python3 -c "
+import sys, json; sys.path.insert(0, '$DIR/..')
+import journey_render as jr
+doc = json.load(open('$FX/flow_journey.json', encoding='utf-8'))
+md = open('$FX/flow_journey.md', encoding='utf-8').read()
+n = jr._norm
+ok = n(jr.render_step_table(doc)) == n(jr.extract_step_table(md)) and n(jr.render_mermaid(doc)) == n(jr.extract_mermaid(md))
+print('ROUNDTRIP_OK' if ok else 'ROUNDTRIP_MISMATCH')
+"
+# consistency: flow doc must reproduce the generated §5/§8 exactly; tampering is caught
+expect 0 "flow journey doc matches regenerated §5 table + §8 diagram"  python3 "$VO" consistency "$FX/flow_journey.md" "$FX/flow_journey.json"
+expect 1 "tampered §8 diagram is caught (a check the old path never had)" python3 "$VO" consistency "$FX/bad_flow_mermaid.md" "$FX/flow_journey.json"
+expect_contains "tampered §8 diagram names the section" "§8 Mermaid diagram does not match" python3 "$VO" consistency "$FX/bad_flow_mermaid.md" "$FX/flow_journey.json"
+expect 1 "tampered §5 table + §8 diagram both caught"       python3 "$VO" consistency "$FX/bad_flow_consistency.md" "$FX/flow_journey.json"
+expect_contains "tampered §5 table names the section" "§5 step table does not match" python3 "$VO" consistency "$FX/bad_flow_consistency.md" "$FX/flow_journey.json"
+# build_canvas --from-journeys: derives the canvas from the journey JSON; flow used directly, flat fallback otherwise
+expect 0 "build_canvas --from-journeys (with flow) builds"  python3 "$DIR/../build_canvas.py" --template templates/canvas.html --from-journeys "$FX/flow_journey.json" --meta "$FX/build_canvas_meta.json" --out /tmp/lc_flow_canvas.html
+expect 0 "flow canvas passes the independent canvas validator" python3 "$VO" canvas /tmp/lc_flow_canvas.html --template templates/canvas.html
+expect 0 "flow canvas embeds the decision node from flow (branch-faithful, no approximation)" grep -q '"kind": "decision"' /tmp/lc_flow_canvas.html
+expect 0 "build_canvas --from-journeys (no flow) builds via the flat linear fallback" python3 "$DIR/../build_canvas.py" --template templates/canvas.html --from-journeys "$FX/good_journey.json" --meta "$FX/build_canvas_meta.json" --out /tmp/lc_flat_canvas.html
+expect 0 "flat-fallback canvas passes the independent canvas validator" python3 "$VO" canvas /tmp/lc_flat_canvas.html --template templates/canvas.html
+expect 1 "flat-fallback canvas is linear (no decision node — fallback can't branch)" grep -q '"kind": "decision"' /tmp/lc_flat_canvas.html
+expect 2 "build_canvas rejects --journeys and --from-journeys together" python3 "$DIR/../build_canvas.py" --template templates/canvas.html --journeys "$FX/build_canvas_journeys.json" --from-journeys "$FX/flow_journey.json" --meta "$FX/build_canvas_meta.json" --out /tmp/lc_x.html
+# flow tree text is customer/canvas-facing — dropped Turkish diacritics there are a real, catchable defect (steps[]/objective/kpis stay unchecked: this repo's own production journeys write those in English)
+expect 1 "flow tree with dropped Turkish diacritics fails"            python3 "$VO" journey "$FX/bad_flow_diacritics_journey.json"
+expect_contains "dropped-diacritics failure names the offending words" "flow tree text reads like Turkish with dropped diacritics" python3 "$VO" journey "$FX/bad_flow_diacritics_journey.json"
+expect 0 "flow tree with correct Turkish diacritics passes (no false positive)" python3 "$VO" journey "$FX/flow_journey.json"
+expect_contains "dotless-i case-fold does not false-positive (ı must not match ASCII i under IGNORECASE)" "CASEFOLD_OK" python3 -c "
+import sys; sys.path.insert(0, '$DIR/..')
+from _validate_common import tr_diacritic_stripped_hits
+# 'adım','kullanıcı','hatırlatma','aynı','yardımcı' are CORRECTLY accented — none should match
+hits = tr_diacritic_stripped_hits('Adım bazında kullanıcıya hatırlatma; aynı yardımcı ton.')
+print('CASEFOLD_OK' if not hits else f'CASEFOLD_FAIL: {hits}')
+"
+# guard: a reused/stale --meta whose header text claims a journey count that disagrees with the actual build is warned (cosmetic → warn, never block)
+expect_contains "build_canvas warns when --meta header journey-count disagrees with the build" "header says '6 journey' but 1" python3 "$DIR/../build_canvas.py" --template templates/canvas.html --from-journeys "$FX/flow_journey.json" --meta "$FX/build_canvas_meta_count6.json" --out /tmp/lc_count.html
+expect 0 "count-mismatch is a warning, not a hard stop (still builds)" python3 "$DIR/../build_canvas.py" --template templates/canvas.html --from-journeys "$FX/flow_journey.json" --meta "$FX/build_canvas_meta_count6.json" --out /tmp/lc_count.html
+
 echo "== portfolio registry =="
 expect 0 "within caps passes"                   python3 "$VO" portfolio "$FX/good_portfolio.json"
 expect 1 "duplicate id + over cap fails"        python3 "$VO" portfolio "$FX/bad_portfolio.json"

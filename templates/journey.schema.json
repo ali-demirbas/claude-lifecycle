@@ -11,6 +11,59 @@
       "type": "string",
       "enum": ["email", "push", "sms", "in_app", "whatsapp"],
       "description": "The single source of truth for the channel vocabulary in this schema — referenced by both constraints.allowed_channels and steps[].channel so the two can never drift apart the way a hand-duplicated enum eventually would (the exact bug class already found and fixed in knowledge/channels/*.md's ceilings elsewhere in this repo)."
+    },
+    "flowNode": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "description": "One node in the journey's explicit branch tree (top-level `flow`). Its shape is deliberately identical to the canvas node-tree already consumed by templates/canvas.html and scripts/build_canvas.py, so `flow` doubles as the canvas `root` with no transform — see scripts/journey_render.py (Mermaid + step table) and scripts/build_canvas.py (--from-journeys).",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["entry", "decision", "message", "wait", "exit"],
+          "description": "entry = trigger root (exactly one, the tree root); decision = branch point (its children carry edge labels); message = a send (carries channel); wait = a delay node; exit = a terminal leaf (carries exit good|bad)."
+        },
+        "tag": { "type": "string", "description": "Header tag shown on the card, e.g. 'Gün 0 · Email → Admin' or 'Yol Ayrımı'" },
+        "title": { "type": "string", "minLength": 1, "description": "The node's bold title line; also the label used for this node in the generated Mermaid diagram" },
+        "channel": { "$ref": "#/$defs/channel" },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["html"],
+            "additionalProperties": false,
+            "properties": {
+              "icon": { "type": "string", "description": "Icon key from templates/canvas.html's ICONS map; an unknown key renders blank, so it is advisory only" },
+              "html": { "type": "string", "minLength": 1, "description": "Row body — the one field authored as HTML ({{var}} tokens are highlighted); every other text field is escaped" }
+            }
+          }
+        },
+        "extra": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Optional key→value detail shown under a collapsible 'Detaylar' toggle on the card"
+        },
+        "exit": {
+          "type": "string",
+          "enum": ["good", "bad"],
+          "description": "Terminal outcome class — required in practice on kind=exit nodes (good = success exit, bad = lost/expired)"
+        },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/flowChild" },
+          "description": "Ordered outgoing edges; for a decision node each child's `label` is its edge label (e.g. Evet/Hayır)"
+        }
+      }
+    },
+    "flowChild": {
+      "type": "object",
+      "required": ["node"],
+      "additionalProperties": false,
+      "description": "One outgoing edge: an optional edge label plus the child node it points to",
+      "properties": {
+        "label": { "type": ["string", "null"], "description": "Edge label (branch condition outcome, e.g. 'Evet'/'Hayır'); null for an unlabeled linear edge" },
+        "node": { "$ref": "#/$defs/flowNode" }
+      }
     }
   },
   "properties": {
@@ -138,6 +191,10 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "Missing events/attributes that would improve this journey"
+    },
+    "flow": {
+      "$ref": "#/$defs/flowNode",
+      "description": "OPTIONAL explicit branch tree — the authoritative BRANCH structure of this journey. When present, scripts/journey_render.py generates the journey-doc §8 Mermaid diagram from it (branch-faithful, not a linear approximation) and scripts/build_canvas.py uses it directly as the canvas node-tree. The flat `steps` array above stays the source for the §5 step table (per-step wait/intent/channel/branch_condition/copy_ref linkage). Absent on pre-existing journeys, which keep hand-authored mechanical sections and a flat linear canvas fallback — hence optional."
     }
   }
 }
