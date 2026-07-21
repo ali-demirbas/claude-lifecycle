@@ -10,7 +10,9 @@ You receive: pattern slug, sector, priority (P0/P1/P2 — goes straight into the
 
 ## Procedure
 
-1. Read, in order:
+**Before reading anything: check what the caller already pasted inline.** The orchestrator often pre-bundles the shared rule files (industry playbook, compliance caps, segmentation, sector lexicon, journey-doc template, journey.schema.json) and the resolved account-level facts (DQS, depth class, channel inventory, incentive policy, identity/consent constraints) directly into your prompt, to spare you the round-trips. Use any content provided inline **verbatim** and do NOT re-Read it. Only `Read` the files that were NOT provided — at minimum your own `knowledge/journey-patterns/<pattern>.md`, which is journey-specific and rarely bundled. Re-reading a file already in your prompt just burns a round-trip for identical content.
+
+1. Read (only what wasn't provided inline), in order:
    - `knowledge/journey-patterns/<pattern>.md` — your blueprint; its depth-scaling section binds you, and its **Common mistakes** section is the pattern-specific failure list you check your own design against in step 6 — every pattern file has one, it isn't optional reading.
    - `knowledge/industries/<sector>.md` — timing & cadence, segmentation attributes, and **Seasonality** where it exists: a seasonal window modifies an existing journey's timing/framing rather than being a separate journey type, so a launch near a declared peak is your job to account for at design time, not a later patch.
    - `knowledge/compliance/consent-and-quiet-hours.md` — caps and quiet hours your steps must respect.

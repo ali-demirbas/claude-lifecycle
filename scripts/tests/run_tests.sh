@@ -98,6 +98,12 @@ echo "== canvas skeleton =="
 expect 0 "edited-in-place canvas passes"        python3 "$VO" canvas "$FX/good_canvas.html" --template templates/copy-canvas.html
 expect 1 "truncated/retyped canvas fails"       python3 "$VO" canvas "$FX/bad_truncated_canvas.html" --template templates/copy-canvas.html
 
+echo "== build_canvas (deterministic swap) =="
+expect 0 "build_canvas produces a skeleton-clean canvas"  python3 "$DIR/../build_canvas.py" --template templates/canvas.html --journeys "$FX/build_canvas_journeys.json" --meta "$FX/build_canvas_meta.json" --out /tmp/lc_build_canvas_out.html
+expect_contains "build_canvas self-verify reports skeleton match" "skeleton matches the template" python3 "$DIR/../build_canvas.py" --template templates/canvas.html --journeys "$FX/build_canvas_journeys.json" --meta "$FX/build_canvas_meta.json" --out /tmp/lc_build_canvas_out.html
+expect 0 "build_canvas output passes the independent canvas validator" python3 "$VO" canvas /tmp/lc_build_canvas_out.html --template templates/canvas.html
+expect 2 "build_canvas rejects a template with no JOURNEYS region" python3 "$DIR/../build_canvas.py" --template "$FX/good_copy.md" --journeys "$FX/build_canvas_journeys.json" --meta "$FX/build_canvas_meta.json" --out /tmp/lc_build_canvas_bad.html
+
 echo "== portfolio registry =="
 expect 0 "within caps passes"                   python3 "$VO" portfolio "$FX/good_portfolio.json"
 expect 1 "duplicate id + over cap fails"        python3 "$VO" portfolio "$FX/bad_portfolio.json"
