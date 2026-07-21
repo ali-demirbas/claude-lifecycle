@@ -41,13 +41,14 @@ connect → map → (intake if needed) → journeys → copy → export (on requ
    - GA4 MCP tools available (`mcp__ga4__*` or similar)? → Tier 1. Confirm which property to use.
    - User has a CSV/export file? → Tier 2.
    - Neither? → Tier 3: ask for the industry (must match a file in `${CLAUDE_PLUGIN_ROOT}/knowledge/industries/`; if none matches, use the closest and say so, or offer `_template.md` for a custom playbook).
-2. Run the pipeline stages in order. Each stage's output feeds the next; summarize between stages in ≤ 3 sentences.
-3. If the user asks for a single stage, run only that stage, but state which prerequisites are missing and offer to run them.
+2. **Ask the scope before running anything, unless the user already stated it.** One short question: journeys only, or journeys + copy (the full canvas pair)? State plainly that choosing journeys + copy runs meaningfully longer and uses noticeably more tokens — the pipeline spawns one subagent per journey for the portfolio, then one writer + one reviewer per journey again for copy, each reading the sector/brand/channel rules independently. Journeys-only is the lighter, faster option; copy can always be added later as a separate `/lifecycle copy` step once the portfolio looks right. Silence or "hepsini/tümünü/full pipeline" defaults to journeys + copy (CLAUDE.md's existing "portfolio without copy is incomplete" rule) — but the cost/time tradeoff must be stated before that default kicks in, not assumed silently.
+3. Run the pipeline stages in order. Each stage's output feeds the next; summarize between stages in ≤ 3 sentences.
+4. If the user asks for a single stage, run only that stage, but state which prerequisites are missing and offer to run them.
 
 ## Never do
 
 - Never generate journeys without a DQS (CLAUDE.md rule 1).
 - Never dump raw sub-skill mechanics on the user — they see results, not plumbing.
 - Never run `lifecycle-copy` before journeys exist, unless the user provides their own journey/step description.
-- **Never stop at the portfolio and call a "full pipeline" request done.** `copy` is a standard stage of the pipeline, exactly like `connect`/`map`/`journeys` — it is not gated behind a separate ask the way `export` explicitly is ("on request" applies only to export). A journey portfolio without its copy is an incomplete deliverable for a "journeys'imi oluştur" / "generate my journeys" request; continue into `lifecycle-copy` automatically unless the user asked for the portfolio only.
+- **Never run journeys + copy without having asked the scope question in step 2 first.** `copy` is a standard stage of the pipeline, exactly like `connect`/`map`/`journeys` — a journey portfolio without its copy is an incomplete deliverable for a "journeys'imi oluştur" / "generate my journeys" request, so copy is still the default outcome. What changed: the user hears the time/token tradeoff and gets a chance to say "journeys only for now" before the expensive fan-out starts, instead of it running silently.
 - Never invent a sub-skill; if the request fits nothing above (e.g. "run my campaign"), say what this plugin does and does not do (it designs; it does not send).

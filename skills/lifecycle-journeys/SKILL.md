@@ -35,6 +35,16 @@ Start from the playbook's `pattern_priorities` (that vertical's own playbook, fo
 - Any pattern matching an **existing automation** from intake is demoted to "⏸ deferred — already running" unless the user asked to redesign it.
 - A journey/strategy with a **powered failure in the failed-strategies log** for this audience is not re-proposed as-is; state which log entry caused the change (the log recommends, the user can overrule).
 
+### 2a. Breadth gate (ask before generating)
+
+Prioritization tells you how many journeys are eligible and at which priority — the user hasn't seen that number yet, and it is the single biggest cost multiplier of the whole run (one subagent per journey at generation, and one writer + one reviewer per journey again if copy follows). So before any doc generation, present the prioritized set as one short list (id · pattern · priority) and ask how much of it to build now:
+
+- **(A) P0 only** — the minimum honest portfolio (exactly the Never-do floor below); fastest and cheapest, recommended starting point.
+- **(B) P0 + P1** — medium scope.
+- **(C) Everything eligible** — most complete, longest run, most tokens.
+
+Deferred journeys are not dropped: they appear in the portfolio doc as `⏸ deferred by user scope` with one line each on what they would add — this satisfies the stage-coverage table's "explained gap" clause, and lets the user say "add the P1s" later without re-running eligibility. Skip the question only when the user already stated breadth ("sadece P0'lar", "hepsini üret") or when the eligible set is ≤ 3 journeys total (the choice would be meaningless).
+
 ### 3. Depth assignment (adım sayısı — deterministic)
 
 For each eligible journey take the pattern's `base_steps`, then (DQS below means that vertical's own DQS breakdown, for multi-vertical brands):
