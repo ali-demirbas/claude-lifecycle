@@ -39,6 +39,9 @@ EMDASH = re.compile(r"[—–]")  # em dash, en dash
 VARIANT_HEAD = re.compile(r"^### Variant\b.*$", re.M)
 VARIANT_JSON_FENCE = re.compile(r"```json\s*\n(.*?)\n```", re.S)
 REVIEW_STATUS_RE = re.compile(r"\*\*Review status:\*\*\s*(.+)$", re.M)
+# A template metadata field line: `**<Label>:** ...` at line start — the
+# grammar every step-bookkeeping field in templates/copy-output.md follows.
+FIELD_LABEL = re.compile(r"^\*\*[^*\n]+:\*\*", re.M)
 REVIEWER_NOTES_RE = re.compile(r"\*\*Reviewer notes:\*\*\s*(.*)$", re.M)
 # push's optional rich-media line (templates/copy-output.md): not a chars-table
 # row (a URL has no meaningful character ceiling), so it's parsed separately.
@@ -133,6 +136,16 @@ def ok(msg):
     print(f"  ok: {msg}")
 
 
+def channel_rule_src(channel):
+    """Rule-source pointer for a channel-derived limit: the channel file is
+    where the ceiling comes from (load_channel_limits parses its frontmatter),
+    so that's where the fixer should look — not a search over knowledge/."""
+    if channel:
+        chfile = "in-app" if channel == "in_app" else channel
+        return f"knowledge/channels/{chfile}.md § frontmatter limits + Hard rules"
+    return "templates/copy-output.md § chars table"
+
+
 # ---------------------------------------------------------------- journeys
 def schema_path():
     here = os.path.dirname(os.path.abspath(__file__))
@@ -170,7 +183,8 @@ def check_journey(path):
 
             errs = list(jsonschema.Draft202012Validator(schema).iter_errors(doc))
             for e in errs[:8]:
-                fail(f"{path}: schema: {'/'.join(map(str, e.path))}: {e.message}")
+                fail(f"{path}: schema: {'/'.join(map(str, e.path))}: {e.message}",
+                     src="templates/journey.schema.json")
             if len(errs) > 8:
                 # A cap of 8 keeps a badly-malformed document's output readable, but
                 # silently dropping the rest is a real false-negative: whoever fixes
@@ -192,7 +206,8 @@ def check_journey(path):
 
     # 2. id / version
     if "id" in doc and not ID_RE.match(str(doc["id"])):
-        fail(f"{path}: id '{doc.get('id')}' violates <sector>-<pattern>-<nn>")
+        fail(f"{path}: id '{doc.get('id')}' violates <sector>-<pattern>-<nn>",
+             src="CLAUDE.md § Conventions (journey IDs)")
     if "version" not in doc:
         warn(f"{path}: no 'version' field — bump-on-change tracking impossible")
     elif not SEMVER.match(str(doc["version"])):
@@ -244,7 +259,8 @@ def check_journey(path):
         elif allowed and ch not in allowed:
             fail(
                 f"{path}: step {step.get('index')}: channel '{ch}' not in "
-                f"constraints.allowed_channels {sorted(allowed)} — Channel Consent Violation"
+                f"constraints.allowed_channels {sorted(allowed)} — Channel Consent Violation",
+                src="brand config channels_live (knowledge/brands/<brand>.md) → portfolio constraints",
             )
         w = step.get("wait", "")
         if w and not ISO_WAIT.match(w):
@@ -290,11 +306,32 @@ def check_journey(path):
 # ------------------------------------------------------------------- copy
 ROW = re.compile(r"^\|\s*([^|]+?)\s*\|\s*(.+?)\s*\|\s*(\d+)\s*\|\s*[≤<=]*\s*(\d+)\s*\|\s*$")
 # "## Step 1 — email (`step-1`)" / "## Adım 1 · Email · +1sa" — channel is the
-# first word after the separator; stop at the next non-word char (paren, ·,
-# comma). Field ceilings are channel-specific (push != in-app != email), so
-# every row's channel must be known before its limit can be checked.
-STEP_HEAD = re.compile(r"^## (?:Step|Adım)\b.*?[—·-]\s*([A-Za-zçğıöşüÇĞİÖŞÜ][\w-]*)", re.M)
+# Field ceilings are channel-specific (push != in-app != email), so every
+# row's channel must be known before its limit can be checked. The channel is
+# resolved against the CLOSED channel vocabulary, not "first word after a
+# separator": the old lazy-separator capture read a title word as the channel
+# whenever a heading drifted from the template contract ("## Step 1 — Deneme
+# bitiyor — email" → channel "Deneme"), and a garbage channel silently
+# disabled every canonical-ceiling check for that step — including the SMS
+# UCS-2 70-char compliance ceiling — with no warning, because channel wasn't
+# None. A closed-set scan survives drifted headings (the channel word is
+# found wherever it sits) and turns a truly channel-less heading into
+# channel=None, which the per-row "no detected channel" warning already
+# reports loudly. Last match wins: the contract puts the channel token at the
+# end, after the title, so a title that merely mentions a channel word
+# ("Push izni hatırlatma — email") resolves to the trailing real channel.
+STEP_HEAD = re.compile(r"^## (?:Step|Adım)\b", re.M)
+CHANNEL_TOKEN = re.compile(r"\b(email|push|sms|in[_-]app|inapp|whatsapp)\b", re.I)
 CHANNEL_ALIASES = {"in-app": "in_app", "inapp": "in_app", "app-push": "push"}
+
+
+def channel_of_heading(line):
+    """Resolve a step heading's channel from the closed vocabulary, or None."""
+    hits = CHANNEL_TOKEN.findall(line)
+    if not hits:
+        return None
+    tok = hits[-1].lower().replace("-", "_")
+    return CHANNEL_ALIASES.get(tok, tok)
 
 # Canonical per-field ceilings, one dict per channel — parsed LIVE from each
 # knowledge/channels/<slug>.md's own frontmatter `limits:` block, never
@@ -488,7 +525,8 @@ def check_copy(path, max_discount=None, sector=None):
         if has_var and not fb:
             fail(
                 f"{path}:{line_no}: step uses personalization variables but has no "
-                f"'### Fallback' section — Missing Fallback Violation"
+                f"'### Fallback' section — Missing Fallback Violation",
+                src="templates/copy-output.md § Fallback (shortest safe version, no variables)",
             )
         elif fb:
             # A heading isn't the same claim as a working fallback — the
@@ -499,6 +537,19 @@ def check_copy(path, max_discount=None, sector=None):
             rest = block[fb.end():]
             nxt = next_heading_re.search(rest)
             fb_body = rest[: nxt.start()] if nxt else rest
+            # The template places step-metadata field lines (`**Personalization
+            # variables used:** ...`, `**Reviewer notes:** ...`) directly after
+            # the Fallback section with no heading between — so a heading-only
+            # bound swallows them into fb_body, and their {{var}} mentions
+            # false-positive as "fallback still contains a variable". Confirmed
+            # against the repo's own reference output (evals/out/27's copy doc
+            # failed on its variables-used line while its actual fallback text
+            # was variable-free). Metadata lines are step bookkeeping, not
+            # sendable fallback content: stop fb_body at the first bold
+            # field-label line.
+            lbl = FIELD_LABEL.search(fb_body)
+            if lbl:
+                fb_body = fb_body[: lbl.start()]
             fb_vars = re.findall(r"\{\{([^}]+)\}\}", fb_body)
             if fb_vars:
                 fb_line = line_no + block[: fb.start()].count("\n")
@@ -506,7 +557,8 @@ def check_copy(path, max_discount=None, sector=None):
                     f"{path}:{fb_line}: Fallback section itself still contains "
                     f"{{{{{fb_vars[0]}}}}} — a fallback with a non-system-safe variable "
                     f"isn't a fallback, it's the same failure with an extra heading "
-                    f"(Missing Fallback Violation)"
+                    f"(Missing Fallback Violation)",
+                    src="templates/copy-output.md § Fallback (shortest safe version, no variables)",
                 )
 
         # Rich-media image line (push, optional — templates/copy-output.md):
@@ -519,9 +571,11 @@ def check_copy(path, max_discount=None, sector=None):
             url, alt = img.group(1).strip(), img.group(2).strip()
             if url not in ("—", "-"):
                 if not url.startswith("https://"):
-                    fail(f"{path}:{img_line}: Image URL '{url}' is not HTTPS — Insecure Image Reference Violation")
+                    fail(f"{path}:{img_line}: Image URL '{url}' is not HTTPS — Insecure Image Reference Violation",
+                         src="templates/copy-output.md § rich-media image line")
                 if not alt:
-                    fail(f"{path}:{img_line}: Image present but Alt text is empty — Missing Image Alt Text Violation")
+                    fail(f"{path}:{img_line}: Image present but Alt text is empty — Missing Image Alt Text Violation",
+                         src="templates/copy-output.md § rich-media image line")
 
         # Variant metadata: copy-reviewer's checklist already treats missing
         # strategy/hypothesis as a FIX, but that was pure human judgment with
@@ -536,16 +590,19 @@ def check_copy(path, max_discount=None, sector=None):
             after = block[vm.end():]
             fence = VARIANT_JSON_FENCE.match(after.lstrip("\n"))
             if not fence:
-                fail(f"{path}:{v_line}: variant has no ```json strategy/hypothesis fence — Missing Variant Metadata Violation")
+                fail(f"{path}:{v_line}: variant has no ```json strategy/hypothesis fence — Missing Variant Metadata Violation",
+                     src="templates/copy-output.md § variant strategy/hypothesis JSON")
                 continue
             try:
                 meta = json.loads(fence.group(1))
             except json.JSONDecodeError as e:
-                fail(f"{path}:{v_line}: variant metadata is not valid JSON: {e} — Missing Variant Metadata Violation")
+                fail(f"{path}:{v_line}: variant metadata is not valid JSON: {e} — Missing Variant Metadata Violation",
+                     src="templates/copy-output.md § variant strategy/hypothesis JSON")
                 continue
             for key in ("strategy", "hypothesis"):
                 if not str(meta.get(key, "")).strip():
-                    fail(f"{path}:{v_line}: variant metadata missing non-empty '{key}' — Missing Variant Metadata Violation")
+                    fail(f"{path}:{v_line}: variant metadata missing non-empty '{key}' — Missing Variant Metadata Violation",
+                         src="templates/copy-output.md § variant strategy/hypothesis JSON")
 
     # Legal-review flag without its required explanation is worse than no
     # flag: it tells the reader "something needs sign-off" without saying
@@ -565,7 +622,8 @@ def check_copy(path, max_discount=None, sector=None):
             fail(
                 f"{path}: Review status is ⚖️ legal review required but no 'Reviewer notes' "
                 f"with actual content was found — the exact claim and triggering rule must be "
-                f"stated (Missing Legal Notes Violation)"
+                f"stated (Missing Legal Notes Violation)",
+                src="templates/copy-output.md § Review status / Reviewer notes",
             )
 
     in_code = False
@@ -579,7 +637,12 @@ def check_copy(path, max_discount=None, sector=None):
             continue
         head = STEP_HEAD.match(line)
         if head:
-            channel = head.group(1)
+            channel = channel_of_heading(line)
+            if channel is None:
+                warn(f"{path}:{i}: step heading names no known channel "
+                     f"({', '.join(sorted(CHANNELS))}) — canonical ceilings "
+                     f"can't be checked for this step's rows",
+                     src="templates/copy-output.md § step heading contract")
             continue
         m = ROW.match(line)
         if m:
@@ -592,29 +655,34 @@ def check_copy(path, max_discount=None, sector=None):
             if actual != declared:
                 fail(
                     f"{path}:{i}: '{field}' declared {declared} chars but content is "
-                    f"{actual} — counts must be real (Count Integrity Violation)"
+                    f"{actual} — counts must be real (Count Integrity Violation)",
+                    src="templates/copy-output.md § chars table (Declared = actual count)",
                 )
             # 5b. limit — declared, then canonical (inflated Limit columns don't help)
             if actual > limit:
-                fail(f"{path}:{i}: '{field}' is {actual} chars, limit {limit} — Limit Violation")
+                fail(f"{path}:{i}: '{field}' is {actual} chars, limit {limit} — Limit Violation",
+                     src=channel_rule_src(channel))
             canon = canonical_limit(field, channel, content)
             if canon is not None:
                 if limit > canon:
                     fail(
                         f"{path}:{i}: '{field}' declares limit {limit} but the channel "
-                        f"ceiling is {canon} — Limit Inflation Violation"
+                        f"ceiling is {canon} — Limit Inflation Violation",
+                        src=channel_rule_src(channel),
                     )
                 if actual > canon:
                     fail(
                         f"{path}:{i}: '{field}' is {actual} chars, channel ceiling "
-                        f"{canon} — Limit Violation"
+                        f"{canon} — Limit Violation",
+                        src=channel_rule_src(channel),
                     )
             elif channel is None:
                 warn(f"{path}:{i}: '{field}' has no detected channel (no preceding '## Step ... — <channel>' "
                      f"header) — channel-ceiling backstop skipped for this row")
             # 5c. em/en dash in customer-facing copy
             if EMDASH.search(content):
-                fail(f"{path}:{i}: '{field}' contains em/en dash — banned in customer copy")
+                fail(f"{path}:{i}: '{field}' contains em/en dash — banned in customer copy",
+                     src="agents/copy-writer.md § Mechanics (commas, periods, parentheses instead)")
             # 5e. candidate banned/spam terms (quoted literals only — see banned_terms_for).
             # A hit is a CANDIDATE, not a certain violation: it can over-match a term that's
             # a substring of an unrelated longer word, or one appearing inside a required
@@ -624,7 +692,9 @@ def check_copy(path, max_discount=None, sector=None):
             for term in banned_terms_for(sector, channel):
                 if term and term in folded_content:
                     warn(f"{path}:{i}: '{field}' contains candidate banned term '{term}' — "
-                         f"confirm in context, not an automatic violation (Banned Word Candidate)")
+                         f"confirm in context, not an automatic violation (Banned Word Candidate)",
+                         src=f"knowledge/lexicons/{sector}.md § banned list" if sector
+                             else "knowledge/lexicons/<sector>.md § banned list")
         # 5d. discount ceiling anywhere in copy text (outside code fences).
         # The %NN figure must sit NEAR a discount word (±40 chars) — a line like
         # "İndirim: yok ... push izinli oran %40" mentions a percentage that is
@@ -638,7 +708,8 @@ def check_copy(path, max_discount=None, sector=None):
                 if val > max_discount:
                     fail(
                         f"{path}:{i}: mentions %{val:g} discount, brand limit is "
-                        f"%{max_discount:g} — Discount Limit Violation"
+                        f"%{max_discount:g} — Discount Limit Violation",
+                        src="brand config incentive_policy (knowledge/brands/<brand>.md) / --max-discount",
                     )
     if rows:
         ok(f"{rows} copy table rows recounted")
@@ -852,12 +923,14 @@ def check_portfolio(path):
             if n > caps.get(ch, 99):
                 fail(
                     f"{path}: {label}: worst case {n} {ch}-msgs/week exceeds "
-                    f"cap {caps[ch]} (journeys: {sums['_journeys']}) — Frequency Cap Violation"
+                    f"cap {caps[ch]} (journeys: {sums['_journeys']}) — Frequency Cap Violation",
+                    src="knowledge/compliance/consent-and-quiet-hours.md § Default frequency caps",
                 )
         if total > caps["total"]:
             fail(
                 f"{path}: {label}: worst case {total} msgs/week total exceeds "
-                f"cap {caps['total']} — Frequency Cap Violation"
+                f"cap {caps['total']} — Frequency Cap Violation",
+                src="knowledge/compliance/consent-and-quiet-hours.md § Default frequency caps",
             )
 
     for g, sums in groups.items():

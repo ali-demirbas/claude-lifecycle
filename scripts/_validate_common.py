@@ -6,12 +6,21 @@ failures = []
 warnings = []
 
 
-def fail(msg):
+def fail(msg, src=None):
+    """Record a violation. `src` names the file/section that defines the
+    violated rule — appended to the message so whoever fixes the doc goes
+    straight to the governing rule instead of searching the rulebase for it.
+    One string per failure (the TO FIX list and eval_check consume these as
+    flat lines), so the pointer rides inside the message, not a struct."""
+    if src:
+        msg = f"{msg} · rule: {src}"
     failures.append(msg)
     print(f"FAIL: {msg}")
 
 
-def warn(msg):
+def warn(msg, src=None):
+    if src:
+        msg = f"{msg} · rule: {src}"
     warnings.append(msg)
     print(f"  warn: {msg}")
 

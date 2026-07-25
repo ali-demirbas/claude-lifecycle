@@ -81,6 +81,9 @@ expect 1 "decimal discount (45.5%) not truncated to 5"     python3 "$VO" copy "$
 expect 0 "banned-word candidate is a warn, not a hard fail" python3 "$VO" copy "$FX/warn_banned_word_copy.md" --sector ecommerce
 expect_contains "caps-lock Turkish banned term matches lowercase lexicon entry (dotless-I fix)" "Banned Word Candidate" python3 "$VO" copy "$FX/warn_banned_word_copy.md" --sector ecommerce
 expect 1 "WhatsApp header enforced at its real 60-char ceiling (was silently unchecked)" python3 "$VO" copy "$FX/bad_whatsapp_header_copy.md"
+expect 1 "drifted heading (title before channel) still resolves sms + enforces 70" python3 "$VO" copy "$FX/bad_drifted_heading_sms_copy.md"
+expect_contains "drifted-heading failure points at the sms channel file" "knowledge/channels/sms.md" python3 "$VO" copy "$FX/bad_drifted_heading_sms_copy.md"
+expect 0 "metadata field lines after Fallback are not fallback content" python3 "$VO" copy "$FX/good_fallback_metadata_copy.md"
 expect 1 "in-app 'Primary CTA' field resolves to the cta ceiling, not left unparsed" python3 "$VO" copy "$FX/bad_inapp_primary_cta_copy.md"
 expect 1 "fallback section itself still containing a var fails, not just heading presence" python3 "$VO" copy "$FX/bad_fallback_has_var_copy.md"
 expect 1 "variant missing json fence or empty hypothesis fails" python3 "$VO" copy "$FX/bad_variant_metadata_copy.md"
