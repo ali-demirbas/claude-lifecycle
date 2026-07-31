@@ -34,7 +34,7 @@ Highest immediacy, lowest tolerance. Every bad push costs OS-level permission th
 
 ## Rich media (image, optional)
 
-- HTTPS URL only, and it must resolve before send — a broken image URL degrades silently to a text-only push on most OSes rather than erroring, the same "fails silent, not loud" risk `docs/crm-export-mapping.md`'s Trigger Health section already flags for triggers.
+- HTTPS URL only, and it must resolve before send — a broken image URL degrades silently to a text-only push on most OSes rather than erroring, the same "fails silent, not loud" class of risk a misconfigured trigger carries.
 - ≤ 1MB (see `limits.image` above) — Android/FCM's own ceiling; iOS/APNs tolerates far more, but 1MB is the number that holds on both.
 - Always pair with alt text describing the image. A meaningful share of devices and notification-center states never render the image at all, so title+body must already carry the full message alone (rule 2 above) — the image is an enhancement, never the payload, and the alt text is what a screen reader speaks in its place.
 - Not every push needs one — reserve for triggers where a picture adds real information (price-drop with the product photo, back-in-stock item), not decoration for its own sake.

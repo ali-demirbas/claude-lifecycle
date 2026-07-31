@@ -28,7 +28,7 @@ Every lifecycle tool ships the same five template flows, regardless of what data
 
 Full walkthrough with design decisions: [docs/architecture.md](docs/architecture.md)
 
-**Zero-install demo:** the two HTML deliverables, rendered with sample data: [journey canvas](https://ali-demirbas.github.io/claude-lifecycle/demo/journey-canvas.html) · [channel copy canvas](https://ali-demirbas.github.io/claude-lifecycle/demo/iletisim-metinleri.html)
+**Zero-install demo:** the two HTML deliverables, rendered with sample data: [journey canvas](https://ali-demirbas.github.io/claude-lifecycle/demo/journey-canvas.html) · [channel copy canvas](https://ali-demirbas.github.io/claude-lifecycle/demo/message-copy.html)
 
 ## Quickstart
 
@@ -69,7 +69,7 @@ No data at all? `"/lifecycle journeys, my sector is fintech, no data"` works too
 | [`knowledge/lexicons/`](knowledge/lexicons/) | Sector word choice: use/avoid tables, urgency rules, banned lists, regulated-context flag, plus [`locales/`](knowledge/lexicons/locales/) language overlays (per-language voice, emotion calibration, market red lines) |
 | [`knowledge/brands/`](knowledge/brands/) | Company config layer: per-brand tone, incentive policy, channels; rules inherit Company → Sector → Global, strictest compliance wins |
 | [`knowledge/channels/`](knowledge/channels/) | Hard rules for email, push, SMS, in-app, WhatsApp: limits, spam lists, consent, quiet hours |
-| [`templates/`](templates/) | Mandatory output formats + [`journey.schema.json`](templates/journey.schema.json) for CRM-agnostic export ([Braze/Klaviyo/Iterable/Insider mapping](docs/crm-export-mapping.md)) |
+| [`templates/`](templates/) | Mandatory output formats + [`journey.schema.json`](templates/journey.schema.json), the CRM-agnostic journey definition |
 | [`examples/`](examples/) | Full end-to-end outputs for each tier |
 
 ## Example output (excerpt)

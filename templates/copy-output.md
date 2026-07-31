@@ -41,7 +41,7 @@ Character counts are mandatory and must be actual counts, not estimates. Variant
 
 One minimal-personalization version safe to send when variables are missing (no `{{vars}}` except system-safe ones). **System-safe** means supplied by the same trigger event that fires the message itself, so it cannot be independently absent (an invoice number on a `payment_failed` step, an item name on a `back_in_stock` step) — never a user-profile attribute (`{{first_name}}`, `{{plan_name}}`) that can be null for reasons unrelated to the trigger firing. If a fallback still contains a non-system-safe variable, it is not a fallback — it is the same failure mode with an extra heading (`scripts/validate_output.py` checks the Fallback section's own content, not just that the heading exists).
 
-**Personalization variables used:** `{{first_name}}`, `{{product_name}}`, … (CRM-agnostic; mapping table in [crm-export-mapping.md](../docs/crm-export-mapping.md))
+**Personalization variables used:** `{{first_name}}`, `{{product_name}}`, … (CRM-agnostic `{{snake_case}}`; translate to your tool's own syntax at import time)
 **Reviewer notes:** <only if ⚠️ — what was flagged and why it is acceptable; if ⚖️ — the exact claim needing legal sign-off and which lexicon/locale rule triggered it>
 
 Variant metadata rules: `strategy` is a short slug (loss-aversion, social-proof, utility, progress, reciprocity); `hypothesis` is one falsifiable sentence — `lifecycle-results` reads these labels when scoring test outcomes, and confirmed/refuted hypotheses feed the brand's results log.

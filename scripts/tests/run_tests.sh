@@ -177,17 +177,6 @@ echo "== eval checker =="
 expect 0 "eval mini-case good run passes"       python3 "$DIR/../eval_check.py" "$DIR/fixtures/evalcase/mini-case" --out-root "$DIR/fixtures/evalout-good"
 expect 1 "eval mini-case bad run fails"         python3 "$DIR/../eval_check.py" "$DIR/fixtures/evalcase/mini-case" --out-root "$DIR/fixtures/evalout-bad"
 
-echo "== adapters =="
-expect 0 "variable syntax conversion runs"      python3 adapters/variables.py braze "$FX/vars_sample.md"
-expect 2 "unknown tool rejected"                python3 adapters/variables.py hubspot "$FX/vars_sample.md"
-expect 0 "wait-duration conversion runs"                python3 adapters/durations.py braze P3DT12H
-expect_contains "3.5-day wait rounds to whole hours" "P3DT12H -> 84 hours" python3 adapters/durations.py braze P3DT12H
-expect 2 "duration adapter: unknown tool rejected"      python3 adapters/durations.py hubspot P1D
-expect 2 "duration adapter: unparseable duration rejected" python3 adapters/durations.py braze P
-expect 0 "duration adapter: P1W (week) accepted"        python3 adapters/durations.py braze P1W
-expect_contains "1-week wait converts to 7 days" "P1W -> 7 days" python3 adapters/durations.py braze P1W
-expect 2 "duration adapter: P1WT1H (week+time, invalid ISO 8601) rejected" python3 adapters/durations.py braze P1WT1H
-
 echo "== input data =="
 expect 0 "clean CSV passes"                     python3 "$VI" "$FX/good_input.csv"
 expect 1 "injection + broken timestamps fails"  python3 "$VI" "$FX/bad_input.csv"

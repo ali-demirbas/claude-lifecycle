@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ali-demirbas/claude-lifecycle/templates/journey.schema.json",
   "title": "Journey",
-  "description": "CRM-agnostic journey definition. Maps onto Braze Canvas, Klaviyo Flows, Iterable Journeys, Insider Architect — see docs/crm-export-mapping.md.",
+  "description": "CRM-agnostic journey definition: entry conditions, steps, branches and exits, independent of any marketing tool's own schema.",
   "type": "object",
   "required": ["id", "name", "pattern", "stage", "priority", "data_tier", "dqs", "objective", "trigger", "audience", "exit", "steps", "kpis"],
   "additionalProperties": false,

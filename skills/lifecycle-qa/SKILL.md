@@ -1,6 +1,10 @@
 ---
 name: lifecycle-qa
 description: Generate test event payloads for generated journeys — positive triggers, branch-condition cases, exits, and negative tests — so the CRM setup can be verified before launch. Use when the user says "test payload", "test eventi üret", "qa", "tetikleyiciyi test et", "sahte event".
+metadata:
+  version: 0.1.0
+  category: qa
+  updated: 2026-07-17
 ---
 
 # Lifecycle QA — Trigger Payload Simulator
@@ -11,7 +15,7 @@ The hardest part of wiring a designed journey into a CRM is proving the trigger 
 
 1. Generated journey JSONs (from `lifecycle-journeys` / `lifecycle-export`) — the source of truth for triggers, entry conditions, branches, exits.
 2. The mapped event inventory (which params each event actually carries — payloads must be **satisfiable by the real instrumentation**, never invent params the tracking plan says don't exist yet).
-3. Optional but valuable: **a sample request from the user's CRM** (one real ingestion payload). With it, generated payloads follow the exact envelope (identifier fields, attribute nesting, timestamp format). Without it, payloads use a generic GA4-style shape and say so plainly — never guess a vendor's envelope from memory (same honesty rule as crm-export-mapping's snippet policy).
+3. Optional but valuable: **a sample request from the user's CRM** (one real ingestion payload). With it, generated payloads follow the exact envelope (identifier fields, attribute nesting, timestamp format). Without it, payloads use a generic GA4-style shape and say so plainly — never guess a vendor's envelope from memory.
 
 ## What gets generated (per journey)
 

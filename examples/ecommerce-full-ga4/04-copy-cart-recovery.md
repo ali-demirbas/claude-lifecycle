@@ -96,6 +96,6 @@ Covers steps 1–3 of [03-journey-cart-recovery.md](03-journey-cart-recovery.md)
 
 ---
 
-**Personalization variables used:** `{{first_name}}`, `{{product_name}}` (CRM-agnostic; mapping table in [crm-export-mapping.md](../../docs/crm-export-mapping.md)). Every variable has the no-var Fallback block above; `{{product_name}}` appears only in bodies/subjects, never in push titles.
+**Personalization variables used:** `{{first_name}}`, `{{product_name}}` (CRM-agnostic `{{snake_case}}`). Every variable has the no-var Fallback block above; `{{product_name}}` appears only in bodies/subjects, never in push titles.
 
 **Reviewer checklist applied:** sen-form throughout · no banned words ("kaçırma", "SON ŞANS", all-caps, "tıkla" as bare CTA, "değerli müşterimiz") · zero exclamation marks · no emoji · urgency only via real data (the 7-day cart lifetime in step 1 Variant A is the actual purge policy) · one primary CTA per message · preheaders extend, not repeat, subjects · push titles and bodies each stand alone.
