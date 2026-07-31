@@ -1,6 +1,10 @@
 ---
 name: lifecycle-connect
 description: Connect and assess a data source for lifecycle marketing. Computes the Data Quality Score (DQS 0-100) from GA4 (via MCP), CSV/exports, or declares Tier 3 (industry-only). Use when the user says "connect GA4", "veri bağla", "data quality", "DQS", or as the first stage of the lifecycle pipeline.
+metadata:
+  version: 0.1.0
+  category: data
+  updated: 2026-07-17
 ---
 
 # Lifecycle Connect — Data Source Assessment & DQS

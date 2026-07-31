@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # Repo consistency validation for claude-lifecycle.
 # Checks skill/pattern/industry/lexicon frontmatter, cross-file references,
-# JSON schema validity, example conformance, and internal markdown links.
+# JSON schema validity, example conformance, internal markdown links, and
+# ${CLAUDE_PLUGIN_ROOT} path references.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+# `|| exit` is load-bearing: this script runs under `set -uo pipefail` without
+# `-e`, so a failed cd would otherwise let every check below run against
+# whatever directory the caller happened to be in — reporting a clean pass on
+# a tree it never looked at, the worst possible failure mode for a validator.
+cd "$ROOT" || exit 1
 FAIL=0
 
 # Unique per-invocation, not a hardcoded shared path — two validate.sh runs
@@ -18,7 +23,25 @@ trap 'rm -f "$TMP_CHECK"' EXIT
 err() { echo "FAIL: $1"; FAIL=1; }
 ok()  { echo "  ok: $1"; }
 
-echo "== 1. Skills: frontmatter with name + description =="
+# Count the files a glob actually expanded to, skipping `_template.md`.
+# A glob loop rather than `ls | wc -l` / `ls | grep -v`: a filename containing
+# a space or newline skews a line count, and the template is never a real
+# entry in any of these categories.
+count_files() {
+  local n=0 f
+  for f in "$@"; do
+    [ -e "$f" ] || continue
+    [ "$(basename "$f")" = "_template.md" ] && continue
+    n=$((n + 1))
+  done
+  printf '%s' "$n"
+}
+
+echo "== 1. Skills: frontmatter with name + description + metadata =="
+# `updated` is deliberately not checked against git: a skill's prose can be
+# edited without its behavior changing, so the date is a curated claim about
+# the last substantive revision, not a mirror of the last commit touching the file.
+SKILL_META_KEYS="version category updated"
 for f in skills/*/SKILL.md; do
   head -1 "$f" | grep -q '^---$' || { err "$f: no frontmatter"; continue; }
   fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
@@ -27,8 +50,29 @@ for f in skills/*/SKILL.md; do
   dir=$(basename "$(dirname "$f")")
   nm=$(echo "$fm" | sed -n 's/^name:[[:space:]]*//p' | head -1)
   [ "$nm" = "$dir" ] || err "$f: name '$nm' != directory '$dir'"
+  if echo "$fm" | grep -q '^metadata:'; then
+    for k in $SKILL_META_KEYS; do
+      echo "$fm" | grep -q "^  $k:" || err "$f: metadata missing key '$k'"
+    done
+    upd=$(echo "$fm" | sed -n 's/^  updated:[[:space:]]*//p' | head -1)
+    echo "$upd" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' \
+      || err "$f: metadata.updated '$upd' is not YYYY-MM-DD"
+    ver=$(echo "$fm" | sed -n 's/^  version:[[:space:]]*//p' | head -1)
+    echo "$ver" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' \
+      || err "$f: metadata.version '$ver' is not semver"
+    # A closed set, checked the same way stage/trigger_type are: an open
+    # category field drifts into eleven one-off labels, which is the same as
+    # having none at all.
+    cat=$(echo "$fm" | sed -n 's/^  category:[[:space:]]*//p' | head -1)
+    case "$cat" in
+      router|intake|data|design|copy|qa|export|analysis|measurement) ;;
+      *) err "$f: invalid metadata.category '$cat'" ;;
+    esac
+  else
+    err "$f: missing metadata block"
+  fi
 done
-ok "$(ls skills/*/SKILL.md | wc -l | tr -d ' ') skills checked"
+ok "$(count_files skills/*/SKILL.md) skills checked"
 
 echo "== 2. Journey patterns: required frontmatter keys =="
 PATTERN_KEYS="name stage trigger_type required_events optional_events required_attributes optional_attributes default_channels base_steps depth_range applicable_industries"
@@ -48,7 +92,7 @@ for f in knowledge/journey-patterns/*.md; do
     *) err "$f: invalid trigger_type '$tt'" ;;
   esac
 done
-ok "$(ls knowledge/journey-patterns/*.md | wc -l | tr -d ' ') patterns checked"
+ok "$(count_files knowledge/journey-patterns/*.md) patterns checked"
 
 echo "== 3. Industries: keys, pattern refs, lexicon pairing =="
 INDUSTRY_KEYS="name display_name funnel conversion_events activation_definition churn_signal pattern_priorities typical_channels"
@@ -132,35 +176,68 @@ sys.exit(1 if failed else 0)
 PY
 
 echo "== 6. Plugin manifest =="
-python3 -c "import json; json.load(open('.claude-plugin/plugin.json'))" \
-  && ok "plugin.json parses" || err "plugin.json invalid"
+if python3 -c "import json; json.load(open('.claude-plugin/plugin.json'))"; then
+  ok "plugin.json parses"
+else
+  err "plugin.json invalid"
+fi
 
 echo "== 7. Internal markdown links =="
 python3 - <<'PY' || FAIL=1
-import os, re, sys
+import json, os, re, sys
 failed = False
-link_re = re.compile(r'\]\(([^)#]+\.(?:md|json))(?:#[^)]*)?\)')
+checked = 0
+# Any relative target, not just .md/.json. The narrower extension list left
+# every link to a template's .html, a diagram's .svg, a screenshot's .png, a
+# script's .py, or a bare directory unchecked — precisely the targets most
+# likely to be renamed or moved, since no reader following prose notices them.
+link_re = re.compile(r'\]\(([^)\s]+?)(?:#[^)]*)?\)')
+SKIP_PREFIXES = ('http://', 'https://', 'mailto:', 'tel:', '#', '${')
+
+# A link to this repo's own GitHub Pages site is an internal link written the
+# long way — skipping it as "external" is how the published site ends up
+# shipping a 404 that nothing in the repo can see. Derived from plugin.json
+# rather than hardcoded, so it follows the repo if it ever moves.
+with open('.claude-plugin/plugin.json', encoding='utf-8') as f:
+    repo_url = json.load(f)['repository']
+owner, repo = repo_url.rstrip('/').split('/')[-2:]
+SITE_PREFIX = f"https://{owner}.github.io/{repo}/"
+
 for dirpath, dirs, files in os.walk('.'):
-    dirs[:] = [d for d in dirs if d not in ('.git', 'node_modules', 'output')]
+    # Prune nested checkouts as well as the usual noise: a git worktree under
+    # .claude/worktrees/ is a second copy of this same tree, so every file in
+    # it gets reported twice — and its stale copy of a file fails on a defect
+    # already fixed in the real one.
+    dirs[:] = [d for d in dirs
+               if d not in ('.git', 'node_modules', 'output')
+               and not os.path.exists(os.path.join(dirpath, d, '.git'))]
     for fn in files:
         if not fn.endswith('.md'):
             continue
         path = os.path.join(dirpath, fn)
         with open(path, encoding='utf-8') as f:
-            text = f.read()
-        for m in link_re.finditer(text):
-            target = m.group(1)
-            if target.startswith(('http://', 'https://', 'mailto:')):
-                continue
-            if '<' in target:  # template placeholder links like <pattern-name>.md
-                continue
-            resolved = os.path.normpath(os.path.join(dirpath, target))
-            if not os.path.exists(resolved):
-                print(f"FAIL: {path} -> {target} (broken)")
-                failed = True
+            for lineno, line in enumerate(f, 1):
+                for m in link_re.finditer(line):
+                    target = m.group(1)
+                    if '<' in target:  # template placeholder like <pattern-name>.md
+                        continue
+                    if target.startswith(SITE_PREFIX):
+                        # Pages serves docs/ as the site root.
+                        rel = target[len(SITE_PREFIX):]
+                        resolved = os.path.normpath(os.path.join('docs', rel))
+                        label = f"{target} (published site)"
+                    elif target.startswith(SKIP_PREFIXES):
+                        continue
+                    else:
+                        resolved = os.path.normpath(os.path.join(dirpath, target))
+                        label = target
+                    checked += 1
+                    if not os.path.exists(resolved):
+                        print(f"FAIL: {path}:{lineno} -> {label} (broken)")
+                        failed = True
 if failed:
     sys.exit(1)
-print("  ok: internal links resolve")
+print(f"  ok: {checked} internal links resolve")
 PY
 
 echo "== 8. Brands: frontmatter + cross-file references =="
@@ -196,7 +273,7 @@ for f in knowledge/brands/*.md; do
   # brand's real tone with nothing else in this validator catching it.
   echo "$fm" | grep -qE '<[a-zA-Z]' && err "$f: frontmatter still contains a <placeholder> token — template was not filled in"
 done
-ok "$(ls knowledge/brands/*.md | grep -v _template | wc -l | tr -d ' ') brand configs checked"
+ok "$(count_files knowledge/brands/*.md) brand configs checked"
 
 echo "== 9. Channels: frontmatter + parseable limits =="
 CHANNEL_KEYS="name consent_required frequency_cap quiet_hours limits"
@@ -216,7 +293,7 @@ for f in knowledge/channels/*.md; do
   echo "$fm" | awk '/^limits:/{flag=1; next} /^[a-z_]+:/{flag=0} flag && /max:[[:space:]]*[0-9]/{found=1} END{exit !found}' \
     || err "$f: 'limits:' block has no parseable 'max: N' entry"
 done
-ok "$(ls knowledge/channels/*.md | grep -v _template | wc -l | tr -d ' ') channel files checked"
+ok "$(count_files knowledge/channels/*.md) channel files checked"
 
 echo "== 10. Journey patterns: mutually_exclusive_with reciprocity =="
 # Optional field, not in PATTERN_KEYS (section 2) — only patterns whose audiences can
@@ -252,7 +329,7 @@ for f in knowledge/journey-patterns/*.md; do
   done
   IFS="$old_ifs"
 done
-ok "mutually_exclusive_with reciprocity checked across $(ls knowledge/journey-patterns/*.md | wc -l | tr -d ' ') patterns"
+ok "mutually_exclusive_with reciprocity checked across $(count_files knowledge/journey-patterns/*.md) patterns"
 
 echo "== 11. Lexicon locale overlays: frontmatter + required sections =="
 # copy-writer/copy-reviewer both read these files for voice rules and the
@@ -280,7 +357,7 @@ for f in knowledge/lexicons/locales/*.md; do
   done
   IFS="$old_ifs"
 done
-ok "$(ls knowledge/lexicons/locales/*.md | grep -v _template | wc -l | tr -d ' ') locale files checked"
+ok "$(count_files knowledge/lexicons/locales/*.md) locale files checked"
 
 echo "== 12. Lexicon staleness: last_reviewed cadence =="
 # Advisory only (WARN, never FAILs the build on a calendar fact alone) — a stale
@@ -362,6 +439,45 @@ if not hard_fail:
     print(f"  ok: {len(files)} channels agree across knowledge files, schema enum, and validator set")
 
 sys.exit(1 if hard_fail else 0)
+PY
+
+echo "== 14. \${CLAUDE_PLUGIN_ROOT} path references =="
+python3 - <<'PY' || FAIL=1
+import os, re, sys
+# Skills address knowledge files at runtime as ${CLAUDE_PLUGIN_ROOT}/knowledge/…,
+# which is a plain string inside backticks, not a markdown link — so section 7
+# never saw any of them. A renamed knowledge file leaves these pointing at
+# nothing and fails only mid-run, inside a subagent, as a file the model
+# quietly could not read.
+ref_re = re.compile(r'\$\{CLAUDE_PLUGIN_ROOT\}/([A-Za-z0-9_./-]+)')
+failed = False
+checked = 0
+for dirpath, dirs, files in os.walk('.'):
+    # Prune nested checkouts as well as the usual noise: a git worktree under
+    # .claude/worktrees/ is a second copy of this same tree, so every file in
+    # it gets reported twice — and its stale copy of a file fails on a defect
+    # already fixed in the real one.
+    dirs[:] = [d for d in dirs
+               if d not in ('.git', 'node_modules', 'output')
+               and not os.path.exists(os.path.join(dirpath, d, '.git'))]
+    for fn in files:
+        if not fn.endswith('.md'):
+            continue
+        path = os.path.join(dirpath, fn)
+        with open(path, encoding='utf-8') as f:
+            for lineno, line in enumerate(f, 1):
+                for m in ref_re.finditer(line):
+                    # trailing sentence punctuation is not part of the path
+                    target = m.group(1).rstrip('.,;:)`')
+                    if '<' in target:  # placeholder like <sector>.md
+                        continue
+                    checked += 1
+                    if not os.path.exists(target):
+                        print(f"FAIL: {path}:{lineno} -> ${{CLAUDE_PLUGIN_ROOT}}/{target} (no such path)")
+                        failed = True
+if failed:
+    sys.exit(1)
+print(f"  ok: {checked} plugin-root references resolve")
 PY
 
 echo

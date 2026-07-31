@@ -1,14 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>claude-lifecycle — live demo</title>
-<style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:640px;margin:60px auto;padding:0 24px;line-height:1.6;color:#241d17;background:#faf7f2}a{color:#b0693f}h1{font-family:Georgia,serif}li{margin-bottom:6px}</style></head>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>claude-lifecycle — data-adaptive lifecycle marketing for Claude Code</title>
+<meta name="description" content="A Claude Code plugin that scores what your data actually supports, then generates customer journeys and rule-checked CRM copy sized to that reality.">
+<style>
+  :root {
+    --bg: #faf7f2; --fg: #241d17; --muted: #6b5d51;
+    --link: #b0693f; --rule: #e5ddd2; --card: #fffdfa; --code: #f0e9df;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1613; --fg: #ece5db; --muted: #a2958a;
+      --link: #d69161; --rule: #362e27; --card: #221d19; --code: #2b241f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    max-width: 720px; margin: 0 auto; padding: 56px 24px 72px;
+    line-height: 1.65; color: var(--fg); background: var(--bg);
+  }
+  h1, h2 { font-family: Georgia, "Times New Roman", serif; line-height: 1.25; }
+  h1 { font-size: 2.1rem; margin: 0 0 .2em; }
+  h2 { font-size: 1.3rem; margin: 2.4em 0 .6em; }
+  .lede { font-size: 1.1rem; color: var(--muted); margin-top: 0; }
+  a { color: var(--link); }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 2.5em 0; }
+  code, pre { background: var(--code); border-radius: 5px; }
+  code { padding: .12em .38em; font-size: .9em; }
+  pre { padding: 14px 16px; overflow-x: auto; font-size: .88rem; line-height: 1.5; }
+  pre code { background: none; padding: 0; }
+  ul { padding-left: 1.2em; }
+  li { margin-bottom: 8px; }
+  .demo { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; margin: 1.4em 0; }
+  @media (max-width: 560px) { .demo { grid-template-columns: 1fr; } }
+  .demo a {
+    display: block; padding: 16px 18px; background: var(--card);
+    border: 1px solid var(--rule); border-radius: 9px; text-decoration: none;
+  }
+  .demo strong { display: block; color: var(--fg); margin-bottom: 3px; }
+  .demo span { color: var(--muted); font-size: .9rem; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+  th, td { text-align: left; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-weight: 600; white-space: nowrap; }
+  td code { white-space: nowrap; }
+  footer { margin-top: 3em; padding-top: 1.4em; border-top: 1px solid var(--rule); color: var(--muted); font-size: .92rem; }
+</style>
+</head>
 <body>
+
 <h1>claude-lifecycle</h1>
-<p>Most AI marketing tools will happily write you a 12-step journey from zero data, benchmarks included, all of it made up. This plugin works the other way: it scores how good your data actually is first, and only designs the journeys that data can support.</p>
-<p>Below is a real run against a fictional edtech dataset, 40 users over 60 days. The engine found that every user who finished their first lesson went on to subscribe, and none of the ones who skipped it did, so the whole trial journey is built around getting that one lesson done rather than around selling anything. That kind of finding is what drives the output, not a template.</p>
+<p class="lede">A <a href="https://claude.com/claude-code">Claude Code</a> plugin that scores what your data actually supports, then designs the customer journeys that data can carry, plus rule-checked CRM copy for every step.</p>
+
+<p>Most AI marketing tools will happily write you a 12-step journey from zero data, benchmarks included, all of it made up. This one works the other way around. A store tracking <code>add_to_cart</code> → <code>purchase</code> can run a branched 8-step cart recovery; a startup with three tracked events cannot, and saying so is more useful than pretending otherwise.</p>
+
+<h2>See the output first</h2>
+
+<p>A real run against a fictional edtech dataset, 40 users over 60 days. The engine found that every user who finished their first lesson went on to subscribe, and none of the ones who skipped it did, so the whole trial journey is built around getting that one lesson done rather than around selling anything. That kind of finding drives the output, not a template.</p>
+
+<div class="demo">
+  <a href="demo/journey-canvas.html">
+    <strong>Journey canvas →</strong>
+    <span>Five journeys as clickable flow maps, from entry rules to exits</span>
+  </a>
+  <a href="demo/message-copy.html">
+    <strong>Message copy →</strong>
+    <span>Every email, push and in-app message, with A/B variants and character counts checked in code</span>
+  </a>
+</div>
+
+<h2>How depth is decided</h2>
+
+<p>A 0–100 Data Quality Score is computed before anything is generated, and it sets the ceiling on journey complexity:</p>
+
+<div class="scroll">
+<table>
+  <tr><th>Tier</th><th>You have</th><th>You get</th></tr>
+  <tr><td><strong>T1</strong></td><td>GA4 connected over MCP</td><td>Behavioral triggers, multi-branch journeys, volume-aware conflict review</td></tr>
+  <tr><td><strong>T2</strong></td><td>CSV or analytics export</td><td>Behavioral triggers, limited branching</td></tr>
+  <tr><td><strong>T3</strong></td><td>Just your industry</td><td>Playbook-driven starter portfolio, plus the tracking plan that upgrades it</td></tr>
+</table>
+</div>
+
+<p>What your data cannot support does not get quietly dropped: it becomes a tracking plan naming which events unlock which journeys.</p>
+
+<h2>The skills</h2>
+
+<div class="scroll">
+<table>
+  <tr><th>Skill</th><th>Stage</th><th>What it does</th></tr>
+  <tr><td><code>/lifecycle</code></td><td>router</td><td>Entry point; routes a request to the right stage</td></tr>
+  <tr><td><code>lifecycle-connect</code></td><td>data</td><td>Connects a data source and computes the Data Quality Score</td></tr>
+  <tr><td><code>lifecycle-map</code></td><td>data</td><td>Maps tracked events to lifecycle stages</td></tr>
+  <tr><td><code>lifecycle-intake</code></td><td>intake</td><td>Structured questioning for the gaps data cannot fill</td></tr>
+  <tr><td><code>lifecycle-journeys</code></td><td>design</td><td>Generates the prioritized journey portfolio</td></tr>
+  <tr><td><code>lifecycle-copy</code></td><td>copy</td><td>Writes channel copy, reviewed adversarially before you see it</td></tr>
+  <tr><td><code>lifecycle-qa</code></td><td>qa</td><td>Test payloads for triggers, branches, exits and the negative cases</td></tr>
+  <tr><td><code>lifecycle-audience</code></td><td>export</td><td>Turns audience definitions into executable SQL</td></tr>
+  <tr><td><code>lifecycle-export</code></td><td>export</td><td>CRM-agnostic JSON, Mermaid diagrams, CSV</td></tr>
+  <tr><td><code>lifecycle-audit</code></td><td>analysis</td><td>Scores an existing journey portfolio against the same rules</td></tr>
+  <tr><td><code>lifecycle-results</code></td><td>measurement</td><td>Ingests holdout and lift results, closing the loop</td></tr>
+</table>
+</div>
+
+<h2>Install</h2>
+
+<pre><code>/plugin install claude-lifecycle</code></pre>
+
+<p>Then, inside Claude Code:</p>
+
+<pre><code>/lifecycle connect     # score your data (GA4 over MCP, or point at a CSV)
+/lifecycle journeys    # generate the portfolio
+/lifecycle copy        # channel copy for the generated journeys</code></pre>
+
+<p>No data at all works too. Name your sector and you get the playbook's priority journeys in their simple form, alongside the tracking plan that would upgrade them.</p>
+
+<h2>What is underneath</h2>
+
 <ul>
-<li><a href="demo/journey-canvas.html">Journey canvas</a>: five journeys as flow maps you can click through, from entry rules to exits</li>
-<li><a href="demo/message-copy.html">Message copy</a>: the actual email, push and in-app text for each step, with A/B variants and character counts checked in code, not by eye</li>
+  <li><strong>26 journey patterns</strong>, each with a required-event signature, so eligibility is computed rather than assumed</li>
+  <li><strong>9 industry playbooks</strong> and paired lexicons deciding vocabulary, tone and what may never be said</li>
+  <li><strong>5 channel rule files</strong> carrying hard character limits, banned words and consent requirements</li>
+  <li><strong>Deterministic validators</strong>: character counts, banned-word scans and schema conformance run in code, not by eye</li>
 </ul>
-<p><a href="https://github.com/ali-demirbas/claude-lifecycle">Repo &amp; docs on GitHub</a></p>
-</body></html>
+
+<footer>
+  <a href="https://github.com/ali-demirbas/claude-lifecycle">Repo and docs on GitHub</a> · MIT licensed
+</footer>
+
+</body>
+</html>

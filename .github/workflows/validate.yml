@@ -22,3 +22,18 @@ jobs:
         run: bash scripts/validate.sh
       - name: Run validation-layer regression tests
         run: bash scripts/tests/run_tests.sh
+
+  # A separate job, not another step: a shell defect in the validators must not
+  # be reported as (or hidden behind) a content failure, and the two run in
+  # parallel rather than gating each other.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Lint shell scripts
+        # These scripts ARE the validation layer — an unquoted expansion or a
+        # cd that silently fails here makes every other check unreliable, so
+        # they are linted at default severity with nothing excluded.
+        run: shellcheck scripts/*.sh scripts/tests/*.sh

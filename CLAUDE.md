@@ -45,4 +45,5 @@ This repo is a Claude Code plugin: a lifecycle marketing engine built from skill
 - Personalization variables are CRM-agnostic: `{{first_name}}`, `{{product_name}}`, `{{cart_url}}`.
 - Every journey doc ends with a Mermaid `flowchart TD` diagram.
 - Don't overload one label for two different concepts in journey/canvas output — e.g. the statistical holdout/control group and an operational guardrail or exclusion rule are distinct ideas and need distinct field labels (in Turkish output, that means not reusing "Kontrol" for both), even when a shorter shared word would fit.
+- Every `skills/*/SKILL.md` carries a `metadata` block: `version` (semver, the plugin release it last shipped in), `category` (one of `router`, `intake`, `data`, `design`, `copy`, `qa`, `export`, `analysis`, `measurement`), and `updated` (YYYY-MM-DD). `updated` records the last **substantive** revision, not the last commit that touched the file — editing prose without changing behavior doesn't move it.
 - Run `scripts/validate.sh` after changing skills, templates, or examples.

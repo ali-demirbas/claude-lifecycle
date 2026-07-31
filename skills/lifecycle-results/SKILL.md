@@ -1,6 +1,10 @@
 ---
 name: lifecycle-results
 description: Close the measurement loop. Ingest journey performance data from the CRM (holdout/lift results, opens, conversions), evaluate it against the incrementality doctrine, and recommend keep/promote/demote/kill per journey — plus maintain the failed-strategies log that stops the engine from re-proposing what didn't work. Use when the user says "sonuçları gir", "results", "performans verisi", "holdout sonuçları", "test sonuçları geldi", "journey performansı".
+metadata:
+  version: 0.1.0
+  category: measurement
+  updated: 2026-07-17
 ---
 
 # Lifecycle Results — Closing the Loop

@@ -1,6 +1,10 @@
 ---
 name: lifecycle-audience
 description: Turn journey audience definitions into executable artifacts — BigQuery SQL against the standard GA4 export schema, or a CDP-agnostic trait definition — so the data team receives a query, not a ticket. Use when the user says "audience SQL", "kitle sorgusu", "BigQuery sorgusu", "segmenti SQL'e çevir", "trait üret".
+metadata:
+  version: 0.1.0
+  category: export
+  updated: 2026-07-17
 ---
 
 # Lifecycle Audience — From Definition to Query

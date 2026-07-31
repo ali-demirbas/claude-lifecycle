@@ -1,6 +1,10 @@
 ---
 name: lifecycle
 description: Lifecycle marketing engine router. Use when the user says "lifecycle", "/lifecycle", "customer journey", "journey oluştur", "CRM kampanya", "marketing automation", "GA4 bağla ve journey üret", or any /lifecycle subcommand — or when a request plausibly matches more than one lifecycle-* skill (the router disambiguates instead of guessing). Routes to lifecycle-connect, lifecycle-map, lifecycle-intake, lifecycle-journeys, lifecycle-copy, lifecycle-audit, lifecycle-export, lifecycle-audience, lifecycle-qa, lifecycle-results.
+metadata:
+  version: 0.1.0
+  category: router
+  updated: 2026-07-26
 ---
 
 # Lifecycle — Router
@@ -17,7 +21,7 @@ You are the entry point of the claude-lifecycle engine. Parse the user's intent 
 | `copy`, "metin yaz", "email metni", "push metni" | lifecycle-copy | Can run standalone for an existing journey |
 | `audit`, "journey'lerimi denetle" | lifecycle-audit | For existing/imported journey portfolios |
 | `results`, "sonuçları gir", "performans verisi", "holdout sonuçları" | lifecycle-results | Closes the loop; needs a launched journey + performance data |
-| `export`, "JSON ver", "Braze'e aktar" | lifecycle-export | Needs generated journeys |
+| `export`, "JSON ver", "dışa aktar" | lifecycle-export | Needs generated journeys |
 | `audience`, "kitle sorgusu", "BigQuery SQL" | lifecycle-audience | Needs generated journeys + a data substrate (BigQuery export or CDP) |
 | `qa`, "test payload", "tetikleyiciyi test et" | lifecycle-qa | Needs generated journeys |
 | `intake` (rarely called directly) | lifecycle-intake | Usually triggered by other skills |
