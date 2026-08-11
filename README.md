@@ -38,6 +38,9 @@ Full walkthrough with design decisions: [docs/architecture.md](docs/architecture
 
 # or clone and use as a project
 git clone https://github.com/ali-demirbas/claude-lifecycle && cd claude-lifecycle && claude
+
+# or install individual skills with the skills CLI (https://skills.sh)
+npx skills add ali-demirbas/claude-lifecycle --all
 ```
 
 Then, inside Claude Code:
