@@ -480,6 +480,16 @@ if failed:
 print(f"  ok: {checked} plugin-root references resolve")
 PY
 
+echo "== 15. Published Markdown bundle matches its sources =="
+# docs/llms-full.txt concatenates the core docs for assistants handed this
+# project's URL. Its only value is being current: a stale bundle answers
+# questions with documentation the repo no longer ships.
+if python3 scripts/build_llms_full.py --check >/dev/null 2>&1; then
+  ok "docs/llms-full.txt is in sync with its source documents"
+else
+  err "docs/llms-full.txt is stale — run: python3 scripts/build_llms_full.py"
+fi
+
 echo
 if [ "$FAIL" = 1 ]; then
   echo "VALIDATION FAILED"; exit 1

@@ -1,34 +1,37 @@
 # claude-lifecycle
 
-> A lifecycle marketing and CRM engine that runs inside Claude Code. It scores what your analytics data actually supports first, then generates a portfolio of customer journeys — onboarding and activation, retention, churn prevention, win-back — plus rule-checked, sector-aware channel copy for email, push, SMS, in-app and WhatsApp. Open source, MIT.
+> A lifecycle marketing and CRM engine that runs inside Claude Code. It scores what a company's analytics data actually supports before designing anything, then generates a portfolio of customer journeys sized to that reality — onboarding and activation, retention, churn prevention, win-back — with rule-checked, sector-aware copy for every step and a tracking plan naming the events that would unlock the journeys the data cannot yet support. Open source, MIT.
 
-The premise is that journeys are a function of your data. A store tracking `add_to_cart` and `purchase` can run a branched cart-recovery flow; a product with three tracked events cannot. A 0-100 Data Quality Score decides journey depth rather than a template deciding it, and whatever your data cannot support becomes a tracking plan naming the exact events that would unlock it.
+The premise is that journeys are a function of your data. A store tracking `add_to_cart` and `purchase` can run a branched eight-step cart recovery; a startup with three tracked events cannot, and handing it the same flow produces automations that neither trigger nor measure. Most tools hide that constraint behind templates. This one scores it first (a 0–100 Data Quality Score), derives journey depth from the score, and says plainly which journeys are blocked and why.
 
-Three input tiers: GA4 connected over MCP (behavioral triggers, multi-branch journeys), a CSV or analytics export (behavioral triggers, limited branching), or industry only (playbook-driven starter portfolio plus the tracking plan to graduate).
+Three input tiers: GA4 connected over MCP (behavioural triggers, multi-branch journeys), a CSV or analytics export (behavioural triggers, limited branching), or industry only (playbook-driven starter portfolio plus the tracking plan to graduate).
 
 ## Core documentation
 
-- [README](https://github.com/ali-demirbas/claude-lifecycle/blob/main/README.md): what it does, install, the three tiers, and an example portfolio
+- [README](https://github.com/ali-demirbas/claude-lifecycle/blob/main/README.md): what it does, the three data tiers, install and quickstart
 - [Binding rules (CLAUDE.md)](https://github.com/ali-demirbas/claude-lifecycle/blob/main/CLAUDE.md): the non-negotiable rules every skill obeys, including the data-quality gate and the ban on fabricated benchmarks
-- [Architecture](https://github.com/ali-demirbas/claude-lifecycle/blob/main/docs/architecture.md): the pipeline end to end, with the design decisions behind each stage
-- [Data Quality Score](https://github.com/ali-demirbas/claude-lifecycle/blob/main/docs/data-quality-score.md): the 0-100 rubric that decides journey depth
+- [Architecture](https://github.com/ali-demirbas/claude-lifecycle/blob/main/docs/architecture.md): the connect → map → journeys → copy → export pipeline, with the design decisions behind each stage
+- [Data Quality Score](https://github.com/ali-demirbas/claude-lifecycle/blob/main/docs/data-quality-score.md): the 0–100 rubric that decides journey depth
 - [Real-world validation](https://github.com/ali-demirbas/claude-lifecycle/blob/main/docs/real-world-validation.md): what held up when this was run against a real product, and what gaps it surfaced
 
 ## Questions it answers
 
 - Which lifecycle journeys can I actually run with the event data I have today?
-- How do I design an onboarding, retention, churn-prevention or win-back flow?
-- What events do I need to track before a branched cart-recovery journey is possible?
-- How do I write channel copy that respects character limits, consent rules and quiet hours?
-- How do I segment customers behaviorally rather than by a static list?
-- How do I measure a journey — holdout groups, KPIs, and what to do with the result?
+- What events do I need to track before a branched cart-recovery, win-back or replenishment journey is possible?
+- How deep should a journey be — three time-based steps, or ten with behavioural branching?
+- How do I design an onboarding, retention, churn-prevention or win-back flow for my sector?
+- How do I write channel copy that respects character limits, banned words, consent rules and quiet hours?
+- How do I segment customers behaviourally rather than by a static list?
+- How do I turn a journey's audience into a BigQuery query or a CDP trait?
+- How do I measure a journey honestly — holdout groups, KPIs, and what to do with the result?
+- We are switching CRM tools — how do I describe our journeys so they survive the move?
 
 ## Reference
 
 - [Journey patterns](https://github.com/ali-demirbas/claude-lifecycle/tree/main/knowledge/journey-patterns): 26 sector-agnostic patterns, each with a required-event signature and depth that scales with data quality
 - [Industry playbooks](https://github.com/ali-demirbas/claude-lifecycle/tree/main/knowledge/industries): 9 sectors — funnel shape, event expectations, pattern priorities, timing
-- [Channel rules](https://github.com/ali-demirbas/claude-lifecycle/tree/main/knowledge/channels): hard limits, banned words, consent and frequency rules per channel
-- [Journey schema](https://github.com/ali-demirbas/claude-lifecycle/blob/main/templates/journey.schema.json): a CRM-agnostic journey definition
+- [Channel rules](https://github.com/ali-demirbas/claude-lifecycle/tree/main/knowledge/channels): hard limits, banned words, consent and frequency rules for email, push, SMS, in-app and WhatsApp
+- [Journey schema](https://github.com/ali-demirbas/claude-lifecycle/blob/main/templates/journey.schema.json): a CRM-agnostic journey definition, portable to any marketing automation tool
 - [Examples](https://github.com/ali-demirbas/claude-lifecycle/tree/main/examples): full end-to-end outputs for each data tier
 - [Live demo — journey canvas](https://ali-demirbas.github.io/claude-lifecycle/demo/journey-canvas.html) and [channel copy canvas](https://ali-demirbas.github.io/claude-lifecycle/demo/message-copy.html): real generated output, no install
 

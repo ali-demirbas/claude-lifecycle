@@ -24,6 +24,17 @@ Every lifecycle tool ships the same five template flows, regardless of what data
 - **Journeys are a portfolio, not a listicle.** Eligibility is computed per pattern from required-event signatures; what your data can't support becomes a [tracking plan](templates/tracking-plan.md) telling you exactly which events unlock which journeys.
 - **Copy is an engineered artifact.** Channel files carry hard limits and banned words; sector lexicons decide vocabulary; a reviewer agent adversarially checks every message before you see it.
 
+## Questions this answers
+
+- Which lifecycle journeys can my analytics data actually support today?
+- What events do I need to start tracking before cart recovery, win-back or replenishment can work at all?
+- How deep should a journey be — three time-based steps, or ten with behavioural branching?
+- What belongs in a welcome, onboarding, retention, churn-prevention or win-back flow for my sector?
+- How do I write CRM copy that respects each channel's character limits, banned words, consent rules and quiet hours?
+- How do I measure a lifecycle journey honestly, holdout group included?
+- How do I turn a journey's audience into a BigQuery query or a CDP trait?
+- We are switching CRM tools — how do I describe our journeys in a way that survives the move?
+
 ## How it works
 
 ![claude-lifecycle pipeline: data input tiers feed a Connect stage that scores a 0-100 Data Quality Score, then Map turns events into a stage map, a gap check routes to a short Intake or straight to the Journeys portfolio engine, which produces both Copy and a Tracking Plan, converging on Export](docs/pipeline-diagram.svg)
