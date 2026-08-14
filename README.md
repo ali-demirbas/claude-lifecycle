@@ -58,6 +58,13 @@ npx skills add ali-demirbas/claude-lifecycle --all
 
 Already have [ab-test-playbook](https://github.com/ali-demirbas/ab-test-playbook) too? Add [claude-skills](https://github.com/ali-demirbas/claude-skills) once instead of each repo separately: `/plugin marketplace add ali-demirbas/claude-skills`.
 
+Using [Gemini CLI](https://github.com/google-gemini/gemini-cli) instead? `.gemini/extensions/claude-lifecycle/` ships the same skills, rules and agents, generated from the same source files by `scripts/build_gemini.py`:
+
+```bash
+git clone https://github.com/ali-demirbas/claude-lifecycle.git
+cd claude-lifecycle/.gemini/extensions/claude-lifecycle && gemini extensions link .
+```
+
 Then, inside Claude Code:
 
 ```
