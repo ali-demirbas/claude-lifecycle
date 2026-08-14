@@ -1,0 +1,7 @@
+{ "brand": "demo",
+  "campaign_msgs_per_week": { "email": 2, "push": 2 },
+  "journeys": [
+  { "id": "ecom-abandoned-cart-01", "pattern": "abandoned-cart", "stage": "revenue", "priority": "P0",
+    "channels": ["email", "push"], "audience_group": "cart_abandoners",
+    "est_msgs_per_week": { "email": 3, "push": 2 } }
+] }

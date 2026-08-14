@@ -1,15 +1,22 @@
 ---
 name: lifecycle-connect
+argument-hint: "[csv-or-export-file]"
 description: Connect and assess a data source for lifecycle marketing. Computes the Data Quality Score (DQS 0-100) from GA4 (via MCP), CSV/exports, or declares Tier 3 (industry-only). Use when the user says "connect GA4", "veri bağla", "data quality", "DQS", or as the first stage of the lifecycle pipeline.
 metadata:
   version: 0.1.0
   category: data
-  updated: 2026-07-17
+  updated: 2026-08-14
 ---
 
 # Lifecycle Connect — Data Source Assessment & DQS
 
 Establish what data exists and how much journey sophistication it can support. Output: a **Data Assessment Report** ending in a DQS. Full scoring table: `${CLAUDE_PLUGIN_ROOT}/docs/data-quality-score.md`.
+
+## When NOT to use this
+
+- **A fresh DQS + event inventory already exists this session and nothing changed** — re-running repeats a full data pull for the same answer; go straight to `lifecycle-map` or `lifecycle-journeys`.
+- **The question is what an event means or how the funnel looks**, not how much the data is worth — that's `lifecycle-map`, which consumes this skill's output rather than producing it.
+- **The user has performance or holdout results from a journey that already launched** — that's `lifecycle-results`. This skill scores input data quality; it has nothing to do with campaign outcomes.
 
 ## Step 1 — Identify the source (tier)
 
@@ -79,6 +86,23 @@ Output the Data Assessment Report with exactly these sections:
 3. **Event inventory** — table of events found: name, 90-day count, conversion?, mapped stage left blank (filled by lifecycle-map).
 4. **Gaps** — must-have events from the playbook that are missing, each with one line on what it blocks. For T2-aggregate specifically, add one line naming what would upgrade the tier (a row-level export, User-ID + BigQuery, or the specific missing sheet/report) — generic and short, not a repeat of the DQS breakdown's numbers.
 5. **Next step** — one line: proceed to `lifecycle-map`.
+
+## Common Pitfalls
+
+**Pitfall 1: A clean-looking DQS number with a dropped flag.**
+Symptom: the final report states "DQS 62/100" with no activation/freshness/consistency tag, on a long report where the tags were computed earlier but not carried into the final summary line.
+Consequence: the tags exist specifically to survive summarization — an activation-blocked or stale-data portfolio silently reads as a normal one, and everything downstream (depth class, journey generation) inherits the wrong confidence level.
+Fix: the score line always carries whichever tags triggered, computed fresh at report time rather than copied from an earlier draft — a clean report with no tags is a claim ("nothing triggered"), not a default state.
+
+**Pitfall 2: Page-view noise counted as event diversity.**
+Symptom: "23 distinct events found," where most of the list is `scroll_depth`, `page_view` variants, and other structurally-generated events rather than behaviorally meaningful ones.
+Consequence: inflates the Event Diversity component directly, which cascades into an overstated DQS and a depth class the real behavioral data doesn't support.
+Fix: filter against the industry playbook's expected event set before counting — an event only counts if it represents something a user chose to do, not something the page did automatically.
+
+**Pitfall 3: Skipping the input gate because the file looks clean.**
+Symptom: going straight to DQS scoring on a CSV that opens fine and looks well-formed on a skim, without running `scripts/validate_input.py` first.
+Consequence: a DQS computed on broken timestamps, negative counts, or injected content is fiction with a score attached to it — the gate exists because these defects are specifically the ones a skim doesn't catch.
+Fix: the gate runs unconditionally on every file-based input before any scoring touches it, regardless of how the file looks on first read.
 
 ## Never do
 

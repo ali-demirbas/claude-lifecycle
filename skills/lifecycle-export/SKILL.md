@@ -1,15 +1,22 @@
 ---
 name: lifecycle-export
+argument-hint: "[json|mermaid|csv|report]"
 description: Export generated journeys as CRM-agnostic JSON (journey.schema.json), Mermaid diagrams, or CSV step lists. Use when the user says "export", "JSON ver", "dışa aktar", "şema çıktısı", "CSV ver".
 metadata:
   version: 0.1.0
   category: export
-  updated: 2026-07-17
+  updated: 2026-08-14
 ---
 
 # Lifecycle Export — Structured Output
 
 Convert generated journey docs into machine-consumable formats. Exports are derived from journey docs — never hand-author an export that diverges from its doc.
+
+## When NOT to use this
+
+- **No journeys exist yet** — there's nothing to convert; run `lifecycle-journeys` first.
+- **The ask is just the normal user-facing deliverable for a fresh run** — the HTML canvas is already produced by `lifecycle-journeys`/`lifecycle-copy`'s own Output steps; this skill is for the *additional* formats (JSON, Mermaid, CSV, the standalone report) or a re-export on request, not the default path.
+- **Copy hasn't finished its review loop yet** — export refuses to ship unreviewed copy regardless; the fix is finishing `lifecycle-copy`'s write → review → fix cycle, not forcing an export around it.
 
 ## Formats
 

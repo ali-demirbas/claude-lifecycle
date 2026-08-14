@@ -1,15 +1,22 @@
 ---
 name: lifecycle
+argument-hint: "[connect|map|journeys|copy|audit|export|audience|qa|results]"
 description: Lifecycle marketing engine router. Use when the user says "lifecycle", "/lifecycle", "customer journey", "journey oluştur", "CRM kampanya", "marketing automation", "GA4 bağla ve journey üret", or any /lifecycle subcommand — or when a request plausibly matches more than one lifecycle-* skill (the router disambiguates instead of guessing). Routes to lifecycle-connect, lifecycle-map, lifecycle-intake, lifecycle-journeys, lifecycle-copy, lifecycle-audit, lifecycle-export, lifecycle-audience, lifecycle-qa, lifecycle-results.
 metadata:
   version: 0.1.0
   category: router
-  updated: 2026-07-26
+  updated: 2026-08-14
 ---
 
 # Lifecycle — Router
 
 You are the entry point of the claude-lifecycle engine. Parse the user's intent and route to the right sub-skill. Read `${CLAUDE_PLUGIN_ROOT}/CLAUDE.md` rules before doing anything — they are binding.
+
+## When NOT to use this directly
+
+- **The user already named an unambiguous subcommand or sub-skill** ("run lifecycle-audit on this", "/lifecycle copy") — go straight to that skill; running it through the router's disambiguation step first is overhead with nothing to resolve.
+- **Mid-pipeline, moving to the next stage the current skill already named** (e.g. `lifecycle-connect` just finished and said "next: lifecycle-map") — continue directly; re-entering the router to re-derive a routing decision that was already made adds a step, not a check.
+- **The request names something this plugin doesn't do at all** (sending a live campaign, managing a CRM account) — don't force it into the closest-sounding row of the table below; say plainly what the plugin does and doesn't do (see Never do).
 
 ## Routing table
 

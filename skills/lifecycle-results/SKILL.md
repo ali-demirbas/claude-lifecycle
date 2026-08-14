@@ -1,15 +1,22 @@
 ---
 name: lifecycle-results
+argument-hint: "[results-file-or-description]"
 description: Close the measurement loop. Ingest journey performance data from the CRM (holdout/lift results, opens, conversions), evaluate it against the incrementality doctrine, and recommend keep/promote/demote/kill per journey — plus maintain the failed-strategies log that stops the engine from re-proposing what didn't work. Use when the user says "sonuçları gir", "results", "performans verisi", "holdout sonuçları", "test sonuçları geldi", "journey performansı".
 metadata:
   version: 0.1.0
   category: measurement
-  updated: 2026-07-17
+  updated: 2026-08-14
 ---
 
 # Lifecycle Results — Closing the Loop
 
 The engine generates journeys and KPIs; this skill reads what actually happened and feeds it back. It **recommends** — promotion, demotion, and deletion are always the user's call. Doctrine: `${CLAUDE_PLUGIN_ROOT}/knowledge/measurement.md` — every rule there binds this skill.
+
+## When NOT to use this
+
+- **No performance data exists yet** — the journey hasn't launched, or has launched but no measurement window has closed — there's nothing to ingest; using this skill early just returns "insufficient data" against every journey instead of a real verdict.
+- **The ask is whether the CRM setup fires correctly BEFORE launch** — that's `lifecycle-qa` (trigger correctness), not this skill (outcome measurement after real users have gone through it).
+- **The ask is a structural or methodological review of a journey's design** — that's `lifecycle-audit`. This skill evaluates measured outcomes against the incrementality doctrine; it doesn't review the design itself.
 
 ## Step 1 — Ingest
 

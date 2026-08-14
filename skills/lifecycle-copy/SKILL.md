@@ -1,15 +1,22 @@
 ---
 name: lifecycle-copy
+argument-hint: "[journey-id]"
 description: Write CRM channel copy (email, push, SMS, in-app, WhatsApp) for journey steps — rule-checked against channel limits and sector lexicons, with A/B variants and character counts. Use when the user says "copy yaz", "metin yaz", "email metni", "push metni", "CRM copy", "write the messages".
 metadata:
   version: 0.1.0
   category: copy
-  updated: 2026-07-21
+  updated: 2026-08-14
 ---
 
 # Lifecycle Copy — Channel Copywriting
 
 Produce send-ready copy for journey steps. Copy here is an engineering artifact: it has hard constraints (limits, banned words, consent text) and is **reviewed before it is shown**. The mandatory format is `${CLAUDE_PLUGIN_ROOT}/templates/copy-output.md`.
+
+## When NOT to use this
+
+- **No journey doc or step description exists yet** — there's nothing to write copy for; run `lifecycle-journeys` first or supply a step description (channel + intent) directly.
+- **The ask is whether EXISTING, already-shipped copy complies with channel/lexicon rules** — that's `lifecycle-audit`'s dimension 7 (spot-check), not this skill; this skill's review loop only covers copy it itself writes.
+- **The need is a CRM-agnostic structured export of copy already written** — that's `lifecycle-export`, not this skill.
 
 ## Inputs (gate)
 
@@ -58,6 +65,23 @@ FIX blocks are rewritten and re-checked. Nothing labeled FIX may reach the user.
 - The lexicon decides vocabulary; if a lexicon rule and a "nicer sounding" line conflict, the lexicon wins.
 - Concrete beats clever: product names, real numbers (as `{{variables}}`), stated policies.
 - Urgency/scarcity only when backed by a data variable that exists (`{{stock_count}}`, `{{sale_end_date}}`). No data → no urgency. Ever.
+
+## Common Pitfalls
+
+**Pitfall 1: Variants that differ in wording, not in angle.**
+Symptom: Variant A and B say the same thing with synonyms swapped — "Sepetin seni bekliyor" vs "Sepetindeki ürünler seni bekliyor."
+Consequence: the two variants test the same hypothesis twice; `lifecycle-results` has nothing to attribute a lift to, because there was only ever one lever in the test.
+Fix: check each variant's `strategy` field before delivery — if both name the same lever (both "urgency," both "utility"), rewrite one around a genuinely different lever (social proof, loss-aversion, utility) rather than rephrasing.
+
+**Pitfall 2: Urgency framing with no variable behind it.**
+Symptom: a line reads urgent ("Fırsat kaçmadan şimdi bak") but no `{{stock_count}}`, `{{sale_end_date}}`, or other real data variable appears anywhere in the field.
+Consequence: this is the "no data → no urgency" rule violated by tone rather than by an obviously banned word — a literal banned-word check won't catch phrasing that implies scarcity without stating it.
+Fix: trace any urgent-reading line to the specific variable driving it; no variable found means rewrite without the pressure framing, not just soften the punctuation.
+
+**Pitfall 3: A FIX rewritten but not re-checked.**
+Symptom: a block flagged FIX gets rewritten to fix the named violation, then shipped on the strength of "it reads better now."
+Consequence: the rewrite can introduce a new violation the first pass never had — shortening for a length limit can drop the required opt-out text, tightening a CTA can create a second one.
+Fix: every FIX goes through the full checklist again after rewriting, not a visual read — the loop is write → review → fix → review, not write → review → fix → ship.
 
 ## Never do
 

@@ -4,12 +4,18 @@ description: Structured questioning to fill information gaps before journey gene
 metadata:
   version: 0.1.0
   category: intake
-  updated: 2026-07-17
+  updated: 2026-08-14
 ---
 
 # Lifecycle Intake — Structured Gap Filling
 
 Collect ONLY the information that changes the output. Maximum 2 rounds of questions; each round is one message with grouped, numbered questions and pre-filled defaults the user can accept with "defaults ok".
+
+## When NOT to use this
+
+- **Invoked cold, before any pipeline stage has identified what it actually needs.** This skill exists to fill gaps `lifecycle-journeys`/`lifecycle-copy` name, not to front-load a generic questionnaire — asking before a real gap is known risks collecting answers nothing downstream consumes, which the whitelist gate exists specifically to prevent.
+- **A brand config already answers everything a stage needs** — there's nothing to ask; proceed straight to the stage that would have triggered intake.
+- **The user is describing a preference for a single generated artifact** (e.g. "bu journey'i daha kısa yap") — that's a direct edit request to the owning skill, not a structured gap to collect.
 
 ## What may be asked (the whitelist)
 
@@ -36,6 +42,26 @@ Ask a question only if its answer is (a) not derivable from connected data, and 
 - Every question carries a stated default: "*(default: retention-first)*". Silence = default.
 - Round 2 exists only for follow-ups created by round-1 answers. Never a round 3 — proceed with defaults and list assumptions.
 - **Contextual slot carryover:** before drafting questions, scan the conversation so far — if the user already stated an answer informally (even outside a formal intake round), treat it as answered and don't ask it again. The whitelist's "not derivable from connected data" test also covers "not already stated in this conversation."
+- **Round header states progress up front:** open every round with `Tur <n>/2 · <k> soru` so the user knows the total commitment before reading the first question, not after. A round that turns out to need only 3 of its planned 8 still states the real count — never pad to look thorough, never hide the true count to look short.
+- **A question with a small, known answer set gets numbered options; open questions don't.** Numbering only pays for itself when the set is genuinely closed — inventing options for an open question (banned words, brand vocabulary) manufactures false precision and biases the answer toward whatever got listed. Applies to: goal (4), product rhythm bucket (3), formality (2-3, language-dependent), channel inventory (multi-select), and any sector yes/no. Doesn't apply to: brand tone adjectives, existing-automations list, campaign calendar, banned words — these stay open text.
+  - Every option line states what picking it *means for the output*, not just its label — a bare enum name forces the user to already know the system to choose correctly, which defeats the point of offering a shortcut.
+  - The default option is marked inline, not just referenced afterward, so scanning the list alone is enough to answer.
+  - Worked example (goal, whitelist row 1):
+    ```
+    1) Ana hedef nedir? *(varsayılan: 2)*
+       1. growth — yeni kullanıcı kazanımına öncelik ver
+       2. retention — mevcut kullanıcıyı elde tutmaya öncelik ver ⟵ varsayılan
+       3. revenue — gelir/dönüşüme öncelik ver
+       4. reactivation — pasif kullanıcıyı geri kazanmaya öncelik ver
+    ```
+  - Worked example (channel inventory, multi-select — user answers with a list of numbers, e.g. "1, 2"):
+    ```
+    3) Hangi kanallar aktif ve onaylı? *(birden fazla seçilebilir)*
+       1. email        4. in-app
+       2. push         5. WhatsApp
+       3. SMS
+    ```
+  - A numbered question still accepts free text instead of a number — the list is a shortcut, never the only valid input. "Diğer (belirt)" is implicit, not a listed 5th option, per the enumerated-options convention used elsewhere in this repo.
 
 ## Plausibility check
 

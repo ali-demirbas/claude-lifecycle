@@ -4,12 +4,18 @@ description: Audit an existing journey portfolio — user-described, imported fr
 metadata:
   version: 0.1.0
   category: analysis
-  updated: 2026-07-17
+  updated: 2026-08-14
 ---
 
 # Lifecycle Audit — Portfolio Review
 
 Score an existing set of journeys against the same rules the engine uses to generate them. Output: an **Audit Report** with per-journey findings and a portfolio-level verdict.
+
+## When NOT to use this
+
+- **No journeys exist anywhere yet** — nothing described, generated, or imported — there's nothing to score; that's a `lifecycle-connect` → `lifecycle-journeys` conversation instead.
+- **The user wants the findings acted on**, not just diagnosed — this skill never rewrites journeys itself (see Never do below); generation is a separate, offered step via `lifecycle-journeys`.
+- **Real performance or holdout data exists and the ask is whether a journey is actually working** — that's `lifecycle-results`, which judges measured incremental outcomes; this skill judges structure and methodology without live results.
 
 ## Inputs
 
@@ -45,6 +51,23 @@ When the verdict gates a real decision (budget, headcount, killing a program), t
 3. **Coverage map** — same stage table as the portfolio template §3.
 4. **Recommended actions** — ordered; each one maps to a concrete next step (`run /lifecycle journeys for the missing P0s`, `re-run copy for flow X`, and when the user has performance data: `run /lifecycle results to score these against holdouts`).
 5. **Audit trail** — when a brand config exists, check `output/<brand>/audit-history.md` (create it if absent, same convention as `results-log.md`): a Critical/High finding matching one from the prior run's log (same journey + same dimension) is flagged `repeat finding, open since <date>` instead of reported as new; a prior Critical/High that doesn't reappear gets one line `resolved since last audit`. Append this run's Critical/High findings before closing out. No brand config (ad hoc/anonymous audit) → skip this step and note once that findings aren't being tracked across runs.
+
+## Common Pitfalls
+
+**Pitfall 1: "Not assessable" used to dodge a hard call.**
+Symptom: several dimensions come back "not assessable" on a review where the user actually described the journeys in reasonable detail — the ambiguity is judgment-shaped, not evidence-shaped.
+Consequence: the audit is technically defensible (nothing was fabricated) but useless (nothing was decided) — this is the exact gap the "no evidence provided vs evidence of absence" distinction above exists to close, restated as a self-check on the finished report.
+Fix: before marking a dimension "not assessable," confirm it is truly unstated rather than stated-but-bad — a journey with a described exit that just happens to be weak scores low, it doesn't get exempted.
+
+**Pitfall 2: Severity flattens to Medium.**
+Symptom: the findings table reads Medium down the entire severity column.
+Consequence: a compliance-class issue and a wording nitpick become indistinguishable, and the one output an audit exists to produce — what to fix first — disappears.
+Fix: apply "Critical = revenue leaking or compliance risk" literally per finding, not as a description of the audit's overall tone; most audits should have a mix, and an all-Medium table is a signal to re-examine severity, the same way an all-high-score pass is a signal to re-examine scores.
+
+**Pitfall 3: Score creep without a named gap.**
+Symptom: a dimension lands at 4/5 or 5/5 with a one-line justification that doesn't point at anything specific the journey is missing.
+Consequence: this is the fabrication risk the scoring-posture section already names — a high score with no gap attached is indistinguishable from a score that was never actually checked.
+Fix: if the write-up can't name a concrete gap, the score is not yet earned — drop to the next tier down or go back and look again, per the "when torn, take the lower" rule already stated above.
 
 ## Never do
 

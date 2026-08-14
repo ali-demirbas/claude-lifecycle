@@ -74,6 +74,8 @@ git clone https://github.com/ali-demirbas/claude-lifecycle && cd claude-lifecycl
 npx skills add ali-demirbas/claude-lifecycle --all
 ```
 
+Already have [ab-test-playbook](https://github.com/ali-demirbas/ab-test-playbook) too? Add [claude-skills](https://github.com/ali-demirbas/claude-skills) once instead of each repo separately: `/plugin marketplace add ali-demirbas/claude-skills`.
+
 Then, inside Claude Code:
 
 ```

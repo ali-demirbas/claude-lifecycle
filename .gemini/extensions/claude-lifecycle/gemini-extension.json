@@ -1,0 +1,6 @@
+{
+  "name": "claude-lifecycle",
+  "version": "0.1.0",
+  "description": "Data-adaptive lifecycle marketing engine. Connects GA4 or other data sources (or just an industry), scores data quality, and generates a prioritized portfolio of customer journeys with channel-ready CRM copy.",
+  "contextFileName": "GEMINI.md"
+}

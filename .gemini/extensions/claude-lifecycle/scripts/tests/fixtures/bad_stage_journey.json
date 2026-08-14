@@ -1,0 +1,25 @@
+{
+  "id": "saas-trial-conversion-02",
+  "version": "1.0.0",
+  "constraints": { "max_discount_pct": 10, "allowed_channels": ["email", "in_app", "push"] },
+  "name": "Trial Conversion",
+  "pattern": "trial-conversion",
+  "stage": "retention",
+  "priority": "P0",
+  "data_tier": "T2",
+  "dqs": 69,
+  "objective": "Trial to paid within the trial clock",
+  "trigger": { "type": "event", "value": "trial_start", "entry_conditions": ["no active subscription"], "reentry_policy": "once per trial" },
+  "audience": { "include": "trial account admins", "exclude": ["suppressed accounts"], "estimated_volume": 2 },
+  "exit": { "success_event": "subscription_start", "success_window_days": 21, "other_exits": ["unsubscribe"] },
+  "steps": [
+    { "index": 1, "wait": "PT1H", "channel": "email", "intent": "welcome + first value action", "branch_condition": null, "copy_ref": "step-1" },
+    { "index": 2, "wait": "P2D", "channel": "in_app", "intent": "obstacle removal", "branch_condition": "no feature_used by day 3", "copy_ref": "step-2" },
+    { "index": 3, "wait": "P2D", "channel": "email", "intent": "activation-split content", "branch_condition": "feature_used status", "copy_ref": "step-3" },
+    { "index": 4, "wait": "P3D", "channel": "push", "intent": "expiry notice + last call", "branch_condition": null, "copy_ref": "step-4" }
+  ],
+  "kpis": [
+    { "name": "trial to paid", "type": "primary", "definition": "conversions vs entered", "target": null },
+    { "name": "unsubscribe rate", "type": "guardrail", "definition": "per send", "target": "< 0.3%" }
+  ]
+}

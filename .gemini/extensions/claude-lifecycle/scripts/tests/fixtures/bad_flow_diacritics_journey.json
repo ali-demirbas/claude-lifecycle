@@ -1,0 +1,41 @@
+{
+  "id": "ecom-browse-abandonment-03",
+  "version": "1.0.0",
+  "constraints": { "max_discount_pct": 15, "allowed_channels": ["email", "sms"] },
+  "name": "Browse Abandonment",
+  "pattern": "browse-abandonment",
+  "stage": "revenue",
+  "priority": "P0",
+  "data_tier": "T2",
+  "dqs": 77,
+  "depth_class": "standard",
+  "objective": "Recover users who viewed a product but did not add to cart",
+  "trigger": { "type": "event", "value": "view_item", "entry_conditions": ["no add_to_cart in 4h"], "reentry_policy": "14 days" },
+  "audience": { "include": "viewers without add_to_cart", "exclude": [], "estimated_volume": null },
+  "exit": { "success_event": "add_to_cart", "success_window_days": 3, "other_exits": [] },
+  "steps": [
+    { "index": 1, "wait": "PT4H", "channel": "email", "intent": "reminder", "branch_condition": null, "copy_ref": "step-1" },
+    { "index": 2, "wait": "P1D", "channel": "sms", "intent": "follow-up", "branch_condition": null, "copy_ref": "step-2" }
+  ],
+  "kpis": [
+    { "name": "recovery rate", "type": "primary", "definition": "add_to_cart within window", "target": "baseline after 6 weeks" },
+    { "name": "unsubscribe rate", "type": "guardrail", "definition": "per send", "target": "< 0.3%" }
+  ],
+  "flow": {
+    "kind": "entry",
+    "tag": "Tetikleyici",
+    "title": "view_item - Urun Goruntuleme",
+    "rows": [
+      { "icon": "target", "html": "Ayni urun icin en az 2 view_item olayi" }
+    ],
+    "children": [
+      { "label": null, "node": {
+        "kind": "message", "channel": "email", "tag": "Adim 1", "title": "Hatirlatma",
+        "rows": [ { "icon": "mail", "html": "Kullanicilara urunu hatirlatan mesaj" } ],
+        "children": [
+          { "label": null, "node": { "kind": "exit", "exit": "good", "title": "Basarili Cikis" } }
+        ]
+      } }
+    ]
+  }
+}

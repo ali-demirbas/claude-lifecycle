@@ -1,0 +1,4 @@
+{ "journeys": [ { "id": "saas-trial-conversion-01", "pattern": "trial-conversion",
+  "channels": ["email"], "audience_group": "trials", "est_msgs_per_week": { "email": 2 } } ],
+  "blocked": [ { "pattern": "abandoned-cart", "reason": "purchase eventi yok" } ],
+  "suppressed_accounts": [] }

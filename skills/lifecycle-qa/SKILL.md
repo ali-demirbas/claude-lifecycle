@@ -1,15 +1,22 @@
 ---
 name: lifecycle-qa
+argument-hint: "[journey-id]"
 description: Generate test event payloads for generated journeys — positive triggers, branch-condition cases, exits, and negative tests — so the CRM setup can be verified before launch. Use when the user says "test payload", "test eventi üret", "qa", "tetikleyiciyi test et", "sahte event".
 metadata:
   version: 0.1.0
   category: qa
-  updated: 2026-07-17
+  updated: 2026-08-14
 ---
 
 # Lifecycle QA — Trigger Payload Simulator
 
 The hardest part of wiring a designed journey into a CRM is proving the trigger works: someone hand-writes a fake `purchase` with the right params and posts it at the panel. The engine already knows every journey's entry conditions, branch conditions, and exits — so it writes those payloads itself, including the negative cases a hand-tester forgets.
+
+## When NOT to use this
+
+- **No generated journey JSONs exist yet** — there's nothing to derive triggers, branches, or exits from; run `lifecycle-journeys`/`lifecycle-export` first.
+- **The question is whether a LIVE journey is performing well** — that's `lifecycle-results`. This skill proves triggers fire correctly before launch; it has no view into post-launch outcomes.
+- **The event a payload would need is already confirmed missing in the tracking plan** — don't generate a payload the real instrumentation can't produce; that "passing" test would validate a journey production data can never actually trigger (see Never do below).
 
 ## Inputs (gate)
 

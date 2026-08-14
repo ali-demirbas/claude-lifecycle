@@ -1,15 +1,22 @@
 ---
 name: lifecycle-audience
+argument-hint: "[journey-id]"
 description: Turn journey audience definitions into executable artifacts — BigQuery SQL against the standard GA4 export schema, or a CDP-agnostic trait definition — so the data team receives a query, not a ticket. Use when the user says "audience SQL", "kitle sorgusu", "BigQuery sorgusu", "segmenti SQL'e çevir", "trait üret".
 metadata:
   version: 0.1.0
   category: export
-  updated: 2026-07-17
+  updated: 2026-08-14
 ---
 
 # Lifecycle Audience — From Definition to Query
 
 A journey doc's §3 says "users with ≥ 2 `view_item` in 30 days and no `purchase`" — and then a human translates that into a data-team ticket. The engine already knows the events, the params, and the windows; this skill writes the query itself. It is the bridge over the "designed but not activatable" gap: the portfolio's audiences become artifacts a data engineer can run today.
+
+## When NOT to use this
+
+- **No journeys or portfolio exist yet** — there are no audience definitions to translate; run `lifecycle-journeys` first.
+- **Neither a BigQuery export nor a CDP substrate exists** — this skill is explicitly blocked in that case (see Inputs below); don't attempt a query against a guessed schema instead of saying so.
+- **The need is the event→stage mapping itself, not a query** — that's `lifecycle-map`. This skill consumes an already-defined audience; it doesn't classify events.
 
 ## Inputs (gate)
 

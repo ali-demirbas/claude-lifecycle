@@ -1,0 +1,6 @@
+[
+  {"id":"ecom-abandoned-cart-01","skill":"abandoned-cart","label":"Test Journey","segment":"test segment","goal":"test goal","primaryMetric":"test metric",
+   "root":{"kind":"entry","tag":"Giriş","title":"test entry","rows":[{"icon":"clock","html":"trigger"}],
+     "children":[{"label":null,"node":{"kind":"message","channel":"email","tag":"Adım 1","title":"mesaj","rows":[{"icon":"mail","html":"gövde"}],
+       "children":[{"label":null,"node":{"kind":"exit","exit":"good","title":"dönüştü"}}]}}]}}
+]

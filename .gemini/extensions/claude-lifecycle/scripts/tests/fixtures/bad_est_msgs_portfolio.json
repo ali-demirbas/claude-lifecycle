@@ -1,0 +1,5 @@
+{ "brand": "demo", "journeys": [
+  { "id": "saas-trial-conversion-01", "pattern": "trial-conversion", "stage": "revenue", "priority": "P0",
+    "channels": ["email", "in_app"], "audience_group": "trial-admins",
+    "est_msgs_per_week": 3 }
+] }

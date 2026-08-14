@@ -4,12 +4,18 @@ description: Map tracked events to lifecycle stages (acquisition/activation/enga
 metadata:
   version: 0.1.0
   category: data
-  updated: 2026-07-17
+  updated: 2026-08-14
 ---
 
 # Lifecycle Map — Event → Stage Mapping
 
 Turn the event inventory from `lifecycle-connect` into a stage map and funnel skeleton. This is what makes journey eligibility computable.
+
+## When NOT to use this
+
+- **No DQS or event inventory exists yet** — there is nothing to map; run `lifecycle-connect` first.
+- **The question is whether a specific automation should be kept, changed, or killed** — that's `lifecycle-audit` (structural review) or `lifecycle-results` (outcome-based), not this skill.
+- **The need is an audience query for an already-designed journey** — that's `lifecycle-audience`. This skill produces the stage map and funnel skeleton, never a runnable query.
 
 ## Procedure
 
@@ -29,6 +35,23 @@ Turn the event inventory from `lifecycle-connect` into a stage map and funnel sk
 3. **Unmapped events** — asked or pending, including any `unclassified-vertical` events.
 4. **Stage coverage summary** — six stages, events per stage, and the **blind stages** (zero events) called out explicitly. Blind stages are a first-class finding: they directly limit the journey portfolio. One summary per vertical for multi-vertical brands — a blind stage in one product line shouldn't be hidden by coverage in another.
 5. **Funnel skeleton** — ordered steps with events, plus a Mermaid `flowchart LR` of the funnel. One funnel per vertical for multi-vertical brands.
+
+## Common Pitfalls
+
+**Pitfall 1: A quiet best guess when no rule fires.**
+Symptom: an ambiguous event like `interaction` or `activity` lands in "engagement" with no rule citation next to it.
+Consequence: directly violates CLAUDE.md rule 7, and every downstream artifact — funnel skeleton, journey eligibility — inherits an invented data point wearing the confidence of a real classification.
+Fix: track which rule classified each event as you go; anything that fails all three sources goes into the unmappable batch for the user, never a silent placement.
+
+**Pitfall 2: Winback assigned to an event instead of left as an absence.**
+Symptom: a `re_engagement_click` or similar event gets mapped directly to the "winback" stage because its name matches.
+Consequence: contradicts this skill's own rule that winback is defined by absence (a dormancy window), not by any event — the mapping looks reasonable and breaks a rule stated two sections up.
+Fix: map the click event to whichever active stage it actually represents (typically a reactivation-trigger response), and leave winback defined by the dormancy threshold elsewhere in the pipeline.
+
+**Pitfall 3: An inverted funnel presented without comment.**
+Symptom: the funnel skeleton shows a later step with more volume than the step before it, and it goes out in the report as-is.
+Consequence: reads as real user behavior to whoever consumes the funnel, when it is far more likely a mapping error or a tracking defect — journeys sized off it inherit a broken premise.
+Fix: this skill's own step 4 already requires flagging this — treat a clean-looking funnel with no inversion note as unverified, not as evidence none occurred, and check before presenting.
 
 ## Never do
 

@@ -4,12 +4,18 @@ description: The journey engine. Generates a prioritized portfolio of lifecycle 
 metadata:
   version: 0.1.0
   category: design
-  updated: 2026-07-21
+  updated: 2026-08-14
 ---
 
 # Lifecycle Journeys — Portfolio Engine
 
 Generate a **portfolio** of journeys, not one-off ideas. The algorithm below is deterministic — follow it in order; do not freestyle.
+
+## When NOT to use this
+
+- **No DQS exists yet** — hard-blocked by CLAUDE.md rule 1; run `lifecycle-connect` (and `lifecycle-map`) first.
+- **A working journey already exists and the request is to review it, not replace it** — that's `lifecycle-audit`.
+- **Only copy is needed for a journey that's already designed** — invoke `lifecycle-copy` directly against the existing journey doc; regenerating the journey to get its copy is unnecessary fan-out.
 
 ## Prerequisites (hard gate)
 
@@ -114,6 +120,25 @@ If anything was blocked or a depth upgrade was missed, instantiate `${CLAUDE_PLU
 Write everything to `output/<project>/` locally (gitignored) — including **`portfolio.json`**, the machine-readable registry (id, pattern, stage, priority, channels, `audience_group`, `est_msgs_per_week` per journey — **a per-CHANNEL dict, e.g. `{"email": 2, "push": 1}`, never a bare total** (validate_output.py checks each channel against its cap and rejects any other shape); plus top-level `audience_overlaps: [[groupA, groupB], ...]` naming every group combination one real user can occupy at once, and — when campaign windows are declared — top-level `campaign_msgs_per_week: {channel: n}` so the validator re-checks every group against the caps WITH the campaign load added (calendar-rules.md's math, enforced in code); plus top-level `blocked: [{pattern, reason}]` for every blocked pattern and `suppressed_accounts: []` for negative-signal suppression — eval and validator tooling reads these) — and present the HTML canvas plus a short summary in the conversation. End every run with `output/<project>/dossier.md` from `templates/run-dossier.md` (refresh it after copy when copy runs) — the dossier and canvases are the user-facing set; the JSONs are machine-facing and are never presented as deliverables (export is a separate, explicitly-requested stage). **Before writing the new dossier, check whether `output/<project>/dossier.md` already exists from a prior run.** If it does, read its Run ID and headline facts (DQS, journey count), move the file to `output/<project>/runs/dossier-<old-run-id>.md` (create the `runs/` folder if needed), then write the new dossier with a fresh Run ID and a filled-in §1a referencing the archived one. Never silently overwrite a prior dossier with no trace of it — that destroys the one audit trail a later root-cause question (why did journey X look like this three runs ago?) would need. If no prior dossier exists, this is the brand's first run: §1a is omitted entirely, not left as an empty section.
 
 **Validation gate (before presenting anything):** run `python3 scripts/validate_output.py all output/<project>/ --max-discount <brand's incentive_policy.max_discount_pct>` — **always pass `--max-discount`**, even in `all` mode: omitting it silently disables the discount-ceiling check on every copy doc found. Journey JSONs are checked against the schema and their embedded `constraints`; the portfolio registry's frequency-cap math is recomputed in code. A compliance-class failure (unconsented channel, discount over cap, frequency breach) is a hard stop — report the violation and wait for the user; never silently fix and ship (CLAUDE.md rule 12).
+
+## Common Pitfalls
+
+Each of these was chosen because it passes every check above while still being wrong — the checklist confirms structure, not judgment. Read a finished portfolio against these before presenting it.
+
+**Pitfall 1: Flat depth across the whole portfolio.**
+Symptom: every journey lands at 5-7 steps, "standard," regardless of pattern or DQS.
+Consequence: informational patterns bloat past their natural 1-3 steps, and thin-data journeys carry branches the volume/freshness/consistency gates should have capped.
+Fix: re-run step 3's table per journey, not once for the portfolio — depth class is per-journey, not a portfolio default.
+
+**Pitfall 2: A one-note portfolio.**
+Symptom: everything eligible happens to be a recovery pattern — abandoned-cart, churn-prevention, winback — and the portfolio ships as-is.
+Consequence: CLAUDE.md rule 2 calls this out directly as an incomplete deliverable; stopping at what's broken and never building on what's healthy leaves growth-stage value (post-purchase, referral, upsell) unclaimed for no data reason, only a framing one.
+Fix: check the stage-coverage table before finalizing — a portfolio that is 100% leak-recovery with zero growth-stage journeys is a signal to look again at eligibility, not a valid result to ship.
+
+**Pitfall 3: Conflict math asserted, not computed.**
+Symptom: the portfolio doc says "channels are staggered to avoid overload" or "well within frequency limits" with no worst-case number attached.
+Consequence: this is precisely the compliance-risk surface step 5 exists to close — an unverified sentence there is worse than an unverified sentence anywhere else in the doc, because it looks like the check ran.
+Fix: every conflict-review claim traces to an actual number computed per audience group and per declared overlap combo, checked against `knowledge/compliance/consent-and-quiet-hours.md` — a claim with no number behind it is a missing step, not a finished one.
 
 ## Never do
 
