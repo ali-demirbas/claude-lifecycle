@@ -3,6 +3,14 @@
 !examples/**/*.csv
 !evals/cases/**/*.csv
 !scripts/tests/fixtures/**/*.csv
+# scripts/ is bundled wholesale into the Gemini CLI extension (build_gemini.py),
+# fixtures included — the blanket *.csv rule above is unanchored (no leading
+# slash) so it also matches this bundled copy's path, and the negation two
+# lines up is anchored to the ORIGINAL path only, not this one. Without this
+# line, `git add` silently drops the bundled fixtures even though the copy step
+# writes them to disk, so the committed extension permanently disagrees with
+# `build_gemini.py --check` no matter how often the bundle is regenerated.
+!.gemini/extensions/**/scripts/tests/fixtures/**/*.csv
 user-data/
 exports/
 output/
