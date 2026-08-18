@@ -4,7 +4,7 @@ description: The journey engine. Generates a prioritized portfolio of lifecycle 
 metadata:
   version: 0.1.0
   category: design
-  updated: 2026-08-14
+  updated: 2026-08-16
 ---
 
 # Lifecycle Journeys — Portfolio Engine
@@ -36,13 +36,22 @@ Special case: `account-onboarding` supersedes `welcome-onboarding` for B2B accou
 - Compare its `required_events` (frontmatter) against the mapped event set (aliases already resolved by lifecycle-map).
 - All present → **eligible**. Any missing → **blocked**: record the missing events for the tracking plan. **Presence means usable, not just named:** a required event whose required params are mostly null (a `purchase` with 90% missing `value`) does not satisfy the signature — the event-analyst's parameter-completeness finding gates here, and a hollow event goes to the tracking plan as "instrumented but unusable".
 - `optional_events` / `optional_attributes` present → note which depth upgrades/branches they unlock.
-- T3 has no events: every pattern the playbook marks P0/P1 is eligible in its **simple** form; patterns needing live data feeds (back-in-stock, price-drop, replenishment) are blocked with reason "requires data feed".
+- T3 has no events, so nothing here is data-confirmed — calling it "eligible" the same way T1/T2 do overstates what's actually known. Every pattern the playbook marks P0/P1 is **playbook-recommended** in its **simple** form (assumed feasible from sector defaults, not confirmed by data — distinct from T1/T2's data-confirmed `eligible`); patterns needing live data feeds (back-in-stock, price-drop, replenishment) are **blocked** with reason "requires data feed". The full state model across tiers: `eligible` (T1/T2, signature matched against real data) / `playbook-recommended` (T3, unconfirmed) / `blocked` (signature missing or feed required) / `unknown` (classification couldn't be completed, e.g. an unmapped event stage). Downstream (breadth gate, portfolio doc), T3 rows are labeled `playbook-recommended`, never bare `eligible` — collapsing these into one shared label is the same honesty gap the DQS activation flag and freshness/consistency caps exist to close elsewhere in this pipeline.
 
 ### 2. Prioritization
 
 Start from the playbook's `pattern_priorities` (that vertical's own playbook, for multi-vertical brands) (P0/P1/P2), then adjust with the intake goal — promote/demote at most one level, and say why:
 - goal=revenue → promote revenue-stage patterns; goal=retention → promote retention/churn-prevention; goal=reactivation → promote winback/reactivation; goal=growth → promote referral/onboarding.
-- Any pattern matching an **existing automation** from intake is demoted to "⏸ deferred — already running" unless the user asked to redesign it.
+- Any pattern with an **existing automation** named in intake is checked for **coverage overlap**, not auto-deferred on a name match alone — "we have a welcome email" doesn't mean the existing automation covers what this pattern would design (a single `signup → email` send is not the same journey as `signup → profile completion → activation → education → handoff`, even though both would be called "welcome onboarding"):
+
+  | Overlap | What it means | Portfolio treatment |
+  |---|---|---|
+  | **Equivalent** | Existing automation covers the same steps, channels, and triggers this pattern would design | `⏸ deferred — already running` |
+  | **Substantial** | Existing automation covers most of the pattern's intent (same trigger, most of the sequence) with minor gaps | `⏸ deferred — already running`, one line naming the gap for a later revisit |
+  | **Partial** | Existing automation covers only the opening move (a single send where the pattern's depth class supports more) | **Not deferred** — flagged as a **redesign/extend candidate**: the pattern proceeds through prioritization, and its journey doc notes what already exists so the output extends rather than duplicates it |
+  | **None** | Named automation doesn't actually address this pattern's trigger/audience | Proceeds normally — the "existing automation" note doesn't apply to this pattern |
+
+  Ask when the overlap class isn't clear from what intake captured — a one-line description ("we have a welcome email") is rarely enough to classify past `partial` vs `equivalent` on its own.
 - A journey/strategy with a **powered failure in the failed-strategies log** for this audience is not re-proposed as-is; state which log entry caused the change (the log recommends, the user can overrule).
 
 ### 2a. Breadth gate (ask before generating)
@@ -95,6 +104,7 @@ Fill `${CLAUDE_PLUGIN_ROOT}/templates/journey-portfolio.md`:
 - Conflict review: shared triggers/audiences, worst-case weekly message count vs the caps in `knowledge/compliance/consent-and-quiet-hours.md`. If over cap, cut or merge steps — do not just flag.
 - **Temporal dimension:** when intake/brand config declares campaign windows, apply `knowledge/calendar-rules.md` — each journey's in-window behavior class (never-pauses / incentive-suppressed / pauses / judgment) is stated in the portfolio, and campaign-week worst case includes the declared campaign sends against the same caps. No declared windows → one portfolio line says campaign behavior is undeclared.
 - The worst case is computed per audience group **and per declared overlap combo** — a real user sits in several groups at once (a new signup who abandons a cart in the same week), and per-group sums alone silently approve that violation. Declare the overlapping combos in the registry's `audience_overlaps`; if the merged worst case breaches a cap, the fix is a pause/precedence rule (e.g. welcome pauses while cart recovery runs), written into both journeys' docs.
+- **Contact Policy (arbitration layer):** the precedence order, concurrent-journey cap, and entry gate below together ARE the portfolio's contact policy. The answer to "a user qualifies for journeys A, B, and C in the same window — who actually sends?" is never "sum the theoretical worst case and hope it's under cap" — it's "apply this policy, admit the winner, defer/suppress the rest." State it that way when presenting conflict review, not as three separate rules a reader has to connect themselves.
 - **Precedence order** — when one user qualifies for multiple journeys simultaneously, this default ranking decides who messages first (deviations are stated, never silent):
   1. Negative-signal suppression (compliance rule 4) beats everything.
   2. Transactional/protect flows (payment-failure dunning).
@@ -104,7 +114,7 @@ Fill `${CLAUDE_PLUGIN_ROOT}/templates/journey-portfolio.md`:
   6. Reinforcement asks: loyalty, milestone, referral, feedback.
   7. Progressive-profiling — never blocks anything, always lowest.
 - **Concurrent-journey cap:** beyond message-volume caps, no more than 2 non-transactional journeys may be simultaneously active for one user (tier 2 of the precedence order above — transactional/protect flows — is exempt; those aren't discretionary marketing). This guards narrative coherence, not just inbox volume: a user technically under every frequency cap can still be getting pulled into 3-4 unrelated asks the same week. When a user would exceed the cap, the precedence order above decides which journey stays active and which defers — same ranking, applied to a new trigger.
-- **Entry gate:** before admitting a user to a new journey, check whether a higher-priority journey messaged them within a lookback window (default 48h); if so, delay entry or open on a low-intrusion channel (in-app) instead of the normal opener.
+- **Entry gate:** before admitting a user to a new journey, check whether a higher-priority journey messaged them within a lookback window (default 48h); if so, delay entry or open on a low-intrusion channel (in-app) instead of the normal opener. **Same-window tie:** when two or more journeys become eligible for the same user in the same cycle and *neither* has sent yet, there's no lookback signal to check — apply the precedence order directly instead: admit only the highest-ranked journey, defer the rest as if the higher one had already messaged. A cart-abandonment + price-drop + churn-prevention + campaign-audience overlap landing on the same day is this case, not the lookback case, and the two must not be conflated.
 - **Re-entry cooldown** (distinct from the entry gate above — that one checks *other* journeys, this checks the *same* one): after a user exits a pattern, good or bad exit, that same pattern may not re-trigger for them until a cooldown passes — the pattern's own typical duration, or 14 days minimum if the pattern has no stated duration. Without this, a user oscillating near a threshold (e.g. health score dipping in and out of the churn-prevention trigger) can be re-entered into the same journey repeatedly; each run is individually well-formed, but the user experiences it as relentless.
 - **Incremental additions:** when adding journeys to an EXISTING portfolio, the full conflict review (precedence, entry gate, worst-case cap math) is recomputed over the whole portfolio — never just the new journey — and the portfolio doc is re-issued, not appended.
 - **Channel economics within a sequence:** escalate cheap→expensive (in-app → push → email → SMS) as justification grows — opening a winback with SMS spends the most expensive channel before cheaper ones had a chance. In branched (7–12 step) journeys, never the same channel more than 2–3 consecutive steps; several consecutive no-opens on one channel → rotate the channel before rotating the message. Where per-user interaction-history exists, waits may calibrate to the user's own rhythm (a daily user tolerates faster escalation than a monthly one); otherwise use the pattern's static windows and say so.

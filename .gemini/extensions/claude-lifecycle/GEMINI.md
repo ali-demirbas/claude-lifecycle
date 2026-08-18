@@ -134,7 +134,7 @@ description: Turn journey audience definitions into executable artifacts — Big
 metadata:
   version: 0.1.0
   category: export
-  updated: 2026-08-14
+  updated: 2026-08-16
 ---
 
 # Lifecycle Audience — From Definition to Query
@@ -168,7 +168,19 @@ Schema knowledge lives in `${extensionPath}/knowledge/audience-sql.md` — read 
 
 ## Output
 
-`output/<project>/audiences.sql` (BigQuery mode) or `audiences-traits.json` (CDP mode) — machine-facing artifacts (CLAUDE.md rule 2). Present to the user: one full example inline + a one-line summary per remaining audience, **plus the estimated audience size for each** — a dry-run row count where one can be run, otherwise an explicit "run `bq query --dry_run` before executing" instruction. A number the user can sanity-check against their own sense of the segment (near-zero or near-total is a logic bug, not a result to accept) beats a query they have to run blind to find out.
+`output/<project>/audiences.sql` (BigQuery mode) or `audiences-traits.json` (CDP mode) — machine-facing artifacts (CLAUDE.md rule 2). Present to the user: one full example inline + a one-line summary per remaining audience, **plus a size estimate for each** — the result of `audience-sql.md`'s Validation B (`SELECT COUNT(DISTINCT <identity>)`), expressed as a share of the eligible population where one is knowable, otherwise an explicit "run Validation B before activating" instruction. **A BigQuery dry run is not a size estimate** — it confirms syntax and bytes-processed only, never a row count, and never substitutes for actually counting the audience. A number the user can sanity-check against their own sense of the segment (near-zero or near-total is a logic bug, not a result to accept) beats a query they have to run blind to find out.
+
+### Activation Preconditions
+
+A query is a SQL artifact; activation is what happens when a data team runs it, syncs it to a CRM, and someone actually sends into it. A correct query can still land in an unsafe send if what happens *after* it is unverified. State the following as an explicit checklist alongside every audience, not assumed:
+
+- **Behavioral audience validated** — Validation B run, size sane (this skill's own output above).
+- **Identity resolution validated** — the identity field used (`user_id` / `user_pseudo_id` / CDP trait key) is confirmed to match the CRM's own join key; a query that's perfect in BigQuery still misses everyone if the CRM can't resolve `user_pseudo_id` to a sendable contact.
+- **Channel consent enforcement location known** — named explicitly (CRM segment filter, İYS layer, reverse-ETL sync rule) — "consent filtering happens downstream" (Never do, below) is an architecture note, not a guarantee it's actually wired up on this specific sync.
+- **Suppression list enforcement location known** — same as above, for negative-signal/suppressed accounts.
+- **Global frequency-cap enforcement location known** — whether the CRM itself enforces the portfolio's caps, or whether `lifecycle-journeys`' conflict-review math is the only thing standing between this audience and an over-frequency send.
+
+Any precondition that is genuinely unverified (not "no" — unknown) sets `activation_status: conditional` on that audience in the output, with a one-line note on what to confirm before sending. Same honesty move as DQS hard rule 3's design-vs-activation split (`docs/data-quality-score.md`), applied here to the send path rather than the identity data.
 
 ## Never do
 
@@ -262,7 +274,7 @@ description: Connect and assess a data source for lifecycle marketing. Computes 
 metadata:
   version: 0.1.0
   category: data
-  updated: 2026-08-14
+  updated: 2026-08-16
 ---
 
 # Lifecycle Connect — Data Source Assessment & DQS
@@ -319,6 +331,8 @@ Score each component per the rubric in `docs/data-quality-score.md`. When user a
 
 Check two more gates on the pulled window (T1/T2 only; T3 has no window to check): the **most recent event's date** against the sector-relative freshness threshold, and whether the **primary conversion event** has any continuous silent gap past the (equally sector-relative) consistency threshold inside an otherwise-active window — both thresholds derived from the active industry playbook's `churn_signal`, not a fixed number (hard rules 5–6 in the rubric doc: freshness threshold = the playbook's `churn_signal` window; consistency threshold = one-third of it; fallback 60/14 days when no industry is set or `churn_signal` isn't parseable). A triggered gate is reported in the DQS line itself, the same way the activation flag is — `freshness: stale (last event 74 days ago, threshold 45d for ecommerce)` or `consistency: gap detected (Mar 12–Apr 2, no purchase events, threshold 15d)` — not buried in the Gaps section. Omit either tag when clean.
 
+**Data Reliability Gate** (full detail: `docs/data-quality-score.md` § Data Reliability Gate): on the same pulled sample, check duplicate firing, parameter completeness on conversion/key events, the **identity coverage ratio** (what share of events/users actually carry `user_id`, not just whether the field exists), timestamp integrity, consent-state freshness, and anomalous event ratios. This is a separate tag from the score — `reliability: healthy | degraded | unreliable` — reported in the same DQS line as the activation/freshness/consistency tags, never folded into the component scores themselves. It answers "can this pull be trusted?", a different question from what the five components measure.
+
 | Component | Max | What earns points |
 |---|---|---|
 | Event diversity | 25 | Count of distinct meaningful events across lifecycle stages |
@@ -339,7 +353,7 @@ Rules:
 
 Output the Data Assessment Report with exactly these sections:
 1. **Source & tier** — what was connected, date range, property/file identity.
-2. **DQS breakdown table** — component scores + total, and the resulting depth class (≥ 70 branched / 40–69 standard / < 40 simple — the journey engine consumes this). One table for single-industry brands; one table per vertical for multi-vertical brands, each labeled with its vertical name.
+2. **DQS breakdown table** — component scores + total, and the resulting depth class (≥ 70 branched / 40–69 standard / < 40 simple — the journey engine consumes this), plus the reliability tag from Step 2. One table for single-industry brands; one table per vertical for multi-vertical brands, each labeled with its vertical name.
 3. **Event inventory** — table of events found: name, 90-day count, conversion?, mapped stage left blank (filled by lifecycle-map).
 4. **Gaps** — must-have events from the playbook that are missing, each with one line on what it blocks. For T2-aggregate specifically, add one line naming what would upgrade the tier (a row-level export, User-ID + BigQuery, or the specific missing sheet/report) — generic and short, not a repeat of the DQS breakdown's numbers.
 5. **Next step** — one line: proceed to `lifecycle-map`.
@@ -615,7 +629,7 @@ description: The journey engine. Generates a prioritized portfolio of lifecycle 
 metadata:
   version: 0.1.0
   category: design
-  updated: 2026-08-14
+  updated: 2026-08-16
 ---
 
 # Lifecycle Journeys — Portfolio Engine
@@ -647,13 +661,22 @@ Special case: `account-onboarding` supersedes `welcome-onboarding` for B2B accou
 - Compare its `required_events` (frontmatter) against the mapped event set (aliases already resolved by lifecycle-map).
 - All present → **eligible**. Any missing → **blocked**: record the missing events for the tracking plan. **Presence means usable, not just named:** a required event whose required params are mostly null (a `purchase` with 90% missing `value`) does not satisfy the signature — the event-analyst's parameter-completeness finding gates here, and a hollow event goes to the tracking plan as "instrumented but unusable".
 - `optional_events` / `optional_attributes` present → note which depth upgrades/branches they unlock.
-- T3 has no events: every pattern the playbook marks P0/P1 is eligible in its **simple** form; patterns needing live data feeds (back-in-stock, price-drop, replenishment) are blocked with reason "requires data feed".
+- T3 has no events, so nothing here is data-confirmed — calling it "eligible" the same way T1/T2 do overstates what's actually known. Every pattern the playbook marks P0/P1 is **playbook-recommended** in its **simple** form (assumed feasible from sector defaults, not confirmed by data — distinct from T1/T2's data-confirmed `eligible`); patterns needing live data feeds (back-in-stock, price-drop, replenishment) are **blocked** with reason "requires data feed". The full state model across tiers: `eligible` (T1/T2, signature matched against real data) / `playbook-recommended` (T3, unconfirmed) / `blocked` (signature missing or feed required) / `unknown` (classification couldn't be completed, e.g. an unmapped event stage). Downstream (breadth gate, portfolio doc), T3 rows are labeled `playbook-recommended`, never bare `eligible` — collapsing these into one shared label is the same honesty gap the DQS activation flag and freshness/consistency caps exist to close elsewhere in this pipeline.
 
 ### 2. Prioritization
 
 Start from the playbook's `pattern_priorities` (that vertical's own playbook, for multi-vertical brands) (P0/P1/P2), then adjust with the intake goal — promote/demote at most one level, and say why:
 - goal=revenue → promote revenue-stage patterns; goal=retention → promote retention/churn-prevention; goal=reactivation → promote winback/reactivation; goal=growth → promote referral/onboarding.
-- Any pattern matching an **existing automation** from intake is demoted to "⏸ deferred — already running" unless the user asked to redesign it.
+- Any pattern with an **existing automation** named in intake is checked for **coverage overlap**, not auto-deferred on a name match alone — "we have a welcome email" doesn't mean the existing automation covers what this pattern would design (a single `signup → email` send is not the same journey as `signup → profile completion → activation → education → handoff`, even though both would be called "welcome onboarding"):
+
+  | Overlap | What it means | Portfolio treatment |
+  |---|---|---|
+  | **Equivalent** | Existing automation covers the same steps, channels, and triggers this pattern would design | `⏸ deferred — already running` |
+  | **Substantial** | Existing automation covers most of the pattern's intent (same trigger, most of the sequence) with minor gaps | `⏸ deferred — already running`, one line naming the gap for a later revisit |
+  | **Partial** | Existing automation covers only the opening move (a single send where the pattern's depth class supports more) | **Not deferred** — flagged as a **redesign/extend candidate**: the pattern proceeds through prioritization, and its journey doc notes what already exists so the output extends rather than duplicates it |
+  | **None** | Named automation doesn't actually address this pattern's trigger/audience | Proceeds normally — the "existing automation" note doesn't apply to this pattern |
+
+  Ask when the overlap class isn't clear from what intake captured — a one-line description ("we have a welcome email") is rarely enough to classify past `partial` vs `equivalent` on its own.
 - A journey/strategy with a **powered failure in the failed-strategies log** for this audience is not re-proposed as-is; state which log entry caused the change (the log recommends, the user can overrule).
 
 ### 2a. Breadth gate (ask before generating)
@@ -706,6 +729,7 @@ Fill `${extensionPath}/templates/journey-portfolio.md`:
 - Conflict review: shared triggers/audiences, worst-case weekly message count vs the caps in `knowledge/compliance/consent-and-quiet-hours.md`. If over cap, cut or merge steps — do not just flag.
 - **Temporal dimension:** when intake/brand config declares campaign windows, apply `knowledge/calendar-rules.md` — each journey's in-window behavior class (never-pauses / incentive-suppressed / pauses / judgment) is stated in the portfolio, and campaign-week worst case includes the declared campaign sends against the same caps. No declared windows → one portfolio line says campaign behavior is undeclared.
 - The worst case is computed per audience group **and per declared overlap combo** — a real user sits in several groups at once (a new signup who abandons a cart in the same week), and per-group sums alone silently approve that violation. Declare the overlapping combos in the registry's `audience_overlaps`; if the merged worst case breaches a cap, the fix is a pause/precedence rule (e.g. welcome pauses while cart recovery runs), written into both journeys' docs.
+- **Contact Policy (arbitration layer):** the precedence order, concurrent-journey cap, and entry gate below together ARE the portfolio's contact policy. The answer to "a user qualifies for journeys A, B, and C in the same window — who actually sends?" is never "sum the theoretical worst case and hope it's under cap" — it's "apply this policy, admit the winner, defer/suppress the rest." State it that way when presenting conflict review, not as three separate rules a reader has to connect themselves.
 - **Precedence order** — when one user qualifies for multiple journeys simultaneously, this default ranking decides who messages first (deviations are stated, never silent):
   1. Negative-signal suppression (compliance rule 4) beats everything.
   2. Transactional/protect flows (payment-failure dunning).
@@ -715,7 +739,7 @@ Fill `${extensionPath}/templates/journey-portfolio.md`:
   6. Reinforcement asks: loyalty, milestone, referral, feedback.
   7. Progressive-profiling — never blocks anything, always lowest.
 - **Concurrent-journey cap:** beyond message-volume caps, no more than 2 non-transactional journeys may be simultaneously active for one user (tier 2 of the precedence order above — transactional/protect flows — is exempt; those aren't discretionary marketing). This guards narrative coherence, not just inbox volume: a user technically under every frequency cap can still be getting pulled into 3-4 unrelated asks the same week. When a user would exceed the cap, the precedence order above decides which journey stays active and which defers — same ranking, applied to a new trigger.
-- **Entry gate:** before admitting a user to a new journey, check whether a higher-priority journey messaged them within a lookback window (default 48h); if so, delay entry or open on a low-intrusion channel (in-app) instead of the normal opener.
+- **Entry gate:** before admitting a user to a new journey, check whether a higher-priority journey messaged them within a lookback window (default 48h); if so, delay entry or open on a low-intrusion channel (in-app) instead of the normal opener. **Same-window tie:** when two or more journeys become eligible for the same user in the same cycle and *neither* has sent yet, there's no lookback signal to check — apply the precedence order directly instead: admit only the highest-ranked journey, defer the rest as if the higher one had already messaged. A cart-abandonment + price-drop + churn-prevention + campaign-audience overlap landing on the same day is this case, not the lookback case, and the two must not be conflated.
 - **Re-entry cooldown** (distinct from the entry gate above — that one checks *other* journeys, this checks the *same* one): after a user exits a pattern, good or bad exit, that same pattern may not re-trigger for them until a cooldown passes — the pattern's own typical duration, or 14 days minimum if the pattern has no stated duration. Without this, a user oscillating near a threshold (e.g. health score dipping in and out of the churn-prevention trigger) can be re-entered into the same journey repeatedly; each run is individually well-formed, but the user experiences it as relentless.
 - **Incremental additions:** when adding journeys to an EXISTING portfolio, the full conflict review (precedence, entry gate, worst-case cap math) is recomputed over the whole portfolio — never just the new journey — and the portfolio doc is re-issued, not appended.
 - **Channel economics within a sequence:** escalate cheap→expensive (in-app → push → email → SMS) as justification grows — opening a winback with SMS spends the most expensive channel before cheaper ones had a chance. In branched (7–12 step) journeys, never the same channel more than 2–3 consecutive steps; several consecutive no-opens on one channel → rotate the channel before rotating the message. Where per-user interaction-history exists, waits may calibrate to the user's own rhythm (a daily user tolerates faster escalation than a monthly one); otherwise use the pattern's static windows and say so.
@@ -900,7 +924,7 @@ description: Close the measurement loop. Ingest journey performance data from th
 metadata:
   version: 0.1.0
   category: measurement
-  updated: 2026-08-14
+  updated: 2026-08-16
 ---
 
 # Lifecycle Results — Closing the Loop
@@ -941,6 +965,10 @@ For journeys that pass the gate, compute lift and iROI per measurement.md and re
 | **demote** | measured (powered) zero-to-weak lift on a P0/P1 | drop one priority level in the *brand's* portfolio (playbook defaults stay untouched — they are sector knowledge, not this account's results) |
 | **kill** | powered negative lift or guardrail breach (unsubscribe/complaint ceiling) | pause now, redesign or retire |
 | **fix-copy** | journey lift fine, but one variant/step clearly underperforms its sibling | rewrite that step via `lifecycle-copy`, log the losing strategy |
+
+**Materiality, not just direction, gates "keep".** "Positive lift, iROI ≥ 0" is a direction check, not a size check — a lift of +0.1% with iROI barely above zero is statistically a win and economically noise. Before a **keep** verdict, state the lift's practical materiality against the brand's own sense of a meaningful move (or, absent one, iROI comfortably above zero, not just non-negative). A positive-but-trivial result is still reported honestly — never demoted to "insufficient data," it *was* measured — but labeled `keep — marginal` rather than a plain `keep`, so a later portfolio review doesn't read it as equivalent to a strong win.
+
+**An underpowered result with a large observed effect is not the same finding as an underpowered result with a small one**, even though Step 2's sample-size gate caps both at "insufficient data." When the observed lift is large (well above the MDE the test was sized for) but the gate hasn't cleared, say so explicitly — `insufficient data, but observed effect is large (+8%) — worth extending the window before assuming null` — rather than the generic caveat alone. This doesn't change the verdict (the gate still holds; a promising underpowered result is not a "keep"), but it changes what gets prioritized for a follow-up run, which is exactly what keeps a real signal from being deprioritized the same way as a flat one. (The failed-strategies log already excludes underpowered results by construction — Step 4 logs only *powered* failures — so this distinction is about follow-up prioritization, not a log-correctness issue.)
 
 Guardrail breaches (unsubscribe/complaint over ceiling) override everything — recommend pause even on positive lift.
 

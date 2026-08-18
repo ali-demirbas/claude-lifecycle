@@ -5,7 +5,7 @@ description: Close the measurement loop. Ingest journey performance data from th
 metadata:
   version: 0.1.0
   category: measurement
-  updated: 2026-08-14
+  updated: 2026-08-16
 ---
 
 # Lifecycle Results — Closing the Loop
@@ -46,6 +46,10 @@ For journeys that pass the gate, compute lift and iROI per measurement.md and re
 | **demote** | measured (powered) zero-to-weak lift on a P0/P1 | drop one priority level in the *brand's* portfolio (playbook defaults stay untouched — they are sector knowledge, not this account's results) |
 | **kill** | powered negative lift or guardrail breach (unsubscribe/complaint ceiling) | pause now, redesign or retire |
 | **fix-copy** | journey lift fine, but one variant/step clearly underperforms its sibling | rewrite that step via `lifecycle-copy`, log the losing strategy |
+
+**Materiality, not just direction, gates "keep".** "Positive lift, iROI ≥ 0" is a direction check, not a size check — a lift of +0.1% with iROI barely above zero is statistically a win and economically noise. Before a **keep** verdict, state the lift's practical materiality against the brand's own sense of a meaningful move (or, absent one, iROI comfortably above zero, not just non-negative). A positive-but-trivial result is still reported honestly — never demoted to "insufficient data," it *was* measured — but labeled `keep — marginal` rather than a plain `keep`, so a later portfolio review doesn't read it as equivalent to a strong win.
+
+**An underpowered result with a large observed effect is not the same finding as an underpowered result with a small one**, even though Step 2's sample-size gate caps both at "insufficient data." When the observed lift is large (well above the MDE the test was sized for) but the gate hasn't cleared, say so explicitly — `insufficient data, but observed effect is large (+8%) — worth extending the window before assuming null` — rather than the generic caveat alone. This doesn't change the verdict (the gate still holds; a promising underpowered result is not a "keep"), but it changes what gets prioritized for a follow-up run, which is exactly what keeps a real signal from being deprioritized the same way as a flat one. (The failed-strategies log already excludes underpowered results by construction — Step 4 logs only *powered* failures — so this distinction is about follow-up prioritization, not a log-correctness issue.)
 
 Guardrail breaches (unsubscribe/complaint over ceiling) override everything — recommend pause even on positive lift.
 

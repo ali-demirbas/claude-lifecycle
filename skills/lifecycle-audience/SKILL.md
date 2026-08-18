@@ -5,7 +5,7 @@ description: Turn journey audience definitions into executable artifacts — Big
 metadata:
   version: 0.1.0
   category: export
-  updated: 2026-08-14
+  updated: 2026-08-16
 ---
 
 # Lifecycle Audience — From Definition to Query
@@ -39,7 +39,19 @@ Schema knowledge lives in `${CLAUDE_PLUGIN_ROOT}/knowledge/audience-sql.md` — 
 
 ## Output
 
-`output/<project>/audiences.sql` (BigQuery mode) or `audiences-traits.json` (CDP mode) — machine-facing artifacts (CLAUDE.md rule 2). Present to the user: one full example inline + a one-line summary per remaining audience, **plus the estimated audience size for each** — a dry-run row count where one can be run, otherwise an explicit "run `bq query --dry_run` before executing" instruction. A number the user can sanity-check against their own sense of the segment (near-zero or near-total is a logic bug, not a result to accept) beats a query they have to run blind to find out.
+`output/<project>/audiences.sql` (BigQuery mode) or `audiences-traits.json` (CDP mode) — machine-facing artifacts (CLAUDE.md rule 2). Present to the user: one full example inline + a one-line summary per remaining audience, **plus a size estimate for each** — the result of `audience-sql.md`'s Validation B (`SELECT COUNT(DISTINCT <identity>)`), expressed as a share of the eligible population where one is knowable, otherwise an explicit "run Validation B before activating" instruction. **A BigQuery dry run is not a size estimate** — it confirms syntax and bytes-processed only, never a row count, and never substitutes for actually counting the audience. A number the user can sanity-check against their own sense of the segment (near-zero or near-total is a logic bug, not a result to accept) beats a query they have to run blind to find out.
+
+### Activation Preconditions
+
+A query is a SQL artifact; activation is what happens when a data team runs it, syncs it to a CRM, and someone actually sends into it. A correct query can still land in an unsafe send if what happens *after* it is unverified. State the following as an explicit checklist alongside every audience, not assumed:
+
+- **Behavioral audience validated** — Validation B run, size sane (this skill's own output above).
+- **Identity resolution validated** — the identity field used (`user_id` / `user_pseudo_id` / CDP trait key) is confirmed to match the CRM's own join key; a query that's perfect in BigQuery still misses everyone if the CRM can't resolve `user_pseudo_id` to a sendable contact.
+- **Channel consent enforcement location known** — named explicitly (CRM segment filter, İYS layer, reverse-ETL sync rule) — "consent filtering happens downstream" (Never do, below) is an architecture note, not a guarantee it's actually wired up on this specific sync.
+- **Suppression list enforcement location known** — same as above, for negative-signal/suppressed accounts.
+- **Global frequency-cap enforcement location known** — whether the CRM itself enforces the portfolio's caps, or whether `lifecycle-journeys`' conflict-review math is the only thing standing between this audience and an over-frequency send.
+
+Any precondition that is genuinely unverified (not "no" — unknown) sets `activation_status: conditional` on that audience in the output, with a one-line note on what to confirm before sending. Same honesty move as DQS hard rule 3's design-vs-activation split (`docs/data-quality-score.md`), applied here to the send path rather than the identity data.
 
 ## Never do
 

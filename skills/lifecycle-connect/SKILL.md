@@ -5,7 +5,7 @@ description: Connect and assess a data source for lifecycle marketing. Computes 
 metadata:
   version: 0.1.0
   category: data
-  updated: 2026-08-14
+  updated: 2026-08-16
 ---
 
 # Lifecycle Connect — Data Source Assessment & DQS
@@ -62,6 +62,8 @@ Score each component per the rubric in `docs/data-quality-score.md`. When user a
 
 Check two more gates on the pulled window (T1/T2 only; T3 has no window to check): the **most recent event's date** against the sector-relative freshness threshold, and whether the **primary conversion event** has any continuous silent gap past the (equally sector-relative) consistency threshold inside an otherwise-active window — both thresholds derived from the active industry playbook's `churn_signal`, not a fixed number (hard rules 5–6 in the rubric doc: freshness threshold = the playbook's `churn_signal` window; consistency threshold = one-third of it; fallback 60/14 days when no industry is set or `churn_signal` isn't parseable). A triggered gate is reported in the DQS line itself, the same way the activation flag is — `freshness: stale (last event 74 days ago, threshold 45d for ecommerce)` or `consistency: gap detected (Mar 12–Apr 2, no purchase events, threshold 15d)` — not buried in the Gaps section. Omit either tag when clean.
 
+**Data Reliability Gate** (full detail: `docs/data-quality-score.md` § Data Reliability Gate): on the same pulled sample, check duplicate firing, parameter completeness on conversion/key events, the **identity coverage ratio** (what share of events/users actually carry `user_id`, not just whether the field exists), timestamp integrity, consent-state freshness, and anomalous event ratios. This is a separate tag from the score — `reliability: healthy | degraded | unreliable` — reported in the same DQS line as the activation/freshness/consistency tags, never folded into the component scores themselves. It answers "can this pull be trusted?", a different question from what the five components measure.
+
 | Component | Max | What earns points |
 |---|---|---|
 | Event diversity | 25 | Count of distinct meaningful events across lifecycle stages |
@@ -82,7 +84,7 @@ Rules:
 
 Output the Data Assessment Report with exactly these sections:
 1. **Source & tier** — what was connected, date range, property/file identity.
-2. **DQS breakdown table** — component scores + total, and the resulting depth class (≥ 70 branched / 40–69 standard / < 40 simple — the journey engine consumes this). One table for single-industry brands; one table per vertical for multi-vertical brands, each labeled with its vertical name.
+2. **DQS breakdown table** — component scores + total, and the resulting depth class (≥ 70 branched / 40–69 standard / < 40 simple — the journey engine consumes this), plus the reliability tag from Step 2. One table for single-industry brands; one table per vertical for multi-vertical brands, each labeled with its vertical name.
 3. **Event inventory** — table of events found: name, 90-day count, conversion?, mapped stage left blank (filled by lifecycle-map).
 4. **Gaps** — must-have events from the playbook that are missing, each with one line on what it blocks. For T2-aggregate specifically, add one line naming what would upgrade the tier (a row-level export, User-ID + BigQuery, or the specific missing sheet/report) — generic and short, not a repeat of the DQS breakdown's numbers.
 5. **Next step** — one line: proceed to `lifecycle-map`.
