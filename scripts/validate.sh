@@ -514,6 +514,17 @@ else
   err "docs/llms-full.txt is stale — run: python3 scripts/build_llms_full.py"
 fi
 
+echo "== 17. Lab UI: every inlined copy matches templates/lab-ui.css =="
+# The canvases, the report and the published pages inline the shared Lab UI
+# kit (one self-contained file per output, rendered offline), so a copy can
+# drift from the kit without anything else noticing. The kit file is the only
+# place it is edited; scripts/sync_lab_ui.py writes every copy from it.
+if python3 scripts/sync_lab_ui.py --check >/dev/null 2>&1; then
+  ok "every lab-ui block matches templates/lab-ui.css"
+else
+  err "a Lab UI copy drifted from templates/lab-ui.css — run: python3 scripts/sync_lab_ui.py"
+fi
+
 echo
 if [ "$FAIL" = 1 ]; then
   echo "VALIDATION FAILED"; exit 1
