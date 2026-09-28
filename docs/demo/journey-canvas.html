@@ -382,6 +382,17 @@ body.lab {
 
   .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
   .tabs { margin-top: 28px; }
+  /* Journey picker: keep rows full. Up to five journeys share one row on a
+     desktop; six go 3+3, seven or eight go 4+x. On a phone (two columns) an
+     odd last card spans the row instead of sitting alone. */
+  @media (min-width: 641px) {
+    .tabs.lab-picker { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+    .tabs.lab-picker:has(> :nth-child(6):last-child) { grid-template-columns: repeat(3, 1fr); }
+    .tabs.lab-picker:has(> :nth-child(7)) { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .tabs.lab-picker > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  }
   .journey-meta { margin-top: 16px; }
   .journey-meta .meta-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 14px; }
   .journey-meta h2 { font-size: 1.125rem; line-height: 1.35; letter-spacing: -0.012em; font-weight: 600; }
