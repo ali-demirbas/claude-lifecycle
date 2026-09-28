@@ -17,6 +17,9 @@ Usage:
                                                       branch-presence/KPI-count+types agree
                                                       (never diffs intent text or wait-duration
                                                       equivalence — those stay a human read)
+  validate_output.py dossier <dossier.md>             DQS line carries a reliability tag
+  validate_output.py audience <audiences.sql|audiences-traits.json>
+                                                      every audience: activation_status + validates
   validate_output.py all <output-dir> [--max-discount N]
                                                       also auto-pairs a journey-doc.md with its
                                                       journey JSON (by id) for the consistency check
@@ -1034,6 +1037,81 @@ def check_canvas(path, template):
     )
 
 
+# --------------------------------------------------------- dossier / audience
+DQS_LINE_RE = re.compile(r"\*\*DQS:\*\*[^\n]*", re.I)
+TIER_T3_RE = re.compile(r"\*\*Tier:\*\*\s*T3\b", re.I)
+RELIABILITY_RE = re.compile(r"reliability:\s*(healthy|degraded|unreliable|n/a)\b", re.I)
+ACTIVATION_RE = re.compile(r"--\s*activation_status:\s*(ready|conditional)\b[ \t]*(.*)$", re.I | re.M)
+AUDIENCE_HEAD_RE = re.compile(r"^--\s*journey:\s*(\S+)", re.M)
+
+
+def check_dossier(path):
+    """The DQS line must carry the Data Reliability Gate tag
+    (docs/data-quality-score.md) — the same "a clean report is a claim, not a
+    default" rule the activation/freshness/consistency tags follow. T3 has no
+    pulled sample to check, so `reliability: n/a` is the only honest value there."""
+    text = open(path, encoding="utf-8", errors="ignore").read()
+    m = DQS_LINE_RE.search(text)
+    if not m:
+        fail(f"{path}: no **DQS:** line — the dossier header must state the score")
+        return
+    line = m.group(0)
+    rel = RELIABILITY_RE.search(line)
+    if not rel:
+        fail(f"{path}: DQS line has no reliability tag (healthy|degraded|unreliable, or n/a for T3): {line.strip()}")
+        return
+    is_t3 = bool(TIER_T3_RE.search(text))
+    val = rel.group(1).lower()
+    if is_t3 and val != "n/a":
+        fail(f"{path}: T3 has no pulled data to check — reliability must be 'n/a', not '{val}'")
+    elif not is_t3 and val == "n/a":
+        fail(f"{path}: reliability 'n/a' is only valid for T3 — T1/T2 runs must report healthy|degraded|unreliable")
+    else:
+        ok(f"{path}: DQS line carries reliability: {val}")
+
+
+def check_audiences(path):
+    """Every audience carries an explicit activation_status (lifecycle-audience
+    "Activation Preconditions"); `conditional` must say what to confirm."""
+    if path.endswith(".json"):
+        try:
+            data = json.load(open(path, encoding="utf-8"))
+        except Exception as e:  # noqa: BLE001
+            fail(f"{path}: not valid JSON ({e})")
+            return
+        items = data if isinstance(data, list) else data.get("audiences", []) if isinstance(data, dict) else []
+        if not items:
+            fail(f"{path}: no audiences found (expected a list, or {{'audiences': [...]}})")
+            return
+        for a in items:
+            aid = a.get("journey", a.get("id", "?")) if isinstance(a, dict) else "?"
+            st = a.get("activation_status") if isinstance(a, dict) else None
+            if st not in ("ready", "conditional"):
+                fail(f"{path}: audience {aid} activation_status must be ready|conditional, got {st!r}")
+            elif st == "conditional" and not str(a.get("activation_note", "")).strip():
+                fail(f"{path}: audience {aid} is conditional but has no activation_note saying what to confirm")
+            else:
+                ok(f"{path}: audience {aid} activation_status: {st}")
+        return
+    text = open(path, encoding="utf-8", errors="ignore").read()
+    heads = list(AUDIENCE_HEAD_RE.finditer(text))
+    if not heads:
+        fail(f"{path}: no '-- journey: <id>' audience headers found")
+        return
+    for i, h in enumerate(heads):
+        block = text[h.start(): heads[i + 1].start() if i + 1 < len(heads) else len(text)]
+        jid = h.group(1)
+        if "-- validates:" not in block:
+            fail(f"{path}: audience {jid} has no '-- validates:' decision-trace comment")
+        act = ACTIVATION_RE.search(block)
+        if not act:
+            fail(f"{path}: audience {jid} has no '-- activation_status: ready|conditional' line")
+        elif act.group(1).lower() == "conditional" and not act.group(2).strip():
+            fail(f"{path}: audience {jid} is conditional but doesn't say what to confirm")
+        else:
+            ok(f"{path}: audience {jid} activation_status: {act.group(1).lower()}")
+
+
 # ------------------------------------------------------------------ main
 def main(argv):
     if len(argv) < 2:
@@ -1065,6 +1143,12 @@ def main(argv):
             print("usage: validate_output.py consistency <journey.md> <journey.json>")
             return 2
         check_consistency(rest[0], rest[1])
+    elif mode == "dossier":
+        for p in rest:
+            check_dossier(p)
+    elif mode == "audience":
+        for p in rest:
+            check_audiences(p)
     elif mode == "canvas":
         template = None
         if "--template" in rest:
@@ -1101,6 +1185,10 @@ def main(argv):
                 p = os.path.join(dirpath, fn)
                 if fn == "portfolio.json":
                     check_portfolio(p)
+                elif fn == "dossier.md":
+                    check_dossier(p)
+                elif fn in ("audiences.sql", "audiences-traits.json"):
+                    check_audiences(p)
                 elif fn.endswith(".json"):
                     # Shape-check before routing to the journey schema — an
                     # unrelated JSON artifact dropped in output/ (a DQS

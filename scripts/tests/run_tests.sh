@@ -162,6 +162,18 @@ expect 1 "int est_msgs fails gracefully"        python3 "$VO" portfolio "$FX/bad
 expect 1 "declared overlap over cap fails"      python3 "$VO" portfolio "$FX/bad_overlap_portfolio.json"
 expect 1 "campaign-week load over cap fails"    python3 "$VO" portfolio "$FX/bad_campaign_portfolio.json"
 
+echo "== dossier reliability tag =="
+expect 0 "T1 dossier with reliability tag passes"  python3 "$VO" dossier "$FX/good_dossier.md"
+expect 0 "T3 dossier with reliability n/a passes"  python3 "$VO" dossier "$FX/good_t3_dossier.md"
+expect 1 "DQS line without reliability fails"      python3 "$VO" dossier "$FX/bad_dossier_no_reliability.md"
+expect 1 "T3 claiming healthy reliability fails"   python3 "$VO" dossier "$FX/bad_t3_dossier_reliability.md"
+
+echo "== audience activation preconditions =="
+expect 0 "SQL audiences with activation_status pass"   python3 "$VO" audience "$FX/good_audiences.sql"
+expect 1 "missing status / bare conditional fails"     python3 "$VO" audience "$FX/bad_audiences.sql"
+expect 0 "traits JSON with conditional + note passes"  python3 "$VO" audience "$FX/good_audiences_traits.json"
+expect 1 "traits JSON missing status/note fails"       python3 "$VO" audience "$FX/bad_audiences_traits.json"
+
 echo "== compliance caps drift guard =="
 expect_contains "caps parsed live from consent-and-quiet-hours.md match expected defaults" \
   "CAPS_PARSE_OK" \

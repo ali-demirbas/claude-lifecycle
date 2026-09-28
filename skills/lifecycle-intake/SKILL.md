@@ -1,8 +1,9 @@
 ---
 name: lifecycle-intake
+argument-hint: "[brand-name]"
 description: Structured questioning to fill information gaps before journey generation — goals, brand tone, channel inventory, existing automations, sector specifics. Usually triggered automatically by lifecycle-journeys or lifecycle-copy when data is insufficient; can be invoked directly with "intake", "bana soru sor", "eksik bilgileri al".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: intake
   updated: 2026-08-14
 ---

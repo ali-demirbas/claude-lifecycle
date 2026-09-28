@@ -3,9 +3,9 @@ name: lifecycle-results
 argument-hint: "[results-file-or-description]"
 description: Close the measurement loop. Ingest journey performance data from the CRM (holdout/lift results, opens, conversions), evaluate it against the incrementality doctrine, and recommend keep/promote/demote/kill per journey — plus maintain the failed-strategies log that stops the engine from re-proposing what didn't work. Use when the user says "sonuçları gir", "results", "performans verisi", "holdout sonuçları", "test sonuçları geldi", "journey performansı".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: measurement
-  updated: 2026-08-16
+  updated: 2026-09-28
 ---
 
 # Lifecycle Results — Closing the Loop
@@ -26,6 +26,8 @@ Accept results in any form the user has: CSV export, pasted table, or plain desc
 - which copy variant ran (A/B) and its `strategy`/`hypothesis` labels from the copy output
 
 Missing fields are recorded as missing — never interpolated.
+
+**Pull instead of paste, when the data allows it.** If a GA4 connection is live (the same MCP `lifecycle-connect` uses) **and** holdout membership is recorded in GA4 — a user property or event param such as `lifecycle_group` = `control|exposed`, plus the journey id — pull entered/control counts and conversions per group with `run_custom_report` over the journey's measurement window, instead of asking the user to paste them. State the report's date range and dimensions in the output so the numbers are reproducible. If either condition is missing, ask for the export as above, and add one tracking-plan item: "record holdout group as a GA4 user property", since that single change is what turns every future results run from a paste into a pull. The CRM stays the source of truth for *who was sent what*; this only reads outcomes, it never writes anywhere.
 
 ## Step 2 — Validate before judging (the gate)
 

@@ -111,6 +111,8 @@ A T1 e-commerce run produces a portfolio like:
 
 …where every ✅ is a full [journey doc](templates/journey-doc.md) (trigger, audience, exit criteria, step table, KPIs + holdout, Mermaid diagram) and every 🔒 lands in the tracking plan with the event that unlocks it. See [examples/ecommerce-full-ga4/](examples/ecommerce-full-ga4/).
 
+For more journey designs to browse, the author's [Journey Library](https://alidemirbas.com.tr/en/lab/journeys) ([Türkçe](https://alidemirbas.com.tr/lab/journeys)) collects step-by-step lifecycle flows, drawn with the same card language as this engine's canvas. It is a gallery of patterns, not engine output: those journeys carry no copy and no data tier.
+
 ## Design principles
 
 1. **One engine, data-driven sectors.** No `if industry == "fintech"` in skills; sector behavior lives in playbook/lexicon files, so extending the engine is a content contribution.
@@ -123,7 +125,7 @@ Beyond the eval suite, see [docs/real-world-validation.md](docs/real-world-valid
 
 ## Contributing
 
-New industries, patterns, and sharper channel rules are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/adding-an-industry.md](docs/adding-an-industry.md). Run `bash scripts/validate.sh` before opening a PR.
+New industries, patterns, and sharper channel rules are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/adding-an-industry.md](docs/adding-an-industry.md). Run `bash scripts/validate.sh` before opening a PR. Changes to skills or knowledge files should also pass the eval suite, which `python3 scripts/run_evals.py --all` runs end to end through the installed plugin (needs an authenticated `claude` CLI and costs real usage, so it runs before releases rather than on every PR).
 
 ## License
 

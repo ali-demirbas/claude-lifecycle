@@ -1,8 +1,9 @@
 ---
 name: lifecycle-journeys
+argument-hint: "[P0|P0+P1|all]"
 description: The journey engine. Generates a prioritized portfolio of lifecycle journeys from the DQS, stage map, industry playbook, and user goals — from 3-step simple flows to 10+ step branched flows. Use when the user says "journey üret", "generate journeys", "kampanya kur", "otomasyon tasarla", "journeys".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: design
   updated: 2026-08-16
 ---

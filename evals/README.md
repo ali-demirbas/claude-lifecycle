@@ -25,7 +25,17 @@ evals/
 
 ## Running
 
-Each case is executed by Claude running the normal pipeline (`connect → map → journeys` and, where `run.copy: true`, `copy`) with the case's input + intake, writing all artifacts to `evals/out/<case-id>/` — including `portfolio.json`. Then:
+Each case is executed by Claude running the normal pipeline (`connect → map → journeys` and, where `run.copy: true`, `copy`) with the case's input + intake, writing all artifacts to `evals/out/<case-id>/` — including `portfolio.json`.
+
+`scripts/run_evals.py` does the execution headlessly: one fresh `claude -p --plugin-dir <repo>` process per case, entering through the `/claude-lifecycle:lifecycle` router as an installed user would, with `intake.md` standing in for the user's answers. It then runs the checker below and appends cost, turns and pass/fail to `evals/out/_runs.jsonl`, so score and cost can be compared release to release. Because it goes through the real plugin entry point, a green run is also the end-to-end install test.
+
+```bash
+python3 scripts/run_evals.py 36 37            # specific cases (id or numeric prefix)
+python3 scripts/run_evals.py --all --parallel 3 --budget 5
+python3 scripts/run_evals.py 36 --dry-run     # show the command and prompt only
+```
+
+To grade artifacts that already exist without re-running:
 
 ```bash
 python3 scripts/eval_check.py evals/cases/<case-id>       # one case

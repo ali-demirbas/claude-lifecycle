@@ -3,9 +3,9 @@ name: lifecycle-audience
 argument-hint: "[journey-id]"
 description: Turn journey audience definitions into executable artifacts — BigQuery SQL against the standard GA4 export schema, or a CDP-agnostic trait definition — so the data team receives a query, not a ticket. Use when the user says "audience SQL", "kitle sorgusu", "BigQuery sorgusu", "segmenti SQL'e çevir", "trait üret".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: export
-  updated: 2026-08-16
+  updated: 2026-09-28
 ---
 
 # Lifecycle Audience — From Definition to Query
@@ -51,7 +51,7 @@ A query is a SQL artifact; activation is what happens when a data team runs it, 
 - **Suppression list enforcement location known** — same as above, for negative-signal/suppressed accounts.
 - **Global frequency-cap enforcement location known** — whether the CRM itself enforces the portfolio's caps, or whether `lifecycle-journeys`' conflict-review math is the only thing standing between this audience and an over-frequency send.
 
-Any precondition that is genuinely unverified (not "no" — unknown) sets `activation_status: conditional` on that audience in the output, with a one-line note on what to confirm before sending. Same honesty move as DQS hard rule 3's design-vs-activation split (`docs/data-quality-score.md`), applied here to the send path rather than the identity data.
+Any precondition that is genuinely unverified (not "no" — unknown) sets `activation_status: conditional` on that audience in the output, with a one-line note on what to confirm before sending. Every audience states its status explicitly, `ready` included, as the last comment of its SQL block: `-- activation_status: ready` or `-- activation_status: conditional (<what to confirm>)`; in CDP mode, `activation_status` + `activation_note` keys per audience. `validate_output.py audience` (and `all` mode) fails an audience with no status, or a `conditional` with nothing to confirm, so the send-path check can't be silently skipped. Same honesty move as DQS hard rule 3's design-vs-activation split (`docs/data-quality-score.md`), applied here to the send path rather than the identity data.
 
 ## Never do
 

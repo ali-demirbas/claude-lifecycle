@@ -3,7 +3,7 @@ name: lifecycle
 argument-hint: "[connect|map|journeys|copy|audit|export|audience|qa|results]"
 description: Lifecycle marketing engine router. Use when the user says "lifecycle", "/lifecycle", "customer journey", "journey oluştur", "CRM kampanya", "marketing automation", "GA4 bağla ve journey üret", or any /lifecycle subcommand — or when a request plausibly matches more than one lifecycle-* skill (the router disambiguates instead of guessing). Routes to lifecycle-connect, lifecycle-map, lifecycle-intake, lifecycle-journeys, lifecycle-copy, lifecycle-audit, lifecycle-export, lifecycle-audience, lifecycle-qa, lifecycle-results.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: router
   updated: 2026-08-14
 ---

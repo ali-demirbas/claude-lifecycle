@@ -63,7 +63,7 @@ name: lifecycle
 argument-hint: "[connect|map|journeys|copy|audit|export|audience|qa|results]"
 description: Lifecycle marketing engine router. Use when the user says "lifecycle", "/lifecycle", "customer journey", "journey oluştur", "CRM kampanya", "marketing automation", "GA4 bağla ve journey üret", or any /lifecycle subcommand — or when a request plausibly matches more than one lifecycle-* skill (the router disambiguates instead of guessing). Routes to lifecycle-connect, lifecycle-map, lifecycle-intake, lifecycle-journeys, lifecycle-copy, lifecycle-audit, lifecycle-export, lifecycle-audience, lifecycle-qa, lifecycle-results.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: router
   updated: 2026-08-14
 ---
@@ -132,9 +132,9 @@ name: lifecycle-audience
 argument-hint: "[journey-id]"
 description: Turn journey audience definitions into executable artifacts — BigQuery SQL against the standard GA4 export schema, or a CDP-agnostic trait definition — so the data team receives a query, not a ticket. Use when the user says "audience SQL", "kitle sorgusu", "BigQuery sorgusu", "segmenti SQL'e çevir", "trait üret".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: export
-  updated: 2026-08-16
+  updated: 2026-09-28
 ---
 
 # Lifecycle Audience — From Definition to Query
@@ -180,7 +180,7 @@ A query is a SQL artifact; activation is what happens when a data team runs it, 
 - **Suppression list enforcement location known** — same as above, for negative-signal/suppressed accounts.
 - **Global frequency-cap enforcement location known** — whether the CRM itself enforces the portfolio's caps, or whether `lifecycle-journeys`' conflict-review math is the only thing standing between this audience and an over-frequency send.
 
-Any precondition that is genuinely unverified (not "no" — unknown) sets `activation_status: conditional` on that audience in the output, with a one-line note on what to confirm before sending. Same honesty move as DQS hard rule 3's design-vs-activation split (`docs/data-quality-score.md`), applied here to the send path rather than the identity data.
+Any precondition that is genuinely unverified (not "no" — unknown) sets `activation_status: conditional` on that audience in the output, with a one-line note on what to confirm before sending. Every audience states its status explicitly, `ready` included, as the last comment of its SQL block: `-- activation_status: ready` or `-- activation_status: conditional (<what to confirm>)`; in CDP mode, `activation_status` + `activation_note` keys per audience. `validate_output.py audience` (and `all` mode) fails an audience with no status, or a `conditional` with nothing to confirm, so the send-path check can't be silently skipped. Same honesty move as DQS hard rule 3's design-vs-activation split (`docs/data-quality-score.md`), applied here to the send path rather than the identity data.
 
 ## Never do
 
@@ -192,9 +192,10 @@ Any precondition that is genuinely unverified (not "no" — unknown) sets `activ
 
 ---
 name: lifecycle-audit
+argument-hint: "[journey-doc-or-description]"
 description: Audit an existing journey portfolio — user-described, imported from a CRM tool, or previously generated. Scores coverage, conflicts, depth-vs-data fit, and copy compliance. Use when the user says "journey'lerimi denetle", "audit my flows", "mevcut otomasyonları incele", "portfolio audit".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: analysis
   updated: 2026-08-14
 ---
@@ -272,7 +273,7 @@ name: lifecycle-connect
 argument-hint: "[csv-or-export-file]"
 description: Connect and assess a data source for lifecycle marketing. Computes the Data Quality Score (DQS 0-100) from GA4 (via MCP), CSV/exports, or declares Tier 3 (industry-only). Use when the user says "connect GA4", "veri bağla", "data quality", "DQS", or as the first stage of the lifecycle pipeline.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: data
   updated: 2026-08-16
 ---
@@ -387,7 +388,7 @@ name: lifecycle-copy
 argument-hint: "[journey-id]"
 description: Write CRM channel copy (email, push, SMS, in-app, WhatsApp) for journey steps — rule-checked against channel limits and sector lexicons, with A/B variants and character counts. Use when the user says "copy yaz", "metin yaz", "email metni", "push metni", "CRM copy", "write the messages".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: copy
   updated: 2026-08-14
 ---
@@ -481,7 +482,7 @@ name: lifecycle-export
 argument-hint: "[json|mermaid|csv|report]"
 description: Export generated journeys as CRM-agnostic JSON (journey.schema.json), Mermaid diagrams, or CSV step lists. Use when the user says "export", "JSON ver", "dışa aktar", "şema çıktısı", "CSV ver".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: export
   updated: 2026-08-14
 ---
@@ -523,9 +524,10 @@ HTML rules: fully self-contained (inline CSS/JS, no CDN), both themes token-base
 
 ---
 name: lifecycle-intake
+argument-hint: "[brand-name]"
 description: Structured questioning to fill information gaps before journey generation — goals, brand tone, channel inventory, existing automations, sector specifics. Usually triggered automatically by lifecycle-journeys or lifecycle-copy when data is insufficient; can be invoked directly with "intake", "bana soru sor", "eksik bilgileri al".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: intake
   updated: 2026-08-14
 ---
@@ -625,9 +627,10 @@ Users struggle to answer "describe your tone in 2-3 adjectives" but happily past
 
 ---
 name: lifecycle-journeys
+argument-hint: "[P0|P0+P1|all]"
 description: The journey engine. Generates a prioritized portfolio of lifecycle journeys from the DQS, stage map, industry playbook, and user goals — from 3-step simple flows to 10+ step branched flows. Use when the user says "journey üret", "generate journeys", "kampanya kur", "otomasyon tasarla", "journeys".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: design
   updated: 2026-08-16
 ---
@@ -786,9 +789,10 @@ Fix: every conflict-review claim traces to an actual number computed per audienc
 
 ---
 name: lifecycle-map
+argument-hint: "[event-inventory-file]"
 description: Map tracked events to lifecycle stages (acquisition/activation/engagement/revenue/retention/winback) and derive the funnel skeleton. Use after lifecycle-connect, or when the user says "map my events", "event haritala", "funnel çıkar", "hangi stage'ler eksik".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: data
   updated: 2026-08-14
 ---
@@ -850,7 +854,7 @@ name: lifecycle-qa
 argument-hint: "[journey-id]"
 description: Generate test event payloads for generated journeys — positive triggers, branch-condition cases, exits, and negative tests — so the CRM setup can be verified before launch. Use when the user says "test payload", "test eventi üret", "qa", "tetikleyiciyi test et", "sahte event".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: qa
   updated: 2026-08-14
 ---
@@ -922,9 +926,9 @@ name: lifecycle-results
 argument-hint: "[results-file-or-description]"
 description: Close the measurement loop. Ingest journey performance data from the CRM (holdout/lift results, opens, conversions), evaluate it against the incrementality doctrine, and recommend keep/promote/demote/kill per journey — plus maintain the failed-strategies log that stops the engine from re-proposing what didn't work. Use when the user says "sonuçları gir", "results", "performans verisi", "holdout sonuçları", "test sonuçları geldi", "journey performansı".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: measurement
-  updated: 2026-08-16
+  updated: 2026-09-28
 ---
 
 # Lifecycle Results — Closing the Loop
@@ -945,6 +949,8 @@ Accept results in any form the user has: CSV export, pasted table, or plain desc
 - which copy variant ran (A/B) and its `strategy`/`hypothesis` labels from the copy output
 
 Missing fields are recorded as missing — never interpolated.
+
+**Pull instead of paste, when the data allows it.** If a GA4 connection is live (the same MCP `lifecycle-connect` uses) **and** holdout membership is recorded in GA4 — a user property or event param such as `lifecycle_group` = `control|exposed`, plus the journey id — pull entered/control counts and conversions per group with `run_custom_report` over the journey's measurement window, instead of asking the user to paste them. State the report's date range and dimensions in the output so the numbers are reproducible. If either condition is missing, ask for the export as above, and add one tracking-plan item: "record holdout group as a GA4 user property", since that single change is what turns every future results run from a paste into a pull. The CRM stays the source of truth for *who was sent what*; this only reads outcomes, it never writes anywhere.
 
 ## Step 2 — Validate before judging (the gate)
 

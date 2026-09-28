@@ -4,6 +4,29 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-28
+
+The first release since 0.1.0. Everything below this block accumulated under Unreleased between July and September; the block itself is what closes the gap between designing a journey and trusting it enough to send.
+
+### Added
+
+- **`scripts/run_evals.py`: the eval suite now runs itself, and doubles as the end-to-end install test.** Each case runs in a fresh `claude -p --plugin-dir <repo>` process that enters through the `/claude-lifecycle:lifecycle` router exactly as an installed user would, with the case's `intake.md` standing in for the user's answers; the artifacts are then graded by `eval_check.py`, and cost, turns and pass/fail are appended to `evals/out/_runs.jsonl` for release-to-release comparison. Until now a human had to drive the pipeline by hand for every case, which is why five cases had never been run at all.
+- **Data Reliability Gate** (`docs/data-quality-score.md`, wired into `lifecycle-connect`): a tag next to the DQS, never a sixth component. The DQS answers how much lifecycle capability the data supports; the gate answers whether this pull can be trusted (duplicate firing, parameter completeness, identity coverage ratio, timestamp integrity, consent-state freshness, anomalous event ratios).
+- **`validate_output.py dossier`**: the run dossier's DQS line must carry the reliability tag, and T3 may only say `n/a` since it has no pulled sample to check. Also enforced in `all` mode.
+- **Activation Preconditions** (`lifecycle-audience`): every audience states identity resolution, consent, suppression and frequency-cap enforcement locations, and ends in `activation_status: ready` or `conditional (<what to confirm>)`. **`validate_output.py audience`** fails an audience with no status or a bare `conditional`.
+- **`lifecycle-results` pulls instead of asking for a paste** when GA4 is connected and holdout membership is recorded there, and adds the one tracking-plan item that makes that possible when it isn't.
+- **Scheduled re-scoring guidance** (`docs/data-quality-score.md`): re-run `connect` monthly (weekly for mobile) and treat a DQS drop, a newly triggered gate, or reliability sliding to `degraded` as a tracking regression.
+- `argument-hint` on the last four skills without one (audit, intake, journeys, map).
+- README link to the author's Journey Library as a browsable gallery of patterns.
+
+### Changed
+
+- **Audience size vs. dry run**: a BigQuery dry run returns bytes processed, not a row count. Split into Validation A (dry run: syntax, cost) and Validation B (`COUNT(DISTINCT identity)`: size), with size expressed as a share of the eligible population where one is knowable.
+- **Existing automations are classified by coverage overlap** (none / partial / substantial / equivalent) instead of a name match that deferred the pattern. A partial overlap is now a redesign-or-extend candidate.
+- **T3 patterns are `playbook-recommended`, not `eligible`**: without data nothing is confirmed, so the state model is eligible / playbook-recommended / blocked / unknown.
+- **The precedence order, concurrent-journey cap and entry gate are named as the portfolio's Contact Policy**, and a same-cycle tie (two journeys eligible before either has sent) now resolves by precedence order directly.
+- **`lifecycle-results` separates direction from materiality**: a positive but trivial lift is `keep — marginal`, and an underpowered test with a large observed effect is flagged for a longer window instead of reading like a flat one.
+
 ### Changed
 
 - **Every HTML output now speaks Lab UI, the visual language of the Lab pages on alidemirbas.com.tr, instead of three unrelated looks.** The journey canvas and the copy canvas were cream paper, Georgia headings, a terracotta accent and uppercase monospace labels; the report was slate and teal in Avenir; the landing page was cream and Georgia again. None of them matched each other or the site the tool is presented on. All four now draw from one kit: stone ink on white paper, the brand blue for what is chosen or actionable, one sans family, plain-case labels, rounded tiles and pill buttons. The journey canvas uses the site's own journey cards (a dark entry card with its Giriş pin, paper message cards with the channel colour along the top, the green decision card, wait and exit pills, orthogonal connectors with arrowheads, on a dot sheet), so a run's canvas reads as the same product as the journeys on the site. The copy canvas carries the same channel colour on each step card, so a step is recognisable across the two files.

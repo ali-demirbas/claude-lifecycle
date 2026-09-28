@@ -1,8 +1,9 @@
 ---
 name: lifecycle-audit
+argument-hint: "[journey-doc-or-description]"
 description: Audit an existing journey portfolio — user-described, imported from a CRM tool, or previously generated. Scores coverage, conflicts, depth-vs-data fit, and copy compliance. Use when the user says "journey'lerimi denetle", "audit my flows", "mevcut otomasyonları incele", "portfolio audit".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: analysis
   updated: 2026-08-14
 ---

@@ -53,3 +53,5 @@ E-commerce store, GA4 connected: 9 meaningful events across 4 stages (**18**), `
 ## Re-scoring
 
 DQS is recomputed whenever the user implements tracking-plan items and re-runs `/lifecycle connect`. The tracking plan template requires a "projected DQS if implemented" figure so the user can see what the work buys.
+
+Tracking also decays without anyone touching it: a tag gets removed in a site release, an SDK update renames a param, consent state stops refreshing. For a live (T1) connection, re-run `/lifecycle connect` on a schedule (monthly is enough for most sectors; weekly for mobile apps, whose `churn_signal` window is short) using whatever scheduler the user already has, such as a Claude Code routine or cron job running `claude -p "/lifecycle connect"`. Compare each run's breakdown and tags with the previous dossier: a DQS drop, a freshness/consistency gate that newly triggers, or `reliability` moving from `healthy` to `degraded` is a tracking regression to fix before it silently degrades running journeys.

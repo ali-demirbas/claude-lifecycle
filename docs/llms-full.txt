@@ -129,6 +129,8 @@ A T1 e-commerce run produces a portfolio like:
 
 …where every ✅ is a full [journey doc](templates/journey-doc.md) (trigger, audience, exit criteria, step table, KPIs + holdout, Mermaid diagram) and every 🔒 lands in the tracking plan with the event that unlocks it. See [examples/ecommerce-full-ga4/](examples/ecommerce-full-ga4/).
 
+For more journey designs to browse, the author's [Journey Library](https://alidemirbas.com.tr/en/lab/journeys) ([Türkçe](https://alidemirbas.com.tr/lab/journeys)) collects step-by-step lifecycle flows, drawn with the same card language as this engine's canvas. It is a gallery of patterns, not engine output: those journeys carry no copy and no data tier.
+
 ## Design principles
 
 1. **One engine, data-driven sectors.** No `if industry == "fintech"` in skills; sector behavior lives in playbook/lexicon files, so extending the engine is a content contribution.
@@ -141,7 +143,7 @@ Beyond the eval suite, see [docs/real-world-validation.md](docs/real-world-valid
 
 ## Contributing
 
-New industries, patterns, and sharper channel rules are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/adding-an-industry.md](docs/adding-an-industry.md). Run `bash scripts/validate.sh` before opening a PR.
+New industries, patterns, and sharper channel rules are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/adding-an-industry.md](docs/adding-an-industry.md). Run `bash scripts/validate.sh` before opening a PR. Changes to skills or knowledge files should also pass the eval suite, which `python3 scripts/run_evals.py --all` runs end to end through the installed plugin (needs an authenticated `claude` CLI and costs real usage, so it runs before releases rather than on every PR).
 
 ## License
 
@@ -336,6 +338,8 @@ E-commerce store, GA4 connected: 9 meaningful events across 4 stages (**18**), `
 ## Re-scoring
 
 DQS is recomputed whenever the user implements tracking-plan items and re-runs `/lifecycle connect`. The tracking plan template requires a "projected DQS if implemented" figure so the user can see what the work buys.
+
+Tracking also decays without anyone touching it: a tag gets removed in a site release, an SDK update renames a param, consent state stops refreshing. For a live (T1) connection, re-run `/lifecycle connect` on a schedule (monthly is enough for most sectors; weekly for mobile apps, whose `churn_signal` window is short) using whatever scheduler the user already has, such as a Claude Code routine or cron job running `claude -p "/lifecycle connect"`. Compare each run's breakdown and tags with the previous dossier: a DQS drop, a freshness/consistency gate that newly triggers, or `reliability` moving from `healthy` to `degraded` is a tracking regression to fix before it silently degrades running journeys.
 
 
 ---

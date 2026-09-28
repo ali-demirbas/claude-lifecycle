@@ -1,8 +1,9 @@
 ---
 name: lifecycle-map
+argument-hint: "[event-inventory-file]"
 description: Map tracked events to lifecycle stages (acquisition/activation/engagement/revenue/retention/winback) and derive the funnel skeleton. Use after lifecycle-connect, or when the user says "map my events", "event haritala", "funnel çıkar", "hangi stage'ler eksik".
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   category: data
   updated: 2026-08-14
 ---
