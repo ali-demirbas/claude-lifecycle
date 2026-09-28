@@ -1,15 +1,18 @@
 <!--
-  claude-lifecycle COPY CANVAS output template — THE mandatory copy-output format,
+  claude-lifecycle COPY CANVAS output template: THE mandatory copy-output format,
   the copy-side counterpart to templates/canvas.html.
-  Design: tab per journey + one card per step, each card showing the step's intent,
-  one or more copy variants (fields + real character counts against the channel
-  limit), a fallback block, and a review-status badge. Never a KPI table, never a
-  data-gaps section — those don't belong here (see CLAUDE.md rule 2 and the output-
-  authoring conventions it links to).
+  Design: Lab UI, the shared visual language of every Lab tool: a tab per journey
+  and one card per step, the step's channel along the card's top edge exactly as
+  on the journey canvas, the step's intent, one or more copy variants (fields +
+  real character counts against the channel limit), a fallback block, and a
+  review-status badge. Never a KPI table, never a data-gaps section: those don't
+  belong here (see CLAUDE.md rule 2 and the output-authoring conventions it links to).
   The engine reproduces this file EXACTLY, replacing only the JOURNEYS data array,
   the <title>, and the header eyebrow/h1/lede text. Do NOT redesign; do not add extra views.
   User-facing naming rule: title/header follow the USER'S language, and never use the
-  word "copy" for Turkish users (it reads as "duplicate") — TR: "İletişim Metinleri", EN: "Message Copy".
+  word "copy" for Turkish users (it reads as "duplicate"): TR: "İletişim Metinleri", EN: "Message Copy".
+  The Lab UI block between the lab-ui markers is vendored from templates/lab-ui.css
+  by scripts/sync_lab_ui.py; edit that file, never the inlined copy.
 -->
 <!DOCTYPE html>
 <html lang="tr">
@@ -19,94 +22,413 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>İletişim Metinleri</title>
 <style>
-  :root {
-    --page-bg: #faf7f2;
-    --card-header: #b0693f;
-    --card-header-ink: #ffffff;
-    --card-body: #ffffff;
-    --card-line: #e6ddd0;
-    --ink: #241d17;
-    --ink-dim: #7a6b5a;
-    --pill: #fbeee4;
-    --pill-ink: #b0693f;
-    --good: #2d6a3e;
-    --bad: #9c3b2e;
-    --shadow: 0 1px 2px rgba(90,60,30,0.06), 0 10px 24px rgba(90,60,30,0.08);
-    --font-display: Georgia, "Iowan Old Style", "Times New Roman", serif;
-    --font-body: -apple-system, "Segoe UI", Roboto, sans-serif;
-    --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
-  }
-  :root[data-theme="dark"] {
-    --page-bg: #1c1712; --card-header: #d99a6f; --card-header-ink: #241d17;
-    --card-body: #2a231d; --card-line: #3d3226; --ink: #f3ece0; --ink-dim: #b3a390;
-    --pill: #3a2c1f; --pill-ink: #d99a6f; --good: #7cc491; --bad: #e08d7d;
-    --shadow: 0 2px 6px rgba(0,0,0,0.35), 0 12px 30px rgba(0,0,0,0.4);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --page-bg: #1c1712; --card-header: #d99a6f; --card-header-ink: #241d17;
-      --card-body: #2a231d; --card-line: #3d3226; --ink: #f3ece0; --ink-dim: #b3a390;
-      --pill: #3a2c1f; --pill-ink: #d99a6f; --good: #7cc491; --bad: #e08d7d;
-      --shadow: 0 2px 6px rgba(0,0,0,0.35), 0 12px 30px rgba(0,0,0,0.4);
-    }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--page-bg); color: var(--ink); font-family: var(--font-body); display: flex; justify-content: center; -webkit-font-smoothing: antialiased; }
-  .wrap { max-width: 780px; padding: 32px 24px 48px; width: 100%; }
+/* lab-ui:begin */
+/* Lab UI 1.0.0 - the visual language of alidemirbas.com.tr/lab, for the HTML
+   every Lab tool writes (claude-lifecycle, dashboard-builder, the Google Ads
+   change-history dashboard, ab-test-playbook).
+   Source: design-system/lab-ui/ in the site repo. Tools keep a vendored copy
+   and inline it into each self-contained output between the lab-ui markers;
+   edit the source, then re-vendor - never edit an inlined copy.
+   Values mirror the site's src/app/globals.css (stone ink, white paper, brand
+   blue #2f6bff, Tailwind's hue ramps as the site builds them).
+   No network: Inter is used where it is installed, the system sans elsewhere,
+   because a Lab output must render offline and load nothing third-party. */
 
-  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--card-header); margin: 0 0 8px; }
-  h1 { font-family: var(--font-display); font-weight: 700; font-size: 25px; letter-spacing: -0.01em; margin: 0 0 6px; }
-  .lede { color: var(--ink-dim); font-size: 13.5px; line-height: 1.55; margin: 0 0 20px; }
+:root {
+  --lab-font: Inter, "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --lab-font-code: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
-  .tab { font-family: var(--font-body); font-size: 12.5px; font-weight: 600; color: var(--ink-dim); background: var(--card-body); border: 1.5px solid var(--card-line); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
-  .tab.active { border-color: var(--card-header); background: var(--pill); color: var(--ink); }
+  /* Ink: stone, text and quiet fills */
+  --lab-ink-950: #1f1c1b; --lab-ink-900: #292524; --lab-ink-800: #35312f; --lab-ink-700: #45403e;
+  --lab-ink-600: #5c5755; --lab-ink-500: #77716f; --lab-ink-400: #98918f; --lab-ink-300: #bfb8b5;
+  --lab-ink-200: #e2dad6; --lab-ink-100: #f5ede9;
 
+  /* Brand blue */
+  --lab-primary-50: #f3f7ff; --lab-primary-100: #e6efff; --lab-primary-200: #cee0ff; --lab-primary-300: #aecbff;
+  --lab-primary-500: #5089ff; --lab-primary-600: #2f6bff; --lab-primary-700: #1c4dc9; --lab-primary-800: #123796;
+  --lab-primary-950: #02113d;
+
+  /* Hues, as the site builds them (Tailwind 4 ramps) */
+  --lab-violet-50: #f5f3ff; --lab-violet-200: #ddd6ff; --lab-violet-500: #8d54ff; --lab-violet-700: #7008e7; --lab-violet-800: #5d0ec0;
+  --lab-sky-50: #f0f9ff; --lab-sky-300: #77d4ff; --lab-sky-500: #00a5ef; --lab-sky-700: #0069a4; --lab-sky-800: #005986;
+  --lab-teal-50: #f0fdfa; --lab-teal-200: #96f7e4; --lab-teal-500: #00baa7; --lab-teal-600: #009588; --lab-teal-700: #00776e; --lab-teal-800: #005f5a;
+  --lab-amber-50: #fffbeb; --lab-amber-200: #fee685; --lab-amber-500: #f99c00; --lab-amber-700: #b75000; --lab-amber-800: #953d00;
+  --lab-emerald-50: #ecfdf5; --lab-emerald-100: #d0fae5; --lab-emerald-200: #a4f4cf; --lab-emerald-300: #5ee9b5; --lab-emerald-500: #00bb7f; --lab-emerald-600: #009767; --lab-emerald-700: #007956; --lab-emerald-800: #005f46;
+  --lab-rose-50: #fff1f2; --lab-rose-200: #ffccd3; --lab-rose-300: #ffa2ae; --lab-rose-500: #ff2357; --lab-rose-600: #e70044; --lab-rose-700: #c20039; --lab-rose-800: #a30037;
+  --lab-orange-50: #fff7ed; --lab-orange-100: #ffedd5; --lab-orange-500: #fe6e00; --lab-orange-700: #c53c00; --lab-orange-800: #9f2d00;
+  --lab-cyan-50: #ecfeff; --lab-cyan-200: #a2f4fd; --lab-cyan-700: #007492;
+  --lab-indigo-50: #eef2ff; --lab-indigo-200: #c7d2ff; --lab-indigo-500: #625fff; --lab-indigo-700: #432dd7; --lab-indigo-800: #372aac;
+
+  /* Surfaces and lines */
+  --lab-ground: #f7f8fb;            /* page, = site paper-soft */
+  --lab-surface: #ffffff;           /* tiles and cards, = site paper */
+  --lab-surface-soft: #f7f8fb;      /* a tile inside a tile */
+  --lab-text: var(--lab-ink-900);
+  --lab-text-strong: var(--lab-ink-950);
+  --lab-text-muted: var(--lab-ink-600);
+  --lab-text-subtle: var(--lab-ink-500);
+  --lab-line: #eef0f5;
+  --lab-line-strong: #dfe3ec;
+  --lab-ring: rgb(31 28 27 / 0.06);  /* the site's ring-ink-950/[0.06] */
+  --lab-ring-strong: rgb(31 28 27 / 0.1);
+  --lab-dot: rgb(10 16 32 / 0.22);
+
+  --lab-brand: var(--lab-primary-600);
+  --lab-brand-ink: var(--lab-primary-700);
+  --lab-brand-soft: var(--lab-primary-50);
+  --lab-brand-soft-2: var(--lab-primary-100);
+  --lab-on-brand: #ffffff;
+  --lab-button-hover: #1c1917;
+
+  /* Status: one vocabulary for every tool (good / watch / warn / critical / info) */
+  --lab-good: var(--lab-emerald-700);   --lab-good-soft: var(--lab-emerald-50);   --lab-good-line: var(--lab-emerald-200);
+  --lab-watch: var(--lab-amber-800);    --lab-watch-soft: var(--lab-amber-50);    --lab-watch-line: var(--lab-amber-200);
+  --lab-warn: var(--lab-orange-700);    --lab-warn-soft: var(--lab-orange-50);    --lab-warn-line: var(--lab-orange-100);
+  --lab-bad: var(--lab-rose-700);       --lab-bad-soft: var(--lab-rose-50);       --lab-bad-line: var(--lab-rose-200);
+  --lab-info: var(--lab-primary-700);   --lab-info-soft: var(--lab-primary-50);   --lab-info-line: var(--lab-primary-200);
+
+  /* Channels, as the site's journey pages colour them */
+  --lab-ch-email: var(--lab-violet-500);    --lab-ch-email-soft: var(--lab-violet-50);    --lab-ch-email-ink: var(--lab-violet-800);
+  --lab-ch-push: var(--lab-sky-500);        --lab-ch-push-soft: var(--lab-sky-50);        --lab-ch-push-ink: var(--lab-sky-800);
+  --lab-ch-sms: var(--lab-teal-500);        --lab-ch-sms-soft: var(--lab-teal-50);        --lab-ch-sms-ink: var(--lab-teal-800);
+  --lab-ch-inapp: var(--lab-amber-500);     --lab-ch-inapp-soft: var(--lab-amber-50);     --lab-ch-inapp-ink: var(--lab-amber-800);
+  --lab-ch-whatsapp: var(--lab-emerald-500); --lab-ch-whatsapp-soft: var(--lab-emerald-50); --lab-ch-whatsapp-ink: var(--lab-emerald-800);
+  --lab-ch-human: var(--lab-rose-500);      --lab-ch-human-soft: var(--lab-rose-50);      --lab-ch-human-ink: var(--lab-rose-800);
+
+  /* Series: charts draw in this order */
+  --lab-series-1: var(--lab-primary-600);
+  --lab-series-2: var(--lab-violet-500);
+  --lab-series-3: var(--lab-teal-500);
+  --lab-series-4: var(--lab-amber-500);
+  --lab-series-5: var(--lab-rose-500);
+  --lab-series-6: var(--lab-sky-500);
+
+  --lab-radius-sm: 8px;
+  --lab-radius-md: 12px;
+  --lab-radius-card: 16px;
+  --lab-radius-tile: 24px;
+  --lab-radius-pill: 9999px;
+  --lab-shadow-hairline: 0 1px 2px rgb(10 16 32 / 0.04);
+  --lab-shadow-card: 0 1px 2px rgb(28 25 23 / 0.06), 0 4px 10px -8px rgb(28 25 23 / 0.45);
+  --lab-shadow-lift: 0 18px 40px -24px rgb(10 16 32 / 0.35);
+  --lab-shadow-float: 0 12px 30px -16px rgb(10 16 32 / 0.35);
+  --lab-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --lab-fast: 120ms;
+  --lab-base: 250ms;
+  color-scheme: light;
+}
+
+/* Dark: the same roles on the stone floor. Tints are mixed from each hue so a
+   soft fill stays a fill, never a glare. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --lab-ground: #161312; --lab-surface: #1f1c1b; --lab-surface-soft: #292524;
+    --lab-text: #f5ede9; --lab-text-strong: #ffffff; --lab-text-muted: #bfb8b5; --lab-text-subtle: #98918f;
+    --lab-line: #35312f; --lab-line-strong: #45403e;
+    --lab-ring: rgb(255 255 255 / 0.08); --lab-ring-strong: rgb(255 255 255 / 0.14); --lab-dot: rgb(255 255 255 / 0.16);
+    --lab-brand: #5089ff; --lab-brand-ink: #aecbff; --lab-brand-soft: color-mix(in oklab, #2f6bff 20%, #1f1c1b); --lab-brand-soft-2: color-mix(in oklab, #2f6bff 30%, #1f1c1b); --lab-button-hover: #f5ede9;
+    --lab-good: #5ee9b5; --lab-good-soft: color-mix(in oklab, #00bb7f 18%, #1f1c1b); --lab-good-line: color-mix(in oklab, #00bb7f 40%, #1f1c1b);
+    --lab-watch: #fee685; --lab-watch-soft: color-mix(in oklab, #f99c00 18%, #1f1c1b); --lab-watch-line: color-mix(in oklab, #f99c00 40%, #1f1c1b);
+    --lab-warn: #ffb86a; --lab-warn-soft: color-mix(in oklab, #fe6e00 18%, #1f1c1b); --lab-warn-line: color-mix(in oklab, #fe6e00 40%, #1f1c1b);
+    --lab-bad: #ffa2ae; --lab-bad-soft: color-mix(in oklab, #ff2357 18%, #1f1c1b); --lab-bad-line: color-mix(in oklab, #ff2357 40%, #1f1c1b);
+    --lab-info: #aecbff; --lab-info-soft: color-mix(in oklab, #2f6bff 20%, #1f1c1b); --lab-info-line: color-mix(in oklab, #2f6bff 45%, #1f1c1b);
+    --lab-ch-email-soft: color-mix(in oklab, #8d54ff 20%, #1f1c1b); --lab-ch-email-ink: #ddd6ff;
+    --lab-ch-push-soft: color-mix(in oklab, #00a5ef 20%, #1f1c1b); --lab-ch-push-ink: #77d4ff;
+    --lab-ch-sms-soft: color-mix(in oklab, #00baa7 20%, #1f1c1b); --lab-ch-sms-ink: #96f7e4;
+    --lab-ch-inapp-soft: color-mix(in oklab, #f99c00 20%, #1f1c1b); --lab-ch-inapp-ink: #fee685;
+    --lab-ch-whatsapp-soft: color-mix(in oklab, #00bb7f 20%, #1f1c1b); --lab-ch-whatsapp-ink: #a4f4cf;
+    --lab-ch-human-soft: color-mix(in oklab, #ff2357 20%, #1f1c1b); --lab-ch-human-ink: #ffccd3;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --lab-ground: #161312; --lab-surface: #1f1c1b; --lab-surface-soft: #292524;
+  --lab-text: #f5ede9; --lab-text-strong: #ffffff; --lab-text-muted: #bfb8b5; --lab-text-subtle: #98918f;
+  --lab-line: #35312f; --lab-line-strong: #45403e;
+  --lab-ring: rgb(255 255 255 / 0.08); --lab-ring-strong: rgb(255 255 255 / 0.14); --lab-dot: rgb(255 255 255 / 0.16);
+  --lab-brand: #5089ff; --lab-brand-ink: #aecbff; --lab-brand-soft: color-mix(in oklab, #2f6bff 20%, #1f1c1b); --lab-brand-soft-2: color-mix(in oklab, #2f6bff 30%, #1f1c1b); --lab-button-hover: #f5ede9;
+  --lab-good: #5ee9b5; --lab-good-soft: color-mix(in oklab, #00bb7f 18%, #1f1c1b); --lab-good-line: color-mix(in oklab, #00bb7f 40%, #1f1c1b);
+  --lab-watch: #fee685; --lab-watch-soft: color-mix(in oklab, #f99c00 18%, #1f1c1b); --lab-watch-line: color-mix(in oklab, #f99c00 40%, #1f1c1b);
+  --lab-warn: #ffb86a; --lab-warn-soft: color-mix(in oklab, #fe6e00 18%, #1f1c1b); --lab-warn-line: color-mix(in oklab, #fe6e00 40%, #1f1c1b);
+  --lab-bad: #ffa2ae; --lab-bad-soft: color-mix(in oklab, #ff2357 18%, #1f1c1b); --lab-bad-line: color-mix(in oklab, #ff2357 40%, #1f1c1b);
+  --lab-info: #aecbff; --lab-info-soft: color-mix(in oklab, #2f6bff 20%, #1f1c1b); --lab-info-line: color-mix(in oklab, #2f6bff 45%, #1f1c1b);
+  --lab-ch-email-soft: color-mix(in oklab, #8d54ff 20%, #1f1c1b); --lab-ch-email-ink: #ddd6ff;
+  --lab-ch-push-soft: color-mix(in oklab, #00a5ef 20%, #1f1c1b); --lab-ch-push-ink: #77d4ff;
+  --lab-ch-sms-soft: color-mix(in oklab, #00baa7 20%, #1f1c1b); --lab-ch-sms-ink: #96f7e4;
+  --lab-ch-inapp-soft: color-mix(in oklab, #f99c00 20%, #1f1c1b); --lab-ch-inapp-ink: #fee685;
+  --lab-ch-whatsapp-soft: color-mix(in oklab, #00bb7f 20%, #1f1c1b); --lab-ch-whatsapp-ink: #a4f4cf;
+  --lab-ch-human-soft: color-mix(in oklab, #ff2357 20%, #1f1c1b); --lab-ch-human-ink: #ffccd3;
+}
+
+/* ---- base ------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+body.lab {
+  margin: 0; background: var(--lab-ground); color: var(--lab-text);
+  font-family: var(--lab-font); font-size: 15px; line-height: 1.6;
+  font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+.lab :where(h1, h2, h3, h4, p, dl, dd, figure) { margin: 0; }
+.lab :where(h1, h2, h3, h4) { color: var(--lab-text-strong); text-wrap: balance; }
+.lab code, .lab kbd, .lab pre { font-family: var(--lab-font-code); }
+.lab a { color: var(--lab-brand-ink); text-underline-offset: 2px; }
+.lab :focus-visible { outline: 2px solid var(--lab-brand); outline-offset: 2px; }
+.lab .num, .lab table { font-variant-numeric: tabular-nums; }
+.lab svg { flex: none; }
+
+.lab-page { max-width: 1180px; margin: 0 auto; padding: 40px 20px 96px; }
+.lab-page--narrow { max-width: 980px; }
+.lab-stack { display: grid; gap: 16px; }
+.lab-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.lab-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.lab-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---- type ------------------------------------------------------------- */
+/* Plain case everywhere: no uppercase tracked labels on this site. */
+.lab-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; line-height: 1.4; color: var(--lab-brand-ink); }
+.lab-title { font-size: clamp(1.75rem, 1.1rem + 1.7vw, 2.5rem); line-height: 1.1; letter-spacing: -0.025em; font-weight: 600; }
+.lab-h2 { font-size: 1.5rem; line-height: 1.25; letter-spacing: -0.016em; font-weight: 600; }
+.lab-h3 { font-size: 1rem; line-height: 1.4; letter-spacing: -0.01em; font-weight: 600; }
+.lab-lede { font-size: 1.0625rem; line-height: 1.65; color: var(--lab-text-muted); max-width: 68ch; text-wrap: pretty; }
+.lab-muted { color: var(--lab-text-muted); }
+.lab-subtle { color: var(--lab-text-subtle); }
+.lab-small { font-size: 13px; line-height: 1.5; }
+.lab-label { font-size: 12px; font-weight: 500; line-height: 1.4; color: var(--lab-text-subtle); }
+
+/* ---- surfaces --------------------------------------------------------- */
+.lab-tile { background: var(--lab-surface); border-radius: var(--lab-radius-tile); box-shadow: 0 0 0 1px var(--lab-ring); padding: 24px; }
+.lab-card { background: var(--lab-surface); border-radius: var(--lab-radius-card); box-shadow: 0 0 0 1px var(--lab-ring), var(--lab-shadow-hairline); padding: 16px 18px; }
+.lab-soft { background: var(--lab-surface-soft); border-radius: var(--lab-radius-card); padding: 16px 18px; }
+.lab-tile--lift, .lab-card--lift { box-shadow: 0 0 0 1px var(--lab-ring), var(--lab-shadow-lift); }
+.lab-divider { height: 1px; background: var(--lab-line); border: 0; margin: 16px 0; }
+
+/* The icon tile: the site's tinted square behind every glyph. */
+.lab-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--lab-brand-soft); color: var(--lab-brand-ink); flex: none; }
+.lab-icon > svg { width: 20px; height: 20px; }
+.lab-icon--sm { width: 28px; height: 28px; border-radius: 8px; }
+.lab-icon--sm > svg { width: 14px; height: 14px; }
+.lab-icon--xs { width: 24px; height: 24px; border-radius: 8px; }
+.lab-icon--xs > svg { width: 14px; height: 14px; }
+.lab-icon--round { border-radius: 9999px; }
+
+/* ---- chips, badges ---------------------------------------------------- */
+.lab-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 14px 4px 4px; border-radius: 9999px; background: var(--lab-surface); box-shadow: 0 0 0 1px var(--lab-ring); font-size: 14px; font-weight: 500; color: var(--lab-text-strong); }
+.lab-chip--plain { padding: 6px 14px; min-height: 32px; font-size: 13px; }
+.lab-chip > .lab-icon { width: 28px; height: 28px; border-radius: 9999px; }
+.lab-chip > .lab-icon > svg { width: 14px; height: 14px; }
+.lab-badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; line-height: 1.6; white-space: nowrap; background: var(--lab-surface-soft); color: var(--lab-text-muted); }
+.lab-badge > svg { width: 12px; height: 12px; }
+.lab-badge--line { background: var(--lab-surface); box-shadow: 0 0 0 1px var(--lab-ring-strong); }
+.lab-var { font-family: var(--lab-font-code); font-size: 0.86em; font-weight: 500; padding: 1px 6px; border-radius: 6px; background: var(--lab-brand-soft); color: var(--lab-brand-ink); white-space: nowrap; }
+.lab-kbd { font-family: var(--lab-font-code); font-size: 0.86em; padding: 1px 6px; border-radius: 6px; background: rgb(255 255 255 / 0.15); }
+
+/* ---- buttons: the site's pill ---------------------------------------- */
+.lab-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 16px; border: 0; border-radius: 9999px; font: 500 14px/1 var(--lab-font); cursor: pointer; text-decoration: none; white-space: nowrap; background: var(--lab-brand); color: var(--lab-on-brand); transition: background-color var(--lab-fast) var(--lab-ease), color var(--lab-fast) var(--lab-ease), box-shadow var(--lab-fast) var(--lab-ease); }
+.lab-btn > svg { width: 16px; height: 16px; }
+.lab-btn:hover { background: var(--lab-button-hover); color: var(--lab-ground); }
+.lab-btn--outline { background: var(--lab-surface); color: var(--lab-text-strong); box-shadow: inset 0 0 0 1px var(--lab-line-strong); }
+.lab-btn--outline:hover { background: var(--lab-brand); color: var(--lab-on-brand); box-shadow: inset 0 0 0 1px var(--lab-brand); }
+.lab-btn--ghost { background: transparent; color: var(--lab-text-muted); }
+.lab-btn--ghost:hover { background: var(--lab-surface-soft); color: var(--lab-text-strong); }
+.lab-btn--md { height: 44px; padding: 0 20px; }
+.lab-btn--lg { height: 48px; padding: 0 24px; font-size: 16px; }
+
+/* ---- tabs ------------------------------------------------------------- */
+/* The segmented switch: the site's Info / Canvas tabs. */
+.lab-seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 9999px; background: var(--lab-surface); box-shadow: 0 0 0 1px var(--lab-ring); }
+.lab-seg > button, .lab-seg > a { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border: 0; border-radius: 9999px; background: transparent; color: var(--lab-text-muted); font: 500 14px/1 var(--lab-font); cursor: pointer; text-decoration: none; white-space: nowrap; transition: background-color var(--lab-fast) var(--lab-ease), color var(--lab-fast) var(--lab-ease); }
+.lab-seg > button:hover { background: var(--lab-surface-soft); color: var(--lab-text-strong); }
+.lab-seg > [aria-selected="true"], .lab-seg > [aria-pressed="true"], .lab-seg > .is-on { background: var(--lab-ink-950); color: #fff; }
+:root[data-theme="dark"] .lab-seg > [aria-selected="true"] { background: #f5ede9; color: #1f1c1b; }
+/* Picker tiles: one tile per item, the chosen one ringed in brand blue. */
+.lab-picker { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); }
+.lab-pick { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 14px 16px; border: 0; border-radius: var(--lab-radius-card); background: var(--lab-surface); box-shadow: 0 0 0 1px var(--lab-ring); color: var(--lab-text-strong); font: 600 14px/1.35 var(--lab-font); cursor: pointer; transition: box-shadow var(--lab-fast) var(--lab-ease), background-color var(--lab-fast) var(--lab-ease); }
+.lab-pick:hover { box-shadow: 0 0 0 1px var(--lab-ring-strong), var(--lab-shadow-card); }
+.lab-pick > small { font-size: 12.5px; font-weight: 400; line-height: 1.45; color: var(--lab-text-subtle); }
+.lab-pick[aria-selected="true"] { background: var(--lab-brand-soft); box-shadow: 0 0 0 2px var(--lab-brand); }
+
+/* ---- lists, tables, forms -------------------------------------------- */
+.lab-dl { display: grid; grid-template-columns: minmax(96px, max-content) 1fr; gap: 8px 16px; font-size: 14px; }
+.lab-dl > dt { font-size: 13px; font-weight: 500; color: var(--lab-text-subtle); padding-top: 1px; }
+.lab-dl > dd { margin: 0; color: var(--lab-text); min-width: 0; overflow-wrap: anywhere; }
+.lab-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.lab-list > li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; }
+.lab-list > li > svg { width: 16px; height: 16px; margin-top: 2px; }
+.lab-table-wrap { overflow-x: auto; border-radius: var(--lab-radius-card); background: var(--lab-surface); box-shadow: 0 0 0 1px var(--lab-ring); }
+.lab-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.lab-table th { text-align: left; font-size: 12.5px; font-weight: 500; color: var(--lab-text-subtle); padding: 10px 14px; border-bottom: 1px solid var(--lab-line); white-space: nowrap; }
+.lab-table td { padding: 11px 14px; border-bottom: 1px solid var(--lab-line); vertical-align: top; }
+.lab-table tr:last-child td { border-bottom: 0; }
+.lab-table .r { text-align: right; }
+.lab-input, .lab-select { height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--lab-surface); color: var(--lab-text); box-shadow: inset 0 0 0 1px var(--lab-line-strong); font: 400 14px/1 var(--lab-font); }
+.lab-select { padding-right: 32px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2377716f' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+.lab-input:focus, .lab-select:focus { outline: none; box-shadow: inset 0 0 0 2px var(--lab-brand); }
+
+/* ---- numbers ---------------------------------------------------------- */
+.lab-kpi { display: flex; flex-direction: column; gap: 6px; }
+.lab-kpi-value { font-size: 2rem; line-height: 1.05; letter-spacing: -0.025em; font-weight: 600; color: var(--lab-text-strong); font-variant-numeric: tabular-nums; }
+.lab-kpi-label { font-size: 13px; font-weight: 500; color: var(--lab-text-subtle); }
+.lab-delta { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lab-meter { position: relative; height: 8px; border-radius: 9999px; background: var(--lab-line); overflow: hidden; }
+.lab-meter > span { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: var(--lab-brand); }
+.lab-meter--good > span { background: var(--lab-emerald-500); }
+.lab-meter--watch > span { background: var(--lab-amber-500); }
+.lab-meter--bad > span { background: var(--lab-rose-500); }
+.lab-count { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--lab-text-subtle); white-space: nowrap; }
+.lab-count.is-ok { color: var(--lab-good); }
+.lab-count.is-over { color: var(--lab-bad); }
+
+/* A note with a status edge: alerts, findings */
+.lab-note { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: var(--lab-radius-card); background: var(--lab-surface); box-shadow: 0 0 0 1px var(--lab-ring); }
+.lab-note > .lab-icon { width: 28px; height: 28px; border-radius: 8px; }
+.lab-note > .lab-icon > svg { width: 14px; height: 14px; }
+
+/* ---- the journey canvas: the site's cards on the dot sheet ------------ */
+.lab-sheet { position: relative; border-radius: var(--lab-radius-tile); background-color: var(--lab-surface-soft); background-image: radial-gradient(var(--lab-dot) 0.9px, transparent 1.1px); background-size: 24px 24px; box-shadow: 0 0 0 1px var(--lab-ring); }
+.lab-node { position: relative; width: 268px; padding: 12px 14px; border-radius: 16px; background: var(--lab-surface); box-shadow: 0 0 0 1px var(--lab-ring-strong), var(--lab-shadow-hairline); color: var(--lab-text); font-size: 13px; line-height: 1.45; }
+.lab-node-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.lab-node-kind { font-size: 12px; font-weight: 500; }
+.lab-node-tag { margin-left: auto; font-size: 11.5px; color: var(--lab-text-subtle); text-align: right; min-width: 0; }
+.lab-node-title { margin-top: 8px; font-size: 14px; line-height: 1.4; font-weight: 600; color: var(--lab-text-strong); }
+.lab-node-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 4px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+.lab-node-pill > .lab-icon { width: 20px; height: 20px; border-radius: 9999px; background: transparent; color: inherit; }
+/* Trigger: the one dark card, with the Entry pin standing on it. */
+.lab-node--trigger { background: var(--lab-ink-950); color: #fff; box-shadow: 0 0 0 1px rgb(41 37 36 / 0.7), 0 12px 28px -16px rgb(10 16 32 / 0.65); }
+.lab-node--trigger .lab-node-title { color: #fff; }
+.lab-node--trigger .lab-node-tag, .lab-node--trigger .lab-node-kind { color: rgb(255 255 255 / 0.8); }
+.lab-node-pin { position: absolute; top: -14px; left: 12px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 9999px; background: var(--lab-ink-950); color: #fff; font-size: 12px; font-weight: 600; box-shadow: 0 0 0 2px var(--lab-surface), 0 6px 16px -8px rgb(10 16 32 / 0.6); }
+.lab-node-pin > svg { width: 12px; height: 12px; }
+/* Message: a paper card with its channel's colour along the top. */
+.lab-node--message { border-top: 3px solid var(--lab-node-accent, var(--lab-brand)); }
+/* Decision: the green question card. */
+.lab-node--decision { background: var(--lab-good-soft); box-shadow: 0 0 0 1px var(--lab-good-line), var(--lab-shadow-hairline); }
+.lab-node--decision .lab-node-title { color: var(--lab-emerald-800); }
+:root[data-theme="dark"] .lab-node--decision .lab-node-title { color: var(--lab-good); }
+/* Wait and exit: pills, not cards. */
+.lab-node--pill { width: auto; max-width: 280px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; border-radius: 9999px; font-size: 13px; font-weight: 500; }
+.lab-node--wait { box-shadow: 0 0 0 1px var(--lab-teal-200), var(--lab-shadow-hairline); color: var(--lab-text-strong); }
+.lab-node--exit { background: var(--lab-surface-soft); box-shadow: none; border: 1.5px dashed var(--lab-line-strong); color: var(--lab-text-muted); }
+.lab-node--exit.is-good { background: var(--lab-good-soft); border-color: var(--lab-good-line); color: var(--lab-good); }
+/* Rows inside a card: icon + text lines, hairline between. */
+.lab-node-rows { margin-top: 8px; display: grid; gap: 0; }
+.lab-node-row { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-top: 1px solid var(--lab-line); font-size: 12.5px; line-height: 1.5; }
+.lab-node-row:first-child { border-top: 0; padding-top: 2px; }
+.lab-node-row > svg { width: 14px; height: 14px; margin-top: 2px; color: var(--lab-text-subtle); }
+.lab-node-row > span { min-width: 0; overflow-wrap: anywhere; }
+.lab-node--trigger .lab-node-row { border-top-color: rgb(255 255 255 / 0.12); }
+.lab-node--trigger .lab-node-row > svg { color: rgb(255 255 255 / 0.7); }
+.lab-node--decision .lab-node-row { border-top-color: var(--lab-good-line); }
+/* Branch label on an edge: a small pill in the decision's green. */
+.lab-edge-label { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 9999px; background: var(--lab-good-soft); color: var(--lab-good); box-shadow: 0 0 0 1px var(--lab-good-line); font-size: 12px; font-weight: 500; line-height: 1.6; }
+.lab-edge { fill: none; stroke: var(--lab-ink-300); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+:root[data-theme="dark"] .lab-edge { stroke: var(--lab-ink-600); }
+
+/* Disclosure: a quiet toggle for detail that is not needed at a glance. */
+.lab-disclosure { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: var(--lab-brand-ink); font: 500 12.5px/1.4 var(--lab-font); cursor: pointer; }
+.lab-disclosure > svg { width: 13px; height: 13px; transition: transform var(--lab-fast) var(--lab-ease); }
+[data-open="true"] > .lab-disclosure > svg, .lab-disclosure[aria-expanded="true"] > svg { transform: rotate(90deg); }
+
+/* Tooltip and toast: ink plates */
+.lab-tip { position: relative; display: inline; }
+.lab-tip-trigger { text-decoration: underline dotted var(--lab-text-subtle); text-underline-offset: 3px; cursor: help; }
+.lab-tip-bubble { position: absolute; left: 50%; bottom: calc(100% + 8px); z-index: 30; width: max-content; max-width: 240px; padding: 8px 12px; border-radius: 10px; background: var(--lab-ink-950); color: #fff; font-size: 12.5px; font-weight: 400; line-height: 1.45; box-shadow: var(--lab-shadow-float); opacity: 0; pointer-events: none; transform: translate(-50%, 4px); transition: opacity var(--lab-fast) var(--lab-ease), transform var(--lab-fast) var(--lab-ease); }
+.lab-tip:hover .lab-tip-bubble, .lab-tip:focus-within .lab-tip-bubble { opacity: 1; transform: translate(-50%, 0); }
+.lab-toast { position: fixed; left: 50%; bottom: 24px; z-index: 999; max-width: 88vw; padding: 10px 18px; border-radius: 9999px; background: var(--lab-ink-950); color: #fff; font: 500 13px/1.4 var(--lab-font); text-align: center; box-shadow: var(--lab-shadow-float); opacity: 0; pointer-events: none; transform: translate(-50%, 6px); transition: opacity var(--lab-base) var(--lab-ease), transform var(--lab-base) var(--lab-ease); }
+.lab-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+/* The tool's mark in a page footer */
+.lab-foot { margin-top: 56px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 13px; color: var(--lab-text-subtle); }
+
+/* ---- tints ------------------------------------------------------------
+   Background + ink pairs for icon tiles, chips, badges, deltas. Last in the
+   file on purpose: a tint always wins over a component's resting fill. */
+.lab-t-brand { background: var(--lab-brand-soft); color: var(--lab-brand-ink); }
+.lab-t-good { background: var(--lab-good-soft); color: var(--lab-good); }
+.lab-t-watch { background: var(--lab-watch-soft); color: var(--lab-watch); }
+.lab-t-warn { background: var(--lab-warn-soft); color: var(--lab-warn); }
+.lab-t-bad { background: var(--lab-bad-soft); color: var(--lab-bad); }
+.lab-t-neutral { background: var(--lab-surface-soft); color: var(--lab-text-muted); }
+.lab-t-email { background: var(--lab-ch-email-soft); color: var(--lab-ch-email-ink); }
+.lab-t-push { background: var(--lab-ch-push-soft); color: var(--lab-ch-push-ink); }
+.lab-t-sms { background: var(--lab-ch-sms-soft); color: var(--lab-ch-sms-ink); }
+.lab-t-inapp { background: var(--lab-ch-inapp-soft); color: var(--lab-ch-inapp-ink); }
+.lab-t-whatsapp { background: var(--lab-ch-whatsapp-soft); color: var(--lab-ch-whatsapp-ink); }
+.lab-t-human { background: var(--lab-ch-human-soft); color: var(--lab-ch-human-ink); }
+
+@media (max-width: 640px) {
+  .lab-page { padding: 28px 16px 72px; }
+  .lab-tile { padding: 18px; border-radius: 20px; }
+  .lab-dl { grid-template-columns: 1fr; gap: 2px 0; }
+  .lab-picker { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .lab-pick { padding: 12px 13px; font-size: 13.5px; }
+  .lab-pick > small { font-size: 12px; }
+  .lab-dl > dd { margin-bottom: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab *, .lab *::before, .lab *::after { transition: none !important; animation: none !important; }
+}
+@media print {
+  body.lab { background: #fff; }
+  .lab-tile, .lab-card, .lab-table-wrap, .lab-note { box-shadow: 0 0 0 1px #dfe3ec; }
+  .lab-btn, .lab-seg, .lab-toast, .lab-tip-bubble { display: none !important; }
+}
+/* lab-ui:end */
+
+  /* ---- the copy page, on Lab UI --------------------------------------- */
+  .wrap { max-width: 880px; margin: 0 auto; padding: 40px 20px 96px; }
+  .eyebrow { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 14px; font-weight: 500; line-height: 1.4; color: var(--lab-brand-ink); }
+  h1 { margin: 0 0 12px; font-size: clamp(1.75rem, 1.1rem + 1.7vw, 2.5rem); line-height: 1.1; letter-spacing: -0.025em; font-weight: 600; color: var(--lab-text-strong); text-wrap: balance; }
+  .lede { margin: 0; max-width: 68ch; font-size: 1.0625rem; line-height: 1.65; color: var(--lab-text-muted); text-wrap: pretty; }
+
+  .tabs { margin: 28px 0 24px; }
   .panel { display: none; }
-  .panel.active { display: block; }
+  .panel.active { display: grid; gap: 16px; }
 
-  .step-card { background: var(--card-body); border: 1.5px solid var(--card-line); border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden; }
-  .step-head { background: var(--card-header); color: var(--card-header-ink); padding: 11px 16px; display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 700; }
-  .step-head .tag { font-family: var(--font-mono); font-weight: 600; font-size: 10.5px; opacity: 0.9; }
-  .pass-badge { background: rgba(255,255,255,0.18); color: #fff; font-family: var(--font-mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 100px; }
-  .pass-badge.fix { background: #9c3b2e; }
-  .pass-badge.legal { background: #b45309; }
+  .step-card { padding: 0; overflow: hidden; border-top: 3px solid var(--step-accent, var(--lab-brand)); }
+  .step-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 14px 18px 0; }
+  .step-head .tag { font-size: 13px; color: var(--lab-text-subtle); }
+  .step-head .lab-badge { margin-left: auto; }
+  .step-body { padding: 12px 18px 16px; display: grid; gap: 14px; }
+  .intent { font-size: 14px; line-height: 1.55; color: var(--lab-text-muted); }
+  .intent b { font-weight: 600; color: var(--lab-text-strong); }
 
-  .step-body { padding: 14px 16px 4px; }
-  .intent { font-size: 12.5px; color: var(--ink-dim); margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--card-line); }
-  .intent b { color: var(--ink); }
+  .variant { display: grid; gap: 6px; }
+  .variant > .lab-badge { justify-self: start; }
+  .fields { border-radius: 12px; box-shadow: 0 0 0 1px var(--lab-ring); overflow: hidden; }
+  .field-row { display: grid; grid-template-columns: 92px 1fr auto; gap: 12px; padding: 10px 14px; font-size: 14px; line-height: 1.5; border-top: 1px solid var(--lab-line); align-items: start; }
+  .field-row:first-child { border-top: 0; }
+  .field-label { font-size: 12.5px; font-weight: 500; color: var(--lab-text-subtle); padding-top: 1px; }
+  .field-content { min-width: 0; overflow-wrap: anywhere; color: var(--lab-text); }
+  .lab-count { padding-top: 2px; }
+  .lab-count.is-mismatch { color: var(--lab-watch); font-weight: 600; }
+  .lab-count.is-over { font-weight: 600; }
 
-  .variant { margin-bottom: 14px; }
-  .variant-label { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pill-ink); background: var(--pill); display: inline-block; padding: 3px 9px; border-radius: 100px; margin-bottom: 7px; }
-  .field-row { display: grid; grid-template-columns: 80px 1fr 62px; gap: 8px; font-size: 12px; padding: 5px 0; border-bottom: 1px dashed var(--card-line); align-items: start; }
-  .field-row:last-child { border-bottom: none; }
-  .field-label { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; color: var(--ink-dim); padding-top: 2px; }
-  .field-content { line-height: 1.45; min-width: 0; overflow-wrap: anywhere; }
-  .char-count { font-family: var(--font-mono); font-size: 10px; color: var(--good); text-align: right; padding-top: 2px; white-space: nowrap; }
-  /* Default green assumed every count already passed review — but the count/limit
-     shown here is data baked in at generation time, not recomputed from the field's
-     own content, so a stale or hand-edited value could silently drift and still
-     render as "passing". These states are computed at render time from the actual
-     field content (same recount validate_output.py's check_copy already does on
-     the markdown source), so a real violation is visible here too, not just in a
-     terminal the reader never sees. */
-  .char-count.over { color: var(--bad); font-weight: 700; }
-  .char-count.mismatch { color: #b45309; font-weight: 700; }
+  .fallback { font-size: 13.5px; line-height: 1.55; color: var(--lab-text-muted); }
+  .fallback b { display: block; margin-bottom: 2px; font-size: 12.5px; font-weight: 500; color: var(--lab-text-subtle); }
+  .review-note { font-size: 13.5px; color: var(--lab-watch); background: var(--lab-watch-soft); border-radius: 12px; padding: 10px 14px; }
 
-  .fallback { font-size: 11.5px; color: var(--ink-dim); padding-top: 8px; border-top: 1px solid var(--card-line); margin-top: 4px; }
-  .fallback b { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; }
-  .review-note { font-size: 11.5px; color: #b45309; padding-top: 8px; }
+  code.variable { font-family: var(--lab-font-code); font-size: 0.86em; font-weight: 500; padding: 1px 6px; border-radius: 6px; background: var(--lab-brand-soft); color: var(--lab-brand-ink); white-space: nowrap; }
 
-  code.variable { font-family: var(--font-mono); font-size: 10px; font-weight: 600; background: var(--pill); color: var(--pill-ink); padding: 1px 4px; border-radius: 4px; }
+  @media (max-width: 640px) {
+    .wrap { padding: 28px 16px 72px; }
+    .field-row { grid-template-columns: 1fr auto; gap: 2px 12px; }
+    .field-label { grid-column: 1 / -1; }
+  }
+  @media print {
+    body.lab { background: #fff; }
+    .tabs { display: none; }
+    .panel { display: grid !important; gap: 12px; margin-bottom: 24px; }
+    .step-card { break-inside: avoid; box-shadow: 0 0 0 1px #dfe3ec; }
+  }
 </style>
 </head>
-<body>
+<body class="lab">
 <div class="wrap">
   <p class="eyebrow">test-marka · claude-lifecycle · copy-output</p>
   <h1>Kanal Metinleri</h1>
   <p class="lede">Her sekme bir journey'in gerçek gönderim metnini gösterir: varyantlar, karakter sayıları, inceleme durumu. Journey canvas'ındaki her kartın "Copy doc" referansı burada karşılık bulur.</p>
 
-  <div class="tabs" id="tabs"></div>
+  <div class="tabs lab-seg" id="tabs" role="tablist"></div>
   <div id="panels"></div>
 </div>
 <script>
@@ -149,8 +471,53 @@ const JOURNEYS = [
   }
 ];
 
+// Every interface word in one place. Step content comes from the data.
+const UI = {
+  intent: 'Niyet',
+  fallback: 'Fallback',
+  review: { pass: 'Geçti', fix: 'Not ile geçti', legal: 'Hukuki inceleme' },
+  over: (a, l) => `Gerçek uzunluk ${a}, limit ${l}: limit aşımı`,
+  mismatch: (d, a) => `Beyan edilen ${d}, gerçek uzunluk ${a}`,
+  channel: { email: 'Email', push: 'Push', sms: 'SMS', inapp: 'In-app', whatsapp: 'WhatsApp', human: 'İnsan' }
+};
+
+const svg = (d, w = 2) => `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICONS = {
+  mail: svg('<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>'),
+  bell: svg('<path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M3.3 15.3A1 1 0 0 0 4 17h16a1 1 0 0 0 .7-1.7C19.4 14 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.4 6-2.7 7.3"/>'),
+  sms: svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),
+  smartphone: svg('<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>'),
+  chat: svg('<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>'),
+  user: svg('<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>'),
+  check: svg('<path d="M20 6 9 17l-5-5"/>', 2.4),
+  alert: svg('<path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>'),
+  scale: svg('<path d="m16 16 3-8 3 8c-.9.7-1.9 1-3 1s-2.1-.3-3-1Z"/><path d="m2 16 3-8 3 8c-.9.7-1.9 1-3 1s-2.1-.3-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>')
+};
+const CHANNELS = {
+  email:    { icon: 'mail',       t: 'email' },
+  push:     { icon: 'bell',       t: 'push' },
+  sms:      { icon: 'sms',        t: 'sms' },
+  inapp:    { icon: 'smartphone', t: 'inapp' },
+  whatsapp: { icon: 'chat',       t: 'whatsapp' },
+  human:    { icon: 'user',       t: 'human' }
+};
+// The step's channel, read from its tag ("Adım 1 · Email · +1sa"), case- and
+// accent-folded so "In-app" and "İnsan" match. A step names its channel in its
+// tag by the template's own convention; one that does not stays uncoloured.
+const fold = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
+function detectChannel(tag) {
+  const t = fold(tag);
+  if (t.includes('whatsapp')) return 'whatsapp';
+  if (t.includes('push')) return 'push';
+  if (t.includes('sms')) return 'sms';
+  if (t.includes('in-app') || t.includes('inapp') || t.includes('in‑app')) return 'inapp';
+  if (/(insan|human|csm|destek|support|satis|sales)/.test(t)) return 'human';
+  if (/(email|e-posta|eposta|e-mail|mail)/.test(t)) return 'email';
+  return null;
+}
+
 // Recount from the field's own content, the same recount validate_output.py's
-// check_copy does on the markdown source — a "declared/limit" string baked in
+// check_copy does on the markdown source: a "declared/limit" string baked in
 // at generation time is data, not proof; if it drifted from the real content
 // (hand-edited after review, or just typed wrong) this is the only place a
 // reader would ever see that, since nothing else re-derives it at render time.
@@ -158,15 +525,15 @@ function charCountHtml(content, countStr) {
   const stripped = content.replace(/<[^>]+>/g, '').replace(/\{\{[^}]+\}\}/g, m => m); // tags out, {{vars}} count as-is
   const actual = stripped.length;
   const m = /^(\d+)\s*\/\s*(\d+)$/.exec(String(countStr).trim());
-  if (!m) return `<span class="char-count">${countStr}</span>`; // bare count, no limit to check (e.g. in-app)
+  if (!m) return `<span class="lab-count">${escapeHtml(countStr)}</span>`; // bare count, no limit to check (e.g. in-app)
   const declaredNum = parseInt(m[1], 10), limitNum = parseInt(m[2], 10);
-  if (actual > limitNum) return `<span class="char-count over" title="Gerçek uzunluk ${actual}, limit ${limitNum} — limit aşımı">${countStr}</span>`;
-  if (actual !== declaredNum) return `<span class="char-count mismatch" title="Beyan edilen ${declaredNum}, gerçek uzunluk ${actual}">${countStr}</span>`;
-  return `<span class="char-count">${countStr}</span>`;
+  if (actual > limitNum) return `<span class="lab-count is-over" title="${escapeHtml(UI.over(actual, limitNum))}">${escapeHtml(countStr)}</span>`;
+  if (actual !== declaredNum) return `<span class="lab-count is-mismatch" title="${escapeHtml(UI.mismatch(declaredNum, actual))}">${escapeHtml(countStr)}</span>`;
+  return `<span class="lab-count is-ok">${escapeHtml(countStr)}</span>`;
 }
 
 // Plain-text fields (tag, intent, variant label, field label, reviewer note)
-// trace back to real journey/copy data — escape before innerHTML, same
+// trace back to real journey/copy data: escape before innerHTML, same
 // principle as canvas.html's escapeHtml(). Field CONTENT (f[1]) and fallback
 // text stay as-is: those are the actual authored copy, the one thing this
 // canvas is meant to display verbatim (mirrors canvas.html's rows[].html
@@ -175,15 +542,32 @@ function escapeHtml(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function badgeClass(review) {
-  if (review === "fix") return "pass-badge fix";
-  if (review === "legal") return "pass-badge legal";
-  return "pass-badge";
+function badgeHtml(review) {
+  if (review === 'fix') return `<span class="lab-badge lab-t-watch">${ICONS.alert}${UI.review.fix}</span>`;
+  if (review === 'legal') return `<span class="lab-badge lab-t-warn">${ICONS.scale}${UI.review.legal}</span>`;
+  return `<span class="lab-badge lab-t-good">${ICONS.check}${UI.review.pass}</span>`;
 }
-function badgeLabel(review) {
-  if (review === "fix") return "⚠️ Not ile geçti";
-  if (review === "legal") return "⚖️ Hukuki inceleme";
-  return "✅ Geçti";
+
+function stepHtml(s) {
+  const id = detectChannel(s.tag);
+  const ch = id ? CHANNELS[id] : null;
+  const tag = ch ? String(s.tag || '').split('·').map(x => x.trim()).filter(x => fold(x) !== fold(UI.channel[id])).join(' · ') : s.tag;
+  const pill = ch ? `<span class="lab-node-pill lab-t-${ch.t}"><span class="lab-icon">${ICONS[ch.icon]}</span>${UI.channel[id]}</span>` : '';
+  return `
+    <article class="step-card lab-card"${ch ? ` style="--step-accent:var(--lab-ch-${ch.t})"` : ''}>
+      <div class="step-head">${pill}<span class="tag">${escapeHtml(tag)}</span>${badgeHtml(s.review)}</div>
+      <div class="step-body">
+        <p class="intent"><b>${UI.intent}:</b> ${escapeHtml(s.intent)}</p>
+        ${s.variants.map(v => `
+          <div class="variant">
+            ${v.label ? `<span class="lab-badge lab-t-brand">${escapeHtml(v.label)}</span>` : ''}
+            <div class="fields">${v.fields.map(f => `<div class="field-row"><span class="field-label">${escapeHtml(f[0])}</span><span class="field-content">${f[1]}</span>${charCountHtml(f[1], f[2])}</div>`).join('')}</div>
+          </div>
+        `).join('')}
+        ${s.fallback ? `<div class="fallback lab-soft"><b>${UI.fallback}</b>${s.fallback}</div>` : ''}
+        ${s.note ? `<div class="review-note">${escapeHtml(s.note)}</div>` : ''}
+      </div>
+    </article>`;
 }
 
 function render() {
@@ -193,12 +577,14 @@ function render() {
   panelsEl.innerHTML = '';
   JOURNEYS.forEach((j, idx) => {
     const tab = document.createElement('button');
-    tab.className = 'tab' + (idx === 0 ? ' active' : '');
+    tab.type = 'button';
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', idx === 0 ? 'true' : 'false');
     tab.textContent = j.label;
     tab.onclick = () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tabsEl.querySelectorAll('[role=tab]').forEach(t => t.setAttribute('aria-selected', 'false'));
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
       document.getElementById('panel-' + j.id).classList.add('active');
     };
     tabsEl.appendChild(tab);
@@ -206,22 +592,8 @@ function render() {
     const panel = document.createElement('div');
     panel.className = 'panel' + (idx === 0 ? ' active' : '');
     panel.id = 'panel-' + j.id;
-    panel.innerHTML = j.steps.map(s => `
-      <div class="step-card">
-        <div class="step-head"><span class="tag">${escapeHtml(s.tag)}</span><span class="${badgeClass(s.review)}">${badgeLabel(s.review)}</span></div>
-        <div class="step-body">
-          <div class="intent"><b>Niyet:</b> ${escapeHtml(s.intent)}</div>
-          ${s.variants.map(v => `
-            <div class="variant">
-              ${v.label ? `<span class="variant-label">${escapeHtml(v.label)}</span>` : ''}
-              ${v.fields.map(f => `<div class="field-row"><span class="field-label">${escapeHtml(f[0])}</span><span class="field-content">${f[1]}</span>${charCountHtml(f[1], f[2])}</div>`).join('')}
-            </div>
-          `).join('')}
-          ${s.fallback ? `<div class="fallback"><b>Fallback</b><br>${s.fallback}</div>` : ''}
-          ${s.note ? `<div class="review-note">${escapeHtml(s.note)}</div>` : ''}
-        </div>
-      </div>
-    `).join('');
+    panel.setAttribute('role', 'tabpanel');
+    panel.innerHTML = j.steps.map(stepHtml).join('');
     panelsEl.appendChild(panel);
   });
 }
