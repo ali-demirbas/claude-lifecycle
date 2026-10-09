@@ -45,10 +45,37 @@ def flow_list(s):
     return [x.strip() for x in s.strip().strip("[]").split(",") if x.strip()]
 
 
+CHANNELS = set(json.load(open(os.path.join(ROOT, "templates", "journey.schema.json")))["$defs"]["channel"]["enum"])
+
+
+def normalization(f):
+    """The contract's normalization rules (docs/pattern-contract.md), checked on the frontmatter itself."""
+    errs = [f"channel '{c}' is not in the schema vocabulary {sorted(CHANNELS)}"
+            for c in flow_list(f.get("default_channels", "[]")) if c not in CHANNELS]
+    if "mutually_exclusive_with" not in f:
+        errs.append("mutually_exclusive_with missing (use [] when none)")
+    raw = f.get("reentry", "{}")
+    re_ = flow_map(raw)
+    if "cooldown" in raw:
+        if re_.get("policy") != "after_cooldown":
+            errs.append(f"reentry.cooldown given with policy {re_.get('policy')!r} (only with after_cooldown)")
+        elif not re.fullmatch(r"P\d+[DW]", re_.get("cooldown") or ""):
+            errs.append(f"reentry.cooldown {re_.get('cooldown')!r} must be a duration in days or weeks")
+    elif re_.get("policy") == "after_cooldown":
+        errs.append("reentry policy after_cooldown without a cooldown")
+    return errs
+
+
 failed = 0
-for path in sorted(glob.glob(os.path.join(ROOT, "knowledge", "journey-patterns", "*.md"))):
+PATTERN_DIR = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "knowledge", "journey-patterns")
+for path in sorted(glob.glob(os.path.join(PATTERN_DIR, "*.md"))):
     name = os.path.basename(path)[:-3]
     f = fm(path)
+    norm = normalization(f)
+    if norm:
+        failed += 1
+        print(f"FAIL {name}: " + " | ".join(norm))
+        continue
     cls = f.get("journey_class", "")
     lo = int(re.findall(r"\d+", f.get("depth_range", "[1, 1]"))[0])
     ch = flow_list(f.get("default_channels", "[email]"))[0]

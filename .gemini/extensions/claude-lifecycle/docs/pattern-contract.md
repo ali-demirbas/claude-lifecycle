@@ -18,7 +18,7 @@ Existing keys stay: `name, stage, trigger_type, required_events, optional_events
 
 List items are plain strings with no `: ` inside them (the frontmatter must parse as YAML).
 
-Normalization (checked by `validate.sh`): channel names use the schema vocabulary (`email`, `push`, `sms`, `in_app`, `whatsapp`); `mutually_exclusive_with` is always present (`[]` when none); `reentry.cooldown` appears only with `policy: after_cooldown` and is a non-negative duration in days/weeks (no months or years: a yearly date recurs through its attribute anchor and `each_trigger`, not through a cooldown).
+Normalization (checked by `scripts/tests/instantiate_patterns.py`): channel names use the schema vocabulary (`email`, `push`, `sms`, `in_app`, `whatsapp`); `mutually_exclusive_with` is always present (`[]` when none); `reentry.cooldown` appears only with `policy: after_cooldown` and is a non-negative duration in days/weeks (no months or years: a yearly date recurs through its attribute anchor and `each_trigger`, not through a cooldown).
 
 ## Body sections (exact headings, in this order)
 

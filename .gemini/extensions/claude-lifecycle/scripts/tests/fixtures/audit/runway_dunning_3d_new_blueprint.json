@@ -1,0 +1,149 @@
+{
+ "schema_version": "2.0",
+ "id": "saas-payment-failure-01",
+ "version": "1.0.0",
+ "journey_class": "transactional",
+ "name": "Winback",
+ "pattern": "payment-failure",
+ "stage": "revenue",
+ "priority": "P0",
+ "data_tier": "T2",
+ "dqs": 55,
+ "depth_class": "standard",
+ "objective": "Bring lapsed buyers back to a second purchase.",
+ "constraints": {
+  "allowed_channels": [
+   "email",
+   "sms",
+   "in_app"
+  ],
+  "max_discount_pct": 15
+ },
+ "trigger": {
+  "type": "segment_entry",
+  "value": "lapsed_buyers"
+ },
+ "audience": {
+  "include": "bought before, no purchase in 2x median gap",
+  "exclude": [
+   "open refund"
+  ]
+ },
+ "events_available": [
+  "purchase",
+  "email_unsubscribe",
+  "consent_withdrawn",
+  "link_click",
+  "add_to_cart",
+  "trial_end",
+  "feature_used",
+  "subscription_start",
+  "payment_failed",
+  "payment_succeeded",
+  "grace_end_date",
+  "add_payment_info"
+ ],
+ "exit": {
+  "success_event": "payment_succeeded",
+  "success_window": "P3D",
+  "exit_conditions": [
+   {
+    "event": "payment_succeeded",
+    "source": "authoritative",
+    "check": [
+     "entry",
+     "before_each_send"
+    ],
+    "same_instance": true
+   }
+  ]
+ },
+ "reentry": {
+  "policy": "after_cooldown",
+  "cooldown": "P90D",
+  "on_duplicate_trigger": "ignore"
+ },
+ "start": "entry",
+ "nodes": [
+  {
+   "id": "entry",
+   "kind": "entry",
+   "next": "s1"
+  },
+  {
+   "id": "s1",
+   "kind": "message",
+   "channel": "email",
+   "purpose": "transactional",
+   "send": {
+    "from": "entry",
+    "offset": "PT1H"
+   },
+   "next": "b1",
+   "intent": "email s1"
+  },
+  {
+   "id": "b1",
+   "kind": "message",
+   "channel": "in_app",
+   "purpose": "transactional",
+   "send": {
+    "from": "entry",
+    "offset": "PT1H"
+   },
+   "delivery": {
+    "mode": "next_session",
+    "expires_after": "P3D"
+   },
+   "next": "s3",
+   "intent": "in_app b1"
+  },
+  {
+   "id": "s3",
+   "kind": "message",
+   "channel": "sms",
+   "purpose": "transactional",
+   "send": {
+    "from": "attribute",
+    "attribute": "grace_end_date",
+    "offset": "-P2D"
+   },
+   "delivery": {
+    "mode": "scheduled",
+    "quiet_hours": "delay",
+    "deadline": {
+     "from": "attribute",
+     "attribute": "grace_end_date",
+     "offset": "-P1D"
+    }
+   },
+   "next": "done",
+   "intent": "sms s3"
+  },
+  {
+   "id": "done",
+   "kind": "exit",
+   "reason": "completed",
+   "outcome": "neutral"
+  }
+ ],
+ "kpis": [
+  {
+   "name": "Incremental repurchase",
+   "type": "primary",
+   "definition": "purchase rate exposed minus control"
+  },
+  {
+   "name": "Unsubscribe rate",
+   "type": "guardrail",
+   "definition": "unsubscribes / delivered"
+  }
+ ],
+ "readiness": "ready",
+ "instance_key": "invoice_id",
+ "time_anchors": {
+  "grace_end_date": {
+   "relative_to_entry": "P3D"
+  }
+ }
+}

@@ -46,7 +46,7 @@ Refinements to how caps are applied:
 
 ## Closed channels and re-permission
 
-A channel the user closed (unsubscribed, opted out, withdrew consent) stays closed. A journey never reopens it on its own and never treats "the channel is technically still deliverable" as permission. Re-permission is a separate thing: the user actively grants consent again, recorded by an authoritative consent event, and only after that event may the channel be used, and only for what was granted. A re-permission request itself goes out on a channel that is still open. In the journey JSON, a closed channel is listed in `constraints.withdrawn_channels`; the validator fails any send on it that isn't preceded on the same path by an authoritative consent-granted decision.
+A channel the user closed (unsubscribed, opted out, withdrew consent) stays closed. A journey never reopens it on its own and never treats "the channel is technically still deliverable" as permission. Re-permission is a separate thing: the user actively grants consent again, recorded by an authoritative consent event, and only after that event may the channel be used, and only for what was granted. A re-permission request itself goes out on a channel that is still open. In the journey JSON, a closed channel is listed in `constraints.withdrawn_channels`; the validator fails any send on it that isn't preceded on the same path by an authoritative consent-granted decision **for that channel** (`signal.channel`, or the channel in the event name). A grant for another channel, a grant that names no channel, and an unsubscribe or withdrawal event never reopen it.
 
 ## Quiet hours
 

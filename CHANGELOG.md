@@ -43,6 +43,21 @@ Planned as 0.3.0. Not released yet: the acceptance tests pass, and the before/af
   - Journeys built while a correctness fact is still missing are delivered as drafts, separate from journeys ready to implement.
 - **Copy has two named modes:** full, and quick draft (P0 only, one review pass, labelled as a draft). The mode is never switched silently.
 
+### Fixed — closure evidence for the external review
+
+The fixes are now proven per finding, not by the suite's pass count. `docs/audit/0.3.0-closure-evidence.md` lists, for every finding, the changed files, the fixed behavior, the regression test and whether that test fails on the pre-fix code. Writing it surfaced gaps, now fixed:
+
+- **Withdrawn channels (A02).** A re-grant used to reopen every withdrawn channel, and an unsubscribe or withdrawal event counted as a grant. A channel now reopens only after a positive, authoritative grant for that same channel (new optional `signal.channel`).
+- **Review gating (A01)** is checked in code: a review request reached by only some branches of a score decision fails.
+- **Short trials and short dunning grace (A03, A04).**
+  - The patterns' short shapes failed their own `depth_range`; the lower bounds are now 1 and 2.
+  - The trial end range is scoped to the runway band the journey is built for.
+  - Runway fixtures for each band are in the suite.
+- **The SQL regression test (A18)** now runs the doc's own SQL, so a regression in the doc fails it.
+- **Pattern normalization (A25).** Channel names and the cooldown form are actually checked, as the contract said they were.
+- **New tests for A20 and A32.** `reliability: partial` and `activation unverified` are accepted; two runs started in the same second get distinct ids.
+- **The canvas default holdout tip** no longer states the "~200 conversions" rule (A15).
+
 ### Changed — single-journey path and run bookkeeping in code (speed and tokens, not yet measured)
 
 - **Single-journey path.** "Just the abandoned-cart journey" now builds that journey, not a portfolio, and the output says that portfolio coverage and other journeys' eligibility were not reviewed. Every correctness check still runs:

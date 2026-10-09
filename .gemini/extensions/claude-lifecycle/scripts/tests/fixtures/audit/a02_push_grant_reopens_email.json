@@ -1,0 +1,216 @@
+{
+ "schema_version": "2.0",
+ "id": "ecom-winback-01",
+ "version": "1.0.0",
+ "journey_class": "marketing",
+ "name": "Winback",
+ "pattern": "winback",
+ "stage": "winback",
+ "priority": "P0",
+ "data_tier": "T2",
+ "dqs": 55,
+ "depth_class": "standard",
+ "objective": "Bring lapsed buyers back to a second purchase.",
+ "constraints": {
+  "allowed_channels": [
+   "email",
+   "push"
+  ],
+  "withdrawn_channels": [
+   "email"
+  ]
+ },
+ "trigger": {
+  "type": "segment_entry",
+  "value": "lapsed_buyers"
+ },
+ "audience": {
+  "include": "bought before, no purchase in 2x median gap",
+  "exclude": [
+   "open refund"
+  ]
+ },
+ "events_available": [
+  "purchase",
+  "push_consent_granted",
+  "link_click",
+  "trial_end",
+  "push_opt_out",
+  "add_to_cart",
+  "consent_granted",
+  "email_unsubscribe",
+  "feature_used",
+  "subscription_start",
+  "consent_withdrawn"
+ ],
+ "exit": {
+  "success_event": "purchase",
+  "success_window": "P30D",
+  "exit_conditions": [
+   {
+    "event": "purchase",
+    "source": "authoritative",
+    "check": [
+     "entry",
+     "before_each_send"
+    ]
+   },
+   {
+    "event": "push_opt_out",
+    "source": "authoritative",
+    "check": [
+     "before_each_send"
+    ],
+    "scope": "channel",
+    "channel": "push"
+   },
+   {
+    "event": "email_unsubscribe",
+    "source": "authoritative",
+    "check": [
+     "before_each_send"
+    ],
+    "scope": "channel",
+    "channel": "email"
+   }
+  ]
+ },
+ "reentry": {
+  "policy": "after_cooldown",
+  "cooldown": "P90D",
+  "on_duplicate_trigger": "ignore"
+ },
+ "measurement": {
+  "design": "holdout",
+  "primary_outcome": {
+   "event": "purchase",
+   "window": "P30D"
+  },
+  "holdout": {
+   "pct": 10,
+   "assignment": {
+    "unit": "user",
+    "consistent": true,
+    "method": "hash(user_id)"
+   },
+   "control_excludes": [
+    "all sends in this journey"
+   ]
+  },
+  "routine_comms": [
+   {
+    "name": "transactional order emails",
+    "both_groups": true
+   }
+  ],
+  "contamination_risks": [
+   "users also in browse-abandonment"
+  ],
+  "volume_note": "~400 entrants/month: detects only large lifts in one month"
+ },
+ "start": "entry",
+ "nodes": [
+  {
+   "id": "entry",
+   "kind": "entry",
+   "next": "p0"
+  },
+  {
+   "id": "p0",
+   "kind": "message",
+   "channel": "push",
+   "purpose": "marketing",
+   "intent": "push p0",
+   "send": {
+    "from": "entry",
+    "offset": "P0D"
+   },
+   "next": "p1"
+  },
+  {
+   "id": "p1",
+   "kind": "message",
+   "channel": "push",
+   "purpose": "marketing",
+   "intent": "push p1",
+   "send": {
+    "from": "entry",
+    "offset": "P2D"
+   },
+   "next": "d1"
+  },
+  {
+   "id": "d1",
+   "kind": "decision",
+   "signal": {
+    "type": "event",
+    "name": "push_consent_granted",
+    "source": "authoritative"
+   },
+   "window": {
+    "from": {
+     "from": "entry",
+     "offset": "P0D"
+    },
+    "to": {
+     "from": "entry",
+     "offset": "P3D"
+    }
+   },
+   "branches": [
+    {
+     "when": "occurred",
+     "next": "e1"
+    },
+    {
+     "when": "not_occurred",
+     "next": "p2"
+    }
+   ],
+   "unmeasurable": "p2"
+  },
+  {
+   "id": "e1",
+   "kind": "message",
+   "channel": "email",
+   "purpose": "marketing",
+   "intent": "email e1",
+   "send": {
+    "from": "entry",
+    "offset": "P4D"
+   },
+   "next": "done"
+  },
+  {
+   "id": "p2",
+   "kind": "message",
+   "channel": "push",
+   "purpose": "marketing",
+   "intent": "push p2",
+   "send": {
+    "from": "entry",
+    "offset": "P4D"
+   },
+   "next": "done"
+  },
+  {
+   "id": "done",
+   "kind": "exit",
+   "reason": "completed",
+   "outcome": "neutral"
+  }
+ ],
+ "kpis": [
+  {
+   "name": "Incremental repurchase",
+   "type": "primary",
+   "definition": "purchase rate exposed minus control"
+  },
+  {
+   "name": "Unsubscribe rate",
+   "type": "guardrail",
+   "definition": "unsubscribes / delivered"
+  }
+ ],
+ "readiness": "ready"
+}

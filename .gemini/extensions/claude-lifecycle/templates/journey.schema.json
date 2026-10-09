@@ -269,6 +269,10 @@
             "bot_filtered": {
               "type": "boolean",
               "description": "Clicks only: whether security-scanner/bot clicks are filtered before this decision reads them"
+            },
+            "channel": {
+              "$ref": "#/$defs/channel",
+              "description": "Consent signals only: the channel this consent decision is about. A re-grant reopens only this channel; a grant that names no channel reopens nothing."
             }
           }
         },

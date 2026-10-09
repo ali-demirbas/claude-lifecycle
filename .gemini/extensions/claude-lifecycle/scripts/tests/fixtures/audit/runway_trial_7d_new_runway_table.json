@@ -1,0 +1,196 @@
+{
+ "schema_version": "2.0",
+ "id": "saas-trial-conversion-01",
+ "version": "1.0.0",
+ "journey_class": "marketing",
+ "name": "Winback",
+ "pattern": "trial-conversion",
+ "stage": "revenue",
+ "priority": "P0",
+ "data_tier": "T2",
+ "dqs": 55,
+ "depth_class": "standard",
+ "objective": "Bring lapsed buyers back to a second purchase.",
+ "constraints": {
+  "allowed_channels": [
+   "email",
+   "push",
+   "in_app"
+  ],
+  "max_discount_pct": 15
+ },
+ "trigger": {
+  "type": "event",
+  "value": "trial_start"
+ },
+ "audience": {
+  "include": "bought before, no purchase in 2x median gap",
+  "exclude": [
+   "open refund"
+  ]
+ },
+ "events_available": [
+  "purchase",
+  "email_unsubscribe",
+  "consent_withdrawn",
+  "link_click",
+  "add_to_cart",
+  "trial_end",
+  "feature_used",
+  "subscription_start",
+  "trial_start"
+ ],
+ "exit": {
+  "success_event": "subscription_start",
+  "success_window": "P7D",
+  "exit_conditions": [
+   {
+    "event": "subscription_start",
+    "source": "authoritative",
+    "check": [
+     "entry",
+     "before_each_send"
+    ]
+   },
+   {
+    "event": "consent_withdrawn",
+    "source": "authoritative",
+    "check": [
+     "entry",
+     "before_each_send"
+    ]
+   }
+  ]
+ },
+ "reentry": {
+  "policy": "after_cooldown",
+  "cooldown": "P90D",
+  "on_duplicate_trigger": "ignore"
+ },
+ "measurement": {
+  "design": "holdout",
+  "primary_outcome": {
+   "event": "subscription_start",
+   "window": "P7D"
+  },
+  "holdout": {
+   "pct": 10,
+   "assignment": {
+    "unit": "user",
+    "consistent": true,
+    "method": "hash(user_id)"
+   },
+   "control_excludes": [
+    "all sends in this journey"
+   ]
+  },
+  "routine_comms": [
+   {
+    "name": "transactional order emails",
+    "both_groups": true
+   }
+  ],
+  "contamination_risks": [
+   "users also in browse-abandonment"
+  ],
+  "volume_note": "~400 entrants/month: detects only large lifts in one month"
+ },
+ "start": "entry",
+ "nodes": [
+  {
+   "id": "entry",
+   "kind": "entry",
+   "next": "s1"
+  },
+  {
+   "id": "s1",
+   "kind": "message",
+   "channel": "email",
+   "purpose": "marketing",
+   "send": {
+    "from": "entry",
+    "offset": "PT1H"
+   },
+   "next": "s2",
+   "intent": "email s1"
+  },
+  {
+   "id": "s2",
+   "kind": "message",
+   "channel": "in_app",
+   "purpose": "marketing",
+   "send": {
+    "from": "entry",
+    "offset": "P1D"
+   },
+   "delivery": {
+    "mode": "next_session",
+    "expires_after": "P1D"
+   },
+   "next": "s3",
+   "intent": "in_app s2"
+  },
+  {
+   "id": "s3",
+   "kind": "message",
+   "channel": "email",
+   "purpose": "marketing",
+   "send": {
+    "from": "entry",
+    "offset": "P2D"
+   },
+   "next": "s5",
+   "intent": "email s3"
+  },
+  {
+   "id": "s5",
+   "kind": "message",
+   "channel": "email",
+   "purpose": "marketing",
+   "send": {
+    "from": "event",
+    "event": "trial_end",
+    "offset": "-P3D"
+   },
+   "next": "s6",
+   "intent": "email s5"
+  },
+  {
+   "id": "s6",
+   "kind": "message",
+   "channel": "push",
+   "purpose": "marketing",
+   "send": {
+    "from": "event",
+    "event": "trial_end",
+    "offset": "-P1D"
+   },
+   "next": "done",
+   "intent": "push s6"
+  },
+  {
+   "id": "done",
+   "kind": "exit",
+   "reason": "completed",
+   "outcome": "neutral"
+  }
+ ],
+ "kpis": [
+  {
+   "name": "Incremental repurchase",
+   "type": "primary",
+   "definition": "purchase rate exposed minus control"
+  },
+  {
+   "name": "Unsubscribe rate",
+   "type": "guardrail",
+   "definition": "unsubscribes / delivered"
+  }
+ ],
+ "time_anchors": {
+  "trial_end": {
+   "relative_to_entry": "P7D"
+  }
+ },
+ "readiness": "ready"
+}

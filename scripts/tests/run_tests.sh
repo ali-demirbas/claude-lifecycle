@@ -59,7 +59,7 @@ expect_contains "unknown pattern names the missing file" "has no knowledge/journ
 expect 1 "stage mismatch vs pattern file fails"  python3 "$VO" journey "$FX/bad_stage_journey.json"
 expect_contains "stage mismatch names both stages" "stage 'retention' != trial-conversion.md's own stage 'revenue'" python3 "$VO" journey "$FX/bad_stage_journey.json"
 expect 1 "step count outside pattern's depth_range fails"  python3 "$VO" journey "$FX/bad_depthrange_journey.json"
-expect_contains "depth_range violation names the range" "outside trial-conversion.md's own depth_range [4, 10]" python3 "$VO" journey "$FX/bad_depthrange_journey.json"
+expect_contains "depth_range violation names the range" "outside winback.md's own depth_range [3, 6]" python3 "$VO" journey "$FX/bad_depthrange_journey.json"
 
 echo "== journey doc <-> JSON consistency =="
 expect 0 "matching doc+json passes"                       python3 "$VO" consistency "$FX/good_journey.md" "$FX/good_journey.json"
@@ -277,6 +277,37 @@ expect 0 "A23 shipped copy example passes today's copy rules"                  p
 expect 0 "A18/T16 audience exclusion keeps 'purchase after cart'"               python3 "$DIR/sql_temporal_exclusion.py"
 expect 0 "A25 every pattern instantiates into a valid schema-2.0 journey"       python3 "$DIR/instantiate_patterns.py"
 
+echo "== audit 0.3.0 closure: each fix red on the pre-fix code, green now =="
+AU="$FX/audit"
+expect 1 "A01 review request only on the promoter branch of a score is gating" python3 "$VO" journey "$AU/a01_review_gated_by_score.json"
+expect 0 "A01 review request sent whatever the score passes"                    python3 "$VO" journey "$AU/a01_review_asked_of_everyone.json"
+expect 1 "A02 a push re-grant does not reopen withdrawn email"                  python3 "$VO" journey "$AU/a02_push_grant_reopens_email.json"
+expect 1 "A02 an unsubscribe event is not a re-grant"                           python3 "$VO" journey "$AU/a02_unsubscribe_as_grant.json"
+expect 1 "A02 a withdrawal event is not a re-grant"                             python3 "$VO" journey "$AU/a02_withdraw_as_grant.json"
+expect 1 "A02 a grant naming no channel reopens nothing"                        python3 "$VO" journey "$AU/a02_grant_without_channel.json"
+expect 0 "A02 a grant named for email reopens email on its own path"            python3 "$VO" journey "$AU/a02_grant_named_email.json"
+for d in 30d 7d 3d; do
+expect 0 "A03 trial runway table, $d shape, validates"                         python3 "$VO" journey "$AU/runway_trial_${d}_new_runway_table.json"
+done
+expect 0 "A03 trial under 2 days (s1 only) is inside depth_range"               python3 "$VO" journey "$AU/runway_trial_1d_s1_only_per_pattern.json"
+expect 1 "A03 the 14-day blueprint applied to a 3-day trial runs backwards"     python3 "$VO" journey "$AU/runway_trial_3d_old_literal_blueprint.json"
+for d in 3d 21d; do
+expect 0 "A04 dunning blueprint, $d grace, validates"                          python3 "$VO" journey "$AU/runway_dunning_${d}_new_blueprint.json"
+done
+expect 0 "A04 dunning merged shape (grace < 3 days) is inside depth_range"      python3 "$VO" journey "$AU/runway_dunning_2d_merged_per_pattern.json"
+expect 1 "A04 the old dunning blueprint at 3 days runs backwards"               python3 "$VO" journey "$AU/runway_dunning_3d_old_blueprint.json"
+expect 0 "A20 dossier with reliability partial + activation unverified passes"  python3 "$VO" dossier "$FX/good_dossier_partial.md"
+PD=/tmp/lc_patterns_mut; rm -rf "$PD"; cp -R "$DIR/../../knowledge/journey-patterns" "$PD"
+sed -i.bak 's/^default_channels: \[email, in_app, push\]/default_channels: [email, in-app, push]/' "$PD/trial-conversion.md"
+sed -i.bak 's/^reentry: {policy: each_trigger, on_duplicate_trigger: ignore}/reentry: {policy: each_trigger, cooldown: null, on_duplicate_trigger: ignore}/' "$PD/milestone.md"
+rm -f "$PD"/*.bak
+expect 1 "A25 normalization: 'in-app' in a later channel slot or a stray null cooldown fails" python3 "$DIR/instantiate_patterns.py" "$PD"
+RI=/tmp/lc_runid; rm -rf "$RI"; mkdir -p "$RI"
+expect 0 "A32 two runs started in the same second get distinct ids; the first is archived" bash -c "
+python3 '$DIR/../finalize_run.py' start '$RI' --scope a >/dev/null && a=\$(python3 -c \"import json;print(json.load(open('$RI/run-manifest.json'))['run_id'])\") &&
+python3 '$DIR/../finalize_run.py' start '$RI' --scope a >/dev/null && b=\$(python3 -c \"import json;print(json.load(open('$RI/run-manifest.json'))['run_id'])\") &&
+[ \"\$a\" != \"\$b\" ] && [ -f '$RI/runs/'\$a'/run-manifest.json' ]"
+
 echo "== speed: scripted eligibility and run finalization =="
 SX="$FX/speed"
 expect_contains "eligibility: mapped + usable events -> eligible"            "eligible             P0 abandoned-cart" python3 "$DIR/../eligibility.py" "$SX/smap_cart_ok.json" --pattern abandoned-cart
@@ -302,10 +333,20 @@ expect 1 "finalize finish refuses a failing journey"                         pyt
 expect 0 "...and builds no canvas, manifest status failed"                   python3 -c "import json,os,sys;m=json.load(open('$FR/run-manifest.json'));sys.exit(0 if m['status']=='failed' and not os.path.exists('$FR/canvas.html') else 1)"
 
 echo "== speed: generated schema digest and cross-run cache =="
-expect 0 "measure_run splits stages at Skill calls and counts each API message once" python3 -c "
+expect 0 "measure_run splits at Skill calls; a partial usage line is merged, not added" python3 -c "
 import json,subprocess,sys
 r=json.loads(subprocess.run([sys.executable,'$DIR/../measure_run.py','$FX/speed/transcript.jsonl','--json'],capture_output=True,text=True).stdout)
-m=r['main']; ok=len(m)==2 and m[0]['turns']==1 and m[0]['output_tokens']==10 and m[1]['stage'].endswith('lifecycle-journeys') and m[1]['turns']==3 and m[1]['output_tokens']==90 and m[1]['validator_runs']==1 and m[1]['validator_fails']==2 and m[1]['seconds']==60
+m=r['stages']; ok=r['split']=='skill' and len(m)==2 and m[0]['turns']==1 and m[0]['output_tokens']==10 and m[1]['stage'].endswith('lifecycle-journeys') and m[1]['turns']==3 and m[1]['output_tokens']==90 and m[1]['validator_runs']==1 and m[1]['validator_fails']==2 and m[1]['seconds']==60
+sys.exit(0 if ok else 1)"
+expect 0 "measure_run: no Skill call -> milestone stages; subagent attributed, counted once; reconciles with the CLI result" python3 -c "
+import json,subprocess,sys
+r=json.loads(subprocess.run([sys.executable,'$DIR/../measure_run.py','$FX/speed/ms/session.jsonl','--result','$FX/speed/ms/result.json','--json'],capture_output=True,text=True).stdout)
+st=[s['stage'] for s in r['stages']]; sa=r['subagents'][0]; pm=r['per_model']['claude-haiku-4-5']; rc=r['reconcile']['models'][0]
+ok=(r['split']=='milestone' and st==['start','eligibility','agents'] and r['duplicate_ids_across_files']==1
+    and sa['turns']==1 and sa['parent_stage']=='agents#2' and r['stages'][2]['with_subagents']['output_tokens']==170
+    and pm['turns']==5 and pm['output_tokens']==240 and pm['ephemeral_1h_input_tokens']==400
+    and rc['model']=='claude-haiku-4-5' and all(rc[k][0]==rc[k][1] for k in ('output','cache_read','cache_write','input'))
+    and abs(rc['cost'][0]-rc['cost'][1])<1e-4)
 sys.exit(0 if ok else 1)"
 expect 0 "schema digest keeps every contract field, enum and key condition"   python3 "$DIR/schema_digest_complete.py"
 RC=/tmp/lc_cache; rm -rf "$RC" /tmp/lc_cache_in.csv; mkdir -p "$RC"; cp "$FX/good_input.csv" /tmp/lc_cache_in.csv

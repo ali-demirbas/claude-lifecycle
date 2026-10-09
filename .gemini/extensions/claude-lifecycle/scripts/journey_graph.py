@@ -25,6 +25,20 @@ DUR = re.compile(r"^(-)?P(?!$)(?:(\d+)W|(?:(\d+)D)?(?:T(?=\d)(?:(\d+)H)?(?:(\d+)
 DAY = 86400
 MAX_PATHS = 2000
 CONSENT_EXIT = re.compile(r"consent|unsub|opt_?out|optout|withdraw|izin", re.I)
+CONSENT_GRANT = re.compile(r"consent_?grant|re_?consent|opt_?in|subscribe|izin_?ver", re.I)
+CONSENT_NEGATIVE = re.compile(r"unsub|opt_?out|optout|withdr|revok|denied|declin|reject|iptal|geri_?cek", re.I)
+CHANNEL_TOKENS = {"email": r"e_?mail", "sms": r"sms", "push": r"push", "whatsapp": r"whats_?app|\bwa_", "in_app": r"in_?app"}
+
+
+def granted_channel(sig):
+    """The one channel an authoritative consent grant reopens, or None (not a grant, or no channel named)."""
+    name = str(sig.get("name", ""))
+    if sig.get("source") != "authoritative" or not CONSENT_GRANT.search(name) or CONSENT_NEGATIVE.search(name):
+        return None
+    if sig.get("channel"):
+        return sig["channel"]
+    named = [ch for ch, rx in CHANNEL_TOKENS.items() if re.search(rx, name, re.I)]
+    return named[0] if len(named) == 1 else None
 LEGACY_OPEN = re.compile(r"\bopen(ed|s)?\b|\bnot opened\b|açıl|açmad|açmay|okunmad", re.I)
 MARKETING_PURPOSES = {None, "marketing", "reconsent_request"}
 
@@ -388,9 +402,9 @@ def _analyze_once(doc, inventory=None, window=7 * DAY):
             if n.get("kind") == "decision":
                 sig = n.get("signal") or {}
                 nxt_label = p[idx + 1][1] if idx + 1 < len(p) else None
-                if sig.get("source") == "authoritative" and CONSENT_EXIT.search(str(sig.get("name", ""))) \
-                        and nxt_label == "occurred":
-                    reconsented |= withdrawn
+                gch = granted_channel(sig)
+                if gch and gch in withdrawn and nxt_label == "occurred":
+                    reconsented.add(gch)
             if n.get("kind") == "message":
                 ch = n.get("channel")
                 if allowed and ch not in allowed:
@@ -398,7 +412,8 @@ def _analyze_once(doc, inventory=None, window=7 * DAY):
                             f"(Channel Consent Violation)")
                 if ch in withdrawn and ch not in reconsented:
                     F.error(f"node '{nid}': sends on '{ch}', which the user withdrew; a journey never reopens a "
-                            f"closed channel on its own (route through an authoritative consent_granted decision)")
+                            f"closed channel on its own (route through an authoritative consent-granted decision for "
+                            f"'{ch}' on this path: signal.channel '{ch}', or the channel in the event name)")
                 t = next((t for i2, _, t in tl if i2 == nid), None)
                 dl = (n.get("delivery") or {}).get("deadline")
                 if dl and t is not None:
@@ -413,6 +428,7 @@ def _analyze_once(doc, inventory=None, window=7 * DAY):
         F.unverifiable("some sends have no computable time; frequency is a conservative upper bound "
                        "(unknown-time sends counted inside every window)", critical=False)
     check_decisions(doc, by_id, F)
+    check_review_gating(by_id, F)
     check_exits_and_reentry(doc, by_id, F)
     check_measurement(doc, F)
     check_events(doc, by_id, inventory, F)
@@ -460,6 +476,42 @@ def check_decisions(doc, by_id, F):
             F.error(f"node '{nid}': event/click decisions branch on 'occurred' / 'not_occurred'")
         if st == "attribute" and not n.get("default"):
             F.error(f"node '{nid}': attribute decision has no 'default' route for values no branch matches")
+
+
+SCORE_SIGNAL = re.compile(r"nps|csat|ces\b|score|rating|satisf|sentiment|memnuniyet|puan", re.I)
+REVIEW_ASK = re.compile(r"review|store rating|rating prompt|app ?store|play ?store|trustpilot|google (my business|maps)|"
+                        r"değerlendirme|yorum (yap|bırak|yaz)|puan ver", re.I)
+
+
+def check_review_gating(by_id, F):
+    """A public/store review request must not depend on the satisfaction score (review gating):
+    if some branches of a score decision lead to a review request and others don't, that is gating.
+    The review request is recognised from the message's `intent` text."""
+    def reaches_review(start, seen):
+        stack = [start]
+        while stack:
+            nid = stack.pop()
+            if nid in seen or nid not in by_id:
+                continue
+            seen.add(nid)
+            n = by_id[nid]
+            if n.get("kind") == "message" and REVIEW_ASK.search(str(n.get("intent", ""))):
+                return nid
+            stack.extend(t for _, t in successors(n))
+        return None
+    for nid, n in by_id.items():
+        if n.get("kind") != "decision":
+            continue
+        names = [str(m.get("name", "")) for m in signal_members(n.get("signal") or {})]
+        if not any(SCORE_SIGNAL.search(x) for x in names):
+            continue
+        hits = {label: reaches_review(target, set()) for label, target in successors(n)}
+        with_review = sorted(f"{lbl} → {hit}" for lbl, hit in hits.items() if hit)
+        without = sorted(str(lbl) for lbl, hit in hits.items() if not hit)
+        if with_review and without:
+            F.error(f"decision '{nid}' reads a satisfaction score ({', '.join(names)}) and only some branches lead to "
+                    f"a review request ({'; '.join(with_review)}; not: {', '.join(without)}). That is review gating: "
+                    f"ask everyone or no one, and keep the score for routing private follow-up")
 
 
 def check_exits_and_reentry(doc, by_id, F):

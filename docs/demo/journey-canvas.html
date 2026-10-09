@@ -543,7 +543,7 @@ function escapeHtml(s) {
 // with this project's own holdout-feasibility and data-provenance notes;
 // keep the tip()/plain-string shape (parsed by scripts/validate_output.py
 // check_canvas via the "const HOLDOUT_TIP"/"const DATA_NOTE" line prefix) ---
-const HOLDOUT_TIP = tip("Holdout: not feasible at this data size", "A trustworthy lift read needs roughly 200 control-group conversions. At this volume that takes months, so impact is tracked through leading indicators such as first-lesson completion within 72 hours.");
+const HOLDOUT_TIP = tip("Holdout: not feasible at this data size", "The sample a lift read needs depends on the expected effect and the base rate (a power/MDE calculation); at this volume it would take months, so impact is tracked through leading indicators such as first-lesson completion within 72 hours.");
 
 const DATA_NOTE = "Data note: segment sizes and thresholds are computed from the sample dataset; message steps are design decisions on edtech practice, to be validated live through leading indicators.";
 // --- SWAPPABLE end ---

@@ -543,7 +543,7 @@ function escapeHtml(s) {
 // with this project's own holdout-feasibility and data-provenance notes;
 // keep the tip()/plain-string shape (parsed by scripts/validate_output.py
 // check_canvas via the "const HOLDOUT_TIP"/"const DATA_NOTE" line prefix) ---
-const HOLDOUT_TIP = tip("Kontrol grubu: bu veri boyutunda kurulamaz", "Güvenilir bir etki ölçümü için kontrol grubunda yaklaşık 200 dönüşüm gerekir; 40 hesapta bu mümkün değil. Etki, erken sinyallerle izlenir (örn. 30 gün içinde kullanımın normale dönmesi).");
+const HOLDOUT_TIP = tip("Kontrol grubu: bu veri boyutunda kurulamaz", "Gereken örneklem, beklenen etki büyüklüğüne ve temel orana bağlı (güç/MDE hesabı); 40 hesapla anlamlı bir fark ölçülemez. Etki, erken sinyallerle izlenir (örn. 30 gün içinde kullanımın normale dönmesi).");
 
 const DATA_NOTE = "Veri notu: eşikler, segment büyüklükleri ve hesap örnekleri bu veri setinden; mesaj adımları sektör pratiği üzerine tasarım ve canlıda öncü göstergelerle doğrulanmalı.";
 // --- SWAPPABLE end ---
@@ -791,8 +791,8 @@ const JOURNEYS = [
   {
     id: "nps-loop", skill: "feedback-nps", label: "NPS Döngüsü", purpose: "nps_response → promoter/pasif/detractor yolları",
     segment: "12 NPS yanıtı: 7 promoter (skor 9), 3 pasif (skor 6), 2 detractor (skor 4-5). Detractor'lar: ACC-1014 (10.280 MRR, renewal 30 gün!) ve ACC-1034",
-    goal: "Promoter'dan referral/review, detractor'dan insan çözümü; pasife kampanya değil gözlem",
-    primaryMetric: "Detractor çözüm oranı + promoter davet dönüşümü (store kotaları israf edilmeden)",
+    goal: "Promoter'dan referral, detractor'dan insan çözümü; pasife kampanya değil gözlem",
+    primaryMetric: "Detractor çözüm oranı + promoter referral dönüşümü",
     root: {
       kind: "entry", tag: "Giriş Kuralları", title: "nps_response event'i",
       rows: [
@@ -805,8 +805,8 @@ const JOURNEYS = [
         rows: [{ icon: "filter", html: "9-10 promoter · 7-8 pasif · ≤6 detractor" }],
         children: [
           { label: "9-10 · Promoter", node: {
-            kind: "message", tag: "In-app → Promoter", title: "Referral / review daveti",
-            rows: [{ icon: "bell", html: "Tenure + başarı anı kapısı; iOS SKStoreReviewController 3 prompt/365 gün — kota israf edilmez, sentiment zaten pozitif" }],
+            kind: "message", tag: "In-app → Promoter", title: "Referral daveti",
+            rows: [{ icon: "bell", html: "Tenure + başarı anı kapısı. Store değerlendirme isteği skora bağlanmaz (review gating yok): istenecekse yanıt veren herkese aynı kuralla gider" }],
             children: [{ label: null, node: { kind: "exit", exit: "good", title: "Davet gitti; 60-90 gün cooldown" } }]
           } },
           { label: "7-8 · Pasif", node: {

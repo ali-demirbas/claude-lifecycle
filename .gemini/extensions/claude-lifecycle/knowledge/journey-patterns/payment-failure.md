@@ -9,7 +9,7 @@ required_attributes: [failure_reason]
 optional_attributes: [retry_schedule, plan_name, payment_method_type, charged_payment_method, grace_end_date]
 default_channels: [email, sms, in_app]
 base_steps: 4
-depth_range: [3, 6]
+depth_range: [2, 6]
 applicable_industries: [saas, subscription-media, fintech, mobile-app, insurance, edtech]
 mutually_exclusive_with: []
 signal_sources: {payment_failed: authoritative, payment_succeeded: authoritative, failure_reason: authoritative, payment_status_unknown: authoritative, add_payment_info: authoritative, subscription_cancel: authoritative, access_suspended: authoritative, access_restored: authoritative, retry_schedule: authoritative, charged_payment_method: authoritative, grace_end_date: authoritative, login: behavioral}
@@ -74,7 +74,7 @@ Depth is bounded by the grace period, not by DQS ambition: every step must land 
 
 ## Step blueprint (standard, 4 sends)
 
-**Time anchors.** `grace_end_date: entry +7d … +21d` (typical billing configs), read from the billing system at send time, never computed once at entry: a grace extension or an early suspension moves the final notice with it. Shorter grace periods follow the compression rule below.
+**Time anchors.** `grace_end_date: entry +7d … +21d` (typical billing configs), read from the billing system at send time, never computed once at entry: a grace extension or an early suspension moves the final notice with it. That range covers the standard shape; a grace shorter than 7 days is built as its own JSON with its own range and the compression rule below (the merged shape for grace under about 3 days has two sends, s1 and b1, which is why `depth_range` starts at 2).
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|

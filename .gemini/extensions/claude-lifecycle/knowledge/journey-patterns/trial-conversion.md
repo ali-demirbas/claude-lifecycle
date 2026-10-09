@@ -8,7 +8,7 @@ required_attributes: [trial_length]
 optional_attributes: [plan_name, trial_end_date, activation_score]
 default_channels: [email, in_app, push]
 base_steps: 6
-depth_range: [4, 10]
+depth_range: [1, 10]
 applicable_industries: [saas, subscription-media, mobile-app, fintech, edtech]
 mutually_exclusive_with: []
 journey_class: marketing
@@ -28,7 +28,7 @@ measurement_default: holdout
 
 Convert trial users into paying subscribers before the trial expires. The P0 journey for any subscription business: the entire monetizable audience passes through it, and it is strictly time-boxed. Every send must land inside `trial_length`, so the sequence compresses or stretches with the trial, not with marketing appetite. The core mechanic is branching on **activation depth**: users who reached value (`feature_used` on core features) get a confident conversion ask; users who never activated get help, because selling to someone who hasn't experienced the product converts poorly and churns fast.
 
-**Time anchors.** Early sends are anchored to `trial_start`; the closing sends are anchored to `trial_end`, declared as a range relative to entry (`trial_end: entry +2d … +30d`) and **re-read from the billing system's `trial_end_date` at each send**, never computed once at entry. Only when billing holds no end date is it derived as `trial_start + trial_length`, and marked so. On the main path `trial_start` = entry.
+**Time anchors.** Early sends are anchored to `trial_start`; the closing sends are anchored to `trial_end`, declared as a range relative to entry that covers **only the runway band this journey JSON is built for** (`trial_end: entry +14d … +30d` for the standard shape, `entry +7d … +13d` for the 7–13-day shape; one JSON per band when trial lengths vary, because the graph can't express a node that exists only at some runways and a wider range is reported unverifiable at its short end) and **re-read from the billing system's `trial_end_date` at each send**, never computed once at entry. Only when billing holds no end date is it derived as `trial_start + trial_length`, and marked so. On the main path `trial_start` = entry.
 
 ## Required-event signature
 
@@ -102,6 +102,8 @@ The runway is `trial_end - trial_start`, with `trial_end` read from billing. Off
 | 4–6 days | Simple shape: no d1/d2/s3, no s4. s1 d0 · s2 (in-app nudge, no decision) at `trial_start +1d` · s5 at `trial_end -2d` · d3/s6 at `trial_end -1d`. For 4 days: s1 d0 · s2 d1 · s5 d2 · s6 d3. |
 | 2–3 days | s5 merged into s1: the welcome states the end date, the price and what happens at the end. s2 at `trial_start +1d` only when it lands at least 12h before s6; s6b at `trial_end -1d`. For 3 days: s1 d0 · s2 d1 · s6b d2. |
 | under 2 days | s1 only, carrying the date and price. |
+
+The 2–3-day and under-2-day shapes have fewer sends than the standard one; `depth_range` starts at 1 for that reason, not as a target.
 
 **Extended trial.** Because the closing anchors are re-read at send time, an extension moves s4, s5 and s6 to the new `trial_end` without restarting anything. Sent nodes are not repeated, except that s5 is re-sent at the new `trial_end -3d` if it had already gone out with the old date (a correction, stated as such). A node whose turn in the chain has passed is not revived: if s5 was sent before the extension, s4 is dropped rather than arriving after it. The runway band is recomputed from the new length for the nodes still to come. A shortened trial follows the same rule in reverse: nodes that would fall after the new `trial_end` are dropped, and s5 is never skipped while there is still a day before the end.
 

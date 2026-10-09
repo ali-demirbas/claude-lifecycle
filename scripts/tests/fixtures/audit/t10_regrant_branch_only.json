@@ -145,7 +145,8 @@
       "signal": {
         "type": "event",
         "name": "consent_granted",
-        "source": "authoritative"
+        "source": "authoritative",
+        "channel": "email"
       },
       "window": {
         "from": {
