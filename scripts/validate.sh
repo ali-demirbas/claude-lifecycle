@@ -235,8 +235,11 @@ for dirpath, dirs, files in os.walk('.'):
     # .claude/worktrees/ is a second copy of this same tree, so every file in
     # it gets reported twice — and its stale copy of a file fails on a defect
     # already fixed in the real one.
+    # evals/out/ (run outputs) and _bundle/ (generated copies of knowledge files,
+    # whose relative links point into the repo) are gitignored artifacts, not docs
     dirs[:] = [d for d in dirs
-               if d not in ('.git', 'node_modules', 'output')
+               if d not in ('.git', 'node_modules', 'output', '_bundle')
+               and os.path.join(dirpath, d) != './evals/out'
                and not os.path.exists(os.path.join(dirpath, d, '.git'))]
     for fn in files:
         if not fn.endswith('.md'):

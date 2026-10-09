@@ -5,7 +5,7 @@ description: Map tracked events to lifecycle stages (acquisition/activation/enga
 metadata:
   version: 0.2.0
   category: data
-  updated: 2026-08-14
+  updated: 2026-10-09
 ---
 
 # Lifecycle Map — Event → Stage Mapping
@@ -36,6 +36,7 @@ Turn the event inventory from `lifecycle-connect` into a stage map and funnel sk
 3. **Unmapped events** — asked or pending, including any `unclassified-vertical` events.
 4. **Stage coverage summary** — six stages, events per stage, and the **blind stages** (zero events) called out explicitly. Blind stages are a first-class finding: they directly limit the journey portfolio. One summary per vertical for multi-vertical brands — a blind stage in one product line shouldn't be hidden by coverage in another.
 5. **Funnel skeleton** — ordered steps with events, plus a Mermaid `flowchart LR` of the funnel. One funnel per vertical for multi-vertical brands.
+6. **`output/<project>/stage-map.json`** (machine-facing; read by `scripts/eligibility.py` and the cache): `{tier, sector, events: [{name, stage, mapping: mapped|assumed|unmapped, source, usable: true|false|null, note?}], attributes: [{name, available: true|false|null, note?}]}`. `usable` is `true` only when the event's required params were actually checked and are populated, `false` when they were checked and are mostly missing (say which in `note`), and `null` when they couldn't be checked (aggregate input). Never set `true` because the event name exists; an unchecked event is `null`, which makes the patterns that need it `unknown`, not eligible.
 
 ## Common Pitfalls
 

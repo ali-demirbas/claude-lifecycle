@@ -1,0 +1,1 @@
+{"tier": "T2", "sector": "ecommerce", "events": [{"name": "add_to_cart", "stage": "x", "mapping": "mapped", "source": "behavioral", "usable": true}, {"name": "purchase", "stage": "x", "mapping": "mapped", "source": "authoritative", "usable": true}], "attributes": []}

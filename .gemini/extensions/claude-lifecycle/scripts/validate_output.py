@@ -6,7 +6,9 @@ they reach the user. Compliance-class violations are hard failures (exit 1):
 the engine must stop and report, never silently self-correct.
 
 Usage:
-  validate_output.py journey <file.json> [...]        journey JSON: schema + business rules
+  validate_output.py journey <file.json> [...] [--timeline] [--quiet]
+                                                      journey JSON: schema + business rules;
+                                                      --timeline adds one line per path; --quiet hides ok lines
   validate_output.py copy <copy.md> [...] [--max-discount N] [--sector SLUG]
                                                       copy doc: recount chars, limits, em-dash,
                                                       discount ceiling, candidate banned/spam terms
@@ -142,8 +144,12 @@ def load_default_caps():
     return caps
 
 
+QUIET = False
+
+
 def ok(msg):
-    print(f"  ok: {msg}")
+    if not QUIET:
+        print(f"  ok: {msg}")
 
 
 def channel_rule_src(channel):
@@ -362,6 +368,26 @@ def check_journey_v2(path, doc, pattern_fm, inventory=None, report=True):
             ok(f"schema 2.0 · {doc.get('readiness', '?')}: {len(res['paths'])} path(s), max {res['max_msgs_on_path']} sends on a path, "
                f"worst 7-day load {dict(sorted(res['freq'].items()))}")
     return res
+
+
+def compact_timeline(path):
+    """One line per path, findings not repeated (they were reported by the check)."""
+    try:
+        doc = json.load(open(path, encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return
+    if not jg.is_v2(doc):
+        return
+    res = jg.analyze(doc, window=_caps_window())
+    seen = set()
+    for i, tl in enumerate(res["timelines"], 1):
+        line = " ".join(f"{nid}@{jg.fmt(t)}" + (f"({res['by_id'][nid].get('channel')})"
+                        if res["by_id"][nid].get("kind") == "message" else "")
+                        for nid, _, t in tl if res["by_id"][nid].get("kind") in ("message", "decision"))
+        if line not in seen:
+            seen.add(line)
+            print(f"  path {i}: {line}")
+    print(f"  worst rolling 7-day load: {dict(sorted(res['freq'].items()))}")
 
 
 def print_timeline(path):
@@ -987,6 +1013,9 @@ def check_portfolio(path):
         fail(f"{path}: no journeys in registry")
         return
     v2p = doc.get("schema_version") == "2.0"
+    if doc.get("scope") == "single":
+        unverifiable(f"{path}: single-journey run: other journeys' eligibility and portfolio coverage were not "
+                     f"reviewed (frequency is still checked against declared existing journeys)", critical=False)
     base_dir = os.path.dirname(os.path.abspath(path))
     inventory = doc.get("events_available")
 
@@ -1340,7 +1369,11 @@ def main(argv):
     if len(argv) < 2:
         print(__doc__)
         return 2
+    global QUIET
     mode, rest = argv[0], argv[1:]
+    if "--quiet" in rest:
+        QUIET = True
+        rest = [r for r in rest if r != "--quiet"]
     max_discount = None
     if "--max-discount" in rest:
         i = rest.index("--max-discount")
@@ -1353,8 +1386,12 @@ def main(argv):
         rest = rest[:i] + rest[i + 2 :]
 
     if mode == "journey":
+        show_timeline = "--timeline" in rest
+        rest = [r for r in rest if r != "--timeline"]
         for p in rest:
             check_journey(p)
+            if show_timeline:
+                compact_timeline(p)
     elif mode == "copy":
         for p in rest:
             check_copy(p, max_discount, sector)

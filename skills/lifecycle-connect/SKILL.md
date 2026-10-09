@@ -18,6 +18,10 @@ Establish what data exists and how much journey sophistication it can support. O
 - **The question is what an event means or how the funnel looks**, not how much the data is worth — that's `lifecycle-map`, which consumes this skill's output rather than producing it.
 - **The user has performance or holdout results from a journey that already launched** — that's `lifecycle-results`. This skill scores input data quality; it has nothing to do with campaign outcomes.
 
+## Step 0 — Reuse an unchanged assessment
+
+For a file input, first run `python3 scripts/run_cache.py lookup output/<project>/_cache --input <file> --sector <sector> [--brand <brand>]`. The key covers the file, the profiling/mapping code, the taxonomy and DQS rules, every pattern and the schema, the sector playbook/lexicon and the brand config. On a hit, reuse its data assessment and `stage-map.json`, and present them as **"cached assessment from run <id>"**, never as freshly validated. Even on a hit, re-check what the cache never holds: current consent and opt-outs per channel, active campaigns and existing journeys, and whether the feed is still current. After `lifecycle-map` finishes a fresh assessment, store it: `run_cache.py store ... --run-id <id> --files data-assessment.md stage-map.json`. Live (T1) pulls are not cached: the data itself moves.
+
 ## Step 1 — Identify the source (tier)
 
 | Tier | Detection | Action |

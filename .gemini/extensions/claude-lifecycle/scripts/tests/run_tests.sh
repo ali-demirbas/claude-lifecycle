@@ -277,6 +277,46 @@ expect 0 "A23 shipped copy example passes today's copy rules"                  p
 expect 0 "A18/T16 audience exclusion keeps 'purchase after cart'"               python3 "$DIR/sql_temporal_exclusion.py"
 expect 0 "A25 every pattern instantiates into a valid schema-2.0 journey"       python3 "$DIR/instantiate_patterns.py"
 
+echo "== speed: scripted eligibility and run finalization =="
+SX="$FX/speed"
+expect_contains "eligibility: mapped + usable events -> eligible"            "eligible             P0 abandoned-cart" python3 "$DIR/../eligibility.py" "$SX/smap_cart_ok.json" --pattern abandoned-cart
+expect_contains "eligibility: an assumed mapping is unknown, not eligible"   "unknown"   python3 "$DIR/../eligibility.py" "$SX/smap_cart_assumed.json" --pattern abandoned-cart
+expect_contains "eligibility: unchecked usability is unknown (name alone isn't enough)" "usability not checked" python3 "$DIR/../eligibility.py" "$SX/smap_cart_unchecked.json" --pattern abandoned-cart
+expect_contains "eligibility: explicitly unusable event blocks"               "instrumented but unusable" python3 "$DIR/../eligibility.py" "$SX/smap_cart_unusable.json" --pattern abandoned-cart
+expect_contains "eligibility: missing required event blocks"                 "not in the inventory" python3 "$DIR/../eligibility.py" "$SX/smap_cart_missing.json" --pattern abandoned-cart
+expect_contains "eligibility: T3 is playbook-recommended"                    "playbook-recommended" python3 "$DIR/../eligibility.py" "$SX/smap_t3.json" --pattern abandoned-cart
+FR=/tmp/lc_finalize; rm -rf "$FR"; mkdir -p "$FR"
+cp "$DIR/../../examples/ecommerce-full-ga4/05-journey-cart-recovery.json" "$FR/ecom-abandoned-cart-01.json"
+cp "$DIR/../../examples/ecommerce-full-ga4/03-journey-cart-recovery.md" "$FR/ecom-abandoned-cart-01.md"
+expect 0 "finalize start opens a single-journey run"                         python3 "$DIR/../finalize_run.py" start "$FR" --scope ecom-abandoned-cart-01 --mode single
+expect 3 "finalize finish: unknown existing journeys -> delivered as unverified" python3 "$DIR/../finalize_run.py" finish "$FR" --max-discount 10
+expect 0 "finalize finish built the canvas and hashed the files"             python3 -c "import json,sys;m=json.load(open('$FR/run-manifest.json'));sys.exit(0 if m['canvas']=='built' and all(len(f['sha256'])==64 for f in m['files']) and m['scope']['mode']=='single' else 1)"
+expect 0 "finalize start archives the previous run"                          python3 "$DIR/../finalize_run.py" start "$FR" --scope ecom-abandoned-cart-01 --mode single
+expect 0 "...the archived run kept its manifest and canvas"                  bash -c "ls $FR/runs/*/run-manifest.json $FR/runs/*/canvas.html"
+cp "$DIR/../../examples/ecommerce-full-ga4/03-journey-cart-recovery.md" "$FR/ecom-abandoned-cart-01.md"
+python3 - "$FR/ecom-abandoned-cart-01.json" "$DIR/../../examples/ecommerce-full-ga4/05-journey-cart-recovery.json" <<'PY'
+import json,sys
+d=json.load(open(sys.argv[2])); d["nodes"][1]["next"]="nowhere"; json.dump(d,open(sys.argv[1],"w"))
+PY
+expect 1 "finalize finish refuses a failing journey"                         python3 "$DIR/../finalize_run.py" finish "$FR" --max-discount 10
+expect 0 "...and builds no canvas, manifest status failed"                   python3 -c "import json,os,sys;m=json.load(open('$FR/run-manifest.json'));sys.exit(0 if m['status']=='failed' and not os.path.exists('$FR/canvas.html') else 1)"
+
+echo "== speed: generated schema digest and cross-run cache =="
+expect 0 "measure_run splits stages at Skill calls and counts each API message once" python3 -c "
+import json,subprocess,sys
+r=json.loads(subprocess.run([sys.executable,'$DIR/../measure_run.py','$FX/speed/transcript.jsonl','--json'],capture_output=True,text=True).stdout)
+m=r['main']; ok=len(m)==2 and m[0]['turns']==1 and m[0]['output_tokens']==10 and m[1]['stage'].endswith('lifecycle-journeys') and m[1]['turns']==3 and m[1]['output_tokens']==90 and m[1]['validator_runs']==1 and m[1]['validator_fails']==2 and m[1]['seconds']==60
+sys.exit(0 if ok else 1)"
+expect 0 "schema digest keeps every contract field, enum and key condition"   python3 "$DIR/schema_digest_complete.py"
+RC=/tmp/lc_cache; rm -rf "$RC" /tmp/lc_cache_in.csv; mkdir -p "$RC"; cp "$FX/good_input.csv" /tmp/lc_cache_in.csv
+echo '{"tier":"T2","sector":"ecommerce","events":[]}' > /tmp/lc_stage_map.json
+expect 1 "cache: first lookup is a miss"                                     python3 "$DIR/../run_cache.py" lookup "$RC" --input /tmp/lc_cache_in.csv --sector ecommerce
+expect 0 "cache: store the assessment for this run"                          python3 "$DIR/../run_cache.py" store "$RC" --input /tmp/lc_cache_in.csv --sector ecommerce --run-id r1 --files /tmp/lc_stage_map.json
+expect_contains "cache: same inputs hit, labelled as cached and naming what to recheck" "consent" python3 "$DIR/../run_cache.py" lookup "$RC" --input /tmp/lc_cache_in.csv --sector ecommerce
+echo "extra,row" >> /tmp/lc_cache_in.csv
+expect 1 "cache: a changed input file misses"                                python3 "$DIR/../run_cache.py" lookup "$RC" --input /tmp/lc_cache_in.csv --sector ecommerce
+expect 1 "cache: a different sector (playbook) misses"                       python3 "$DIR/../run_cache.py" lookup "$RC" --input "$FX/good_input.csv" --sector saas
+
 echo "== eval checker =="
 expect 0 "eval mini-case good run passes"       python3 "$DIR/../eval_check.py" "$DIR/fixtures/evalcase/mini-case" --out-root "$DIR/fixtures/evalout-good"
 expect 1 "eval mini-case bad run fails"         python3 "$DIR/../eval_check.py" "$DIR/fixtures/evalcase/mini-case" --out-root "$DIR/fixtures/evalout-bad"

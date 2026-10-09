@@ -91,7 +91,7 @@ def run_case(case_id, args):
     prompt = build_prompt(case_id, case_dir, out_dir)
     cmd = ["claude", "-p", prompt, "--plugin-dir", REPO, "--output-format", "json",
            "--max-budget-usd", str(args.budget), "--permission-mode", "acceptEdits",
-           "--no-session-persistence", "--allowedTools", *ALLOWED_TOOLS]
+           *([] if args.persist else ["--no-session-persistence"]), "--allowedTools", *ALLOWED_TOOLS]
     if args.model:
         cmd += ["--model", args.model]
     if args.dry_run:
@@ -124,6 +124,7 @@ def run_case(case_id, args):
                   ("input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")},
         "model_usage": meta.get("modelUsage"),
         "plugin_version": PLUGIN_VERSION,
+        "session_id": meta.get("session_id"),
         "label": args.label,
         "result_tail": str(meta.get("result", ""))[-600:],
     }
@@ -137,6 +138,8 @@ def main():
     ap.add_argument("--parallel", type=int, default=2)
     ap.add_argument("--model")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--persist", action="store_true",
+                    help="keep the session transcript so scripts/measure_run.py can break the run down per stage")
     ap.add_argument("--label", default="", help="free-text tag stored with each run, e.g. 'baseline-0.2.0' or '0.3.0-sonnet-agents'")
     args = ap.parse_args()
 

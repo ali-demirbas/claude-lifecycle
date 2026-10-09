@@ -28,7 +28,7 @@ Facts in the prompt win over defaults in the bundle. If something that affects c
 
 1. Read the bundle.
 2. Write `<id>.json` (schema 2.0, `schema_version: "2.0"`), including `readiness` (`ready` or `draft`) and, for a draft, `open_items` naming each unconfirmed fact and who confirms it. Use `instance_key` and same-instance / channel-scoped exit conditions where the pattern says so, composite `any_of`/`all_of` signals where a decision reads several, `delivery` for in-app sends (next session + expiry) and a `deadline` on final notices tied to a hard date, and a `range` in `time_anchors` for dates whose distance from entry varies.
-3. Run `python3 scripts/validate_output.py journey <id>.json` and `python3 scripts/validate_output.py timeline <id>.json`. Fix errors; at most **two** fix rounds. If the same error survives, stop and report the diagnosis (rule, node, what you tried) instead of looping.
+3. Run one call: `python3 scripts/validate_output.py journey <id>.json --timeline --quiet` (problems plus one line per path; ok lines hidden). Fix errors; at most **two** fix rounds. If the same error survives, stop and report the diagnosis (rule, node, what you tried) instead of looping.
 4. Render the mechanical sections: `python3 scripts/journey_render.py <id>.json`. Write `<id>.md` from the doc template with those two sections pasted in as rendered (never hand-written), and the narrative sections filled in.
 5. Reflect once against the pattern's Common mistakes and the rules above; fix what you find, re-validate.
 

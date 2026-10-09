@@ -43,6 +43,32 @@ Planned as 0.3.0. Not released yet: the acceptance tests pass, and the before/af
   - Journeys built while a correctness fact is still missing are delivered as drafts, separate from journeys ready to implement.
 - **Copy has two named modes:** full, and quick draft (P0 only, one review pass, labelled as a draft). The mode is never switched silently.
 
+### Changed — single-journey path and run bookkeeping in code (speed and tokens, not yet measured)
+
+- **Single-journey path.** "Just the abandoned-cart journey" now builds that journey, not a portfolio, and the output says that portfolio coverage and other journeys' eligibility were not reviewed. Every correctness check still runs:
+  - event and attribute sufficiency for that pattern;
+  - consent per channel and purpose;
+  - exit conditions before each send;
+  - timeline, branches and frequency on every path;
+  - overlap with the existing communications the user declared (an unknown load is recorded as unknown, never as zero);
+  - measurement design and ready/draft.
+- **`scripts/eligibility.py`.** The mechanical eligibility pass. An event counts only when the stage map says it is confirmed and usable; otherwise the pattern is `unknown`, never eligible. T3 patterns are `playbook-recommended`. `lifecycle-map` now writes `stage-map.json` for it.
+- **`scripts/finalize_run.py`.** Archives the previous run and opens a unique run id. At the end of the run it:
+  - renders the mechanical doc sections from each journey JSON;
+  - refreshes the registry's mechanical fields while keeping the model's judgment fields;
+  - validates everything;
+  - builds the canvas only when nothing failed;
+  - writes the manifest with sha256 for every delivered file.
+
+  It never edits a journey's design, and files outside the run's scope can't leak in.
+- **Smaller agent bundle.** The bundle carries a schema digest generated from the canonical schema plus one passing example, instead of the raw 10.8k-token schema: about 24k → 18k tokens per journey. A test fails if any schema field, enum value or key condition is missing from the digest.
+- **`scripts/run_cache.py`.** Reuses a previous run's assessment and stage map only when the input file, analysis code, mapping rules, DQS rubric, patterns, schema, sector files and brand config are all unchanged. A reused assessment is labelled as cached, never as freshly validated. Consent, campaigns and feed freshness are re-checked every run.
+- **Validator `--timeline --quiet`.** One call returns the problems plus one line per path.
+- **`scripts/measure_run.py`.** Per-stage wall-clock, turns and tokens from a session transcript, counting each API message once. `run_evals.py --persist` keeps the transcript for it.
+- **Not done:**
+  - `omitClaudeMd` on plugin agents. Tested on the installed Claude Code 2.1.117, it had no effect: a canary in CLAUDE.md was still visible.
+  - Effort and model per role. These wait for a quality-checked paid comparison.
+
 ### Changed — after an external review of this release
 
 All 32 findings were reproduced against the real validator, then fixed or classified; see [docs/audit/0.3.0-findings.md](docs/audit/0.3.0-findings.md) for each one and its test.
