@@ -2,68 +2,521 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ali-demirbas/claude-lifecycle/templates/journey.schema.json",
   "title": "Journey",
-  "description": "CRM-agnostic journey definition: entry conditions, steps, branches and exits, independent of any marketing tool's own schema.",
+  "description": "CRM-agnostic journey definition. schema_version 2.0: the journey is an id-linked node graph (`start` + `nodes`) with explicit timing anchors, decisions with evaluation windows and an explicit unmeasurable route, per-send exit checks, re-entry rules and a measurement plan. Files without schema_version are legacy 1.x (flat `steps` + display-only `flow`); scripts/validate_output.py still reads them but reports their timing/branch/measurement as unverifiable.",
   "type": "object",
-  "required": ["id", "name", "pattern", "stage", "priority", "data_tier", "dqs", "objective", "trigger", "audience", "exit", "steps", "kpis"],
+  "required": [
+    "id",
+    "name",
+    "pattern",
+    "stage",
+    "priority",
+    "data_tier",
+    "dqs",
+    "objective",
+    "trigger",
+    "audience",
+    "exit",
+    "kpis"
+  ],
   "additionalProperties": false,
   "$defs": {
     "channel": {
       "type": "string",
-      "enum": ["email", "push", "sms", "in_app", "whatsapp"],
+      "enum": [
+        "email",
+        "push",
+        "sms",
+        "in_app",
+        "whatsapp"
+      ],
       "description": "The single source of truth for the channel vocabulary in this schema — referenced by both constraints.allowed_channels and steps[].channel so the two can never drift apart the way a hand-duplicated enum eventually would (the exact bug class already found and fixed in knowledge/channels/*.md's ceilings elsewhere in this repo)."
     },
     "flowNode": {
       "type": "object",
-      "required": ["kind"],
+      "required": [
+        "kind"
+      ],
       "additionalProperties": false,
       "description": "One node in the journey's explicit branch tree (top-level `flow`). Its shape is deliberately identical to the canvas node-tree already consumed by templates/canvas.html and scripts/build_canvas.py, so `flow` doubles as the canvas `root` with no transform — see scripts/journey_render.py (Mermaid + step table) and scripts/build_canvas.py (--from-journeys).",
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["entry", "decision", "message", "wait", "exit"],
+          "enum": [
+            "entry",
+            "decision",
+            "message",
+            "wait",
+            "exit"
+          ],
           "description": "entry = trigger root (exactly one, the tree root); decision = branch point (its children carry edge labels); message = a send (carries channel); wait = a delay node; exit = a terminal leaf (carries exit good|bad)."
         },
-        "tag": { "type": "string", "description": "Header tag shown on the card, e.g. 'Gün 0 · Email → Admin' or 'Yol Ayrımı'" },
-        "title": { "type": "string", "minLength": 1, "description": "The node's bold title line; also the label used for this node in the generated Mermaid diagram" },
-        "channel": { "$ref": "#/$defs/channel" },
+        "tag": {
+          "type": "string",
+          "description": "Header tag shown on the card, e.g. 'Gün 0 · Email → Admin' or 'Yol Ayrımı'"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The node's bold title line; also the label used for this node in the generated Mermaid diagram"
+        },
+        "channel": {
+          "$ref": "#/$defs/channel"
+        },
         "rows": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["html"],
+            "required": [
+              "html"
+            ],
             "additionalProperties": false,
             "properties": {
-              "icon": { "type": "string", "description": "Icon key from templates/canvas.html's ICONS map; an unknown key renders blank, so it is advisory only" },
-              "html": { "type": "string", "minLength": 1, "description": "Row body — the one field authored as HTML ({{var}} tokens are highlighted); every other text field is escaped" }
+              "icon": {
+                "type": "string",
+                "description": "Icon key from templates/canvas.html's ICONS map; an unknown key renders blank, so it is advisory only"
+              },
+              "html": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Row body — the one field authored as HTML ({{var}} tokens are highlighted); every other text field is escaped"
+              }
             }
           }
         },
         "extra": {
           "type": "object",
-          "additionalProperties": { "type": "string" },
+          "additionalProperties": {
+            "type": "string"
+          },
           "description": "Optional key→value detail shown under a collapsible 'Detaylar' toggle on the card"
         },
         "exit": {
           "type": "string",
-          "enum": ["good", "bad"],
+          "enum": [
+            "good",
+            "bad"
+          ],
           "description": "Terminal outcome class — required in practice on kind=exit nodes (good = success exit, bad = lost/expired)"
         },
         "children": {
           "type": "array",
-          "items": { "$ref": "#/$defs/flowChild" },
+          "items": {
+            "$ref": "#/$defs/flowChild"
+          },
           "description": "Ordered outgoing edges; for a decision node each child's `label` is its edge label (e.g. Evet/Hayır)"
         }
       }
     },
     "flowChild": {
       "type": "object",
-      "required": ["node"],
+      "required": [
+        "node"
+      ],
       "additionalProperties": false,
       "description": "One outgoing edge: an optional edge label plus the child node it points to",
       "properties": {
-        "label": { "type": ["string", "null"], "description": "Edge label (branch condition outcome, e.g. 'Evet'/'Hayır'); null for an unlabeled linear edge" },
-        "node": { "$ref": "#/$defs/flowNode" }
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Edge label (branch condition outcome, e.g. 'Evet'/'Hayır'); null for an unlabeled linear edge"
+        },
+        "node": {
+          "$ref": "#/$defs/flowNode"
+        }
       }
+    },
+    "duration": {
+      "type": "string",
+      "pattern": "^-?P(?!$)(?:\\d+W|(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?(\\d+S)?)?)$",
+      "description": "Signed ISO 8601 duration without months/years (their length varies). '-P7D' = 7 days BEFORE the anchor."
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from"
+      ],
+      "description": "WHEN something happens: a reference point plus an offset. 'entry' = the moment the user entered this journey instance; 'node' = the scheduled time of another node in this journey (must precede this node on every path that reaches it); 'event'/'attribute' = the timestamp of a named event or date attribute (declare its relation to entry in time_anchors, or the timeline can't be computed and is reported unverifiable).",
+      "properties": {
+        "from": {
+          "type": "string",
+          "enum": [
+            "entry",
+            "node",
+            "event",
+            "attribute"
+          ]
+        },
+        "node": {
+          "type": "string"
+        },
+        "event": {
+          "type": "string"
+        },
+        "attribute": {
+          "type": "string"
+        },
+        "offset": {
+          "$ref": "#/$defs/duration"
+        },
+        "calendar": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "time_of_day",
+            "timezone"
+          ],
+          "description": "Calendar-time send (e.g. 10:00 local on the renewal date) instead of a pure duration. timezone is required: 'user_local' or an IANA zone.",
+          "properties": {
+            "time_of_day": {
+              "type": "string",
+              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+            },
+            "timezone": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "from": {
+                "const": "node"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "node"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "from": {
+                "const": "event"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "event"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "from": {
+                "const": "attribute"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "attribute"
+            ]
+          }
+        }
+      ]
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "name",
+        "source"
+      ],
+      "description": "What a decision reads. 'open' is accepted by the schema only so the validator can reject it with a clear message: an email open is never a branching signal on its own.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "event",
+            "click",
+            "attribute",
+            "open"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Event name, link id, or attribute name"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "authoritative",
+            "behavioral",
+            "inferred",
+            "engagement"
+          ],
+          "description": "authoritative = system of record (billing, order, consent); behavioral = product/web analytics event; inferred = model/score; engagement = message interaction (clicks)"
+        },
+        "latency": {
+          "$ref": "#/$defs/duration",
+          "description": "How late this signal can arrive after the behavior"
+        },
+        "bot_filtered": {
+          "type": "boolean",
+          "description": "Clicks only: whether security-scanner/bot clicks are filtered before this decision reads them"
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "entry",
+            "message",
+            "decision",
+            "exit"
+          ]
+        },
+        "next": {
+          "type": "string",
+          "description": "entry/message: the node that follows"
+        },
+        "channel": {
+          "$ref": "#/$defs/channel"
+        },
+        "purpose": {
+          "type": "string",
+          "enum": [
+            "marketing",
+            "service",
+            "transactional",
+            "reconsent_request"
+          ]
+        },
+        "intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "send": {
+          "$ref": "#/$defs/anchor",
+          "description": "message: when it is sent"
+        },
+        "copy_ref": {
+          "type": "string"
+        },
+        "signal": {
+          "$ref": "#/$defs/signal"
+        },
+        "window": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "from",
+            "to"
+          ],
+          "description": "decision: the signal is looked for between `from` and `to`; the decision is taken at `to`.",
+          "properties": {
+            "from": {
+              "$ref": "#/$defs/anchor"
+            },
+            "to": {
+              "$ref": "#/$defs/anchor"
+            }
+          }
+        },
+        "branches": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "when",
+              "next"
+            ],
+            "properties": {
+              "when": {
+                "type": "string",
+                "minLength": 1,
+                "description": "'occurred' / 'not_occurred' for event and click signals; a value or expression for attribute signals"
+              },
+              "next": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "default": {
+          "type": "string",
+          "description": "decision: route when no branch matches (required for attribute signals)"
+        },
+        "unmeasurable": {
+          "type": "string",
+          "description": "decision: route when the signal can't be measured for this user (missing tracking, consent, late data). Required: 'not measured' is never treated as 'did not happen'."
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "converted",
+            "completed",
+            "expired",
+            "suppressed",
+            "disengaged",
+            "handoff",
+            "consent_withdrawn"
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "good",
+            "bad",
+            "neutral"
+          ]
+        },
+        "handoff": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "to",
+            "suppress_queued"
+          ],
+          "properties": {
+            "to": {
+              "type": "string"
+            },
+            "suppress_queued": {
+              "type": "boolean"
+            },
+            "carries": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "display": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Optional customer-facing card text in the user's language (canvas + diagram). Falls back to intent.",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "tag": {
+              "type": "string"
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "html"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "icon": {
+                    "type": "string"
+                  },
+                  "html": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            },
+            "extra": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "message"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "channel",
+              "intent",
+              "send",
+              "next"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "entry"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "next"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "decision"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "signal",
+              "window",
+              "branches",
+              "unmeasurable"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "exit"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "reason",
+              "outcome"
+            ]
+          }
+        }
+      ]
     }
   },
   "properties": {
@@ -77,10 +530,19 @@
       "additionalProperties": false,
       "description": "Machine-checkable red lines, embedded from the brand config at generation time so scripts/validate_output.py can enforce them without context",
       "properties": {
-        "max_discount_pct": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+        "max_discount_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
         "allowed_channels": {
           "type": "array",
-          "items": { "$ref": "#/$defs/channel" }
+          "items": {
+            "$ref": "#/$defs/channel"
+          }
         }
       }
     },
@@ -89,7 +551,11 @@
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*-[0-9]{2}$",
       "description": "Format: <sector>-<pattern>-<nn>, e.g. ecom-abandoned-cart-01"
     },
-    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
     "pattern": {
       "type": "string",
       "minLength": 1,
@@ -101,46 +567,175 @@
     },
     "stage": {
       "type": "string",
-      "enum": ["acquisition", "activation", "engagement", "revenue", "retention", "winback"]
+      "enum": [
+        "acquisition",
+        "activation",
+        "engagement",
+        "revenue",
+        "retention",
+        "winback"
+      ]
     },
-    "priority": { "type": "string", "enum": ["P0", "P1", "P2"] },
-    "data_tier": { "type": "string", "enum": ["T1", "T2", "T3"] },
-    "dqs": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "P0",
+        "P1",
+        "P2"
+      ]
+    },
+    "data_tier": {
+      "type": "string",
+      "enum": [
+        "T1",
+        "T2",
+        "T3"
+      ]
+    },
+    "dqs": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 100,
+      "description": "null only for T3, which has no data to score."
+    },
     "depth_class": {
       "type": "string",
-      "enum": ["simple", "standard", "branched"],
+      "enum": [
+        "simple",
+        "standard",
+        "branched"
+      ],
       "description": "Mirrors templates/journey-doc.md's header field and the vocabulary every knowledge/journey-patterns/*.md Depth scaling table already uses — was displayed to the user in the markdown doc but had no machine-facing counterpart before this field existed."
     },
-    "objective": { "type": "string", "minLength": 1 },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
     "trigger": {
       "type": "object",
-      "required": ["type", "value"],
+      "required": [
+        "type",
+        "value"
+      ],
       "additionalProperties": false,
       "properties": {
-        "type": { "type": "string", "enum": ["event", "time", "segment_entry"], "description": "Pattern-level trigger_type values 'segment' and 'absence' both instantiate as segment_entry (the segment is what expresses the absence condition)" },
-        "value": { "type": "string", "minLength": 1, "description": "Event name, cron/schedule, or segment id" },
-        "entry_conditions": { "type": "array", "items": { "type": "string" } },
-        "reentry_policy": { "type": "string" }
+        "type": {
+          "type": "string",
+          "enum": [
+            "event",
+            "time",
+            "segment_entry"
+          ],
+          "description": "Pattern-level trigger_type values 'segment' and 'absence' both instantiate as segment_entry (the segment is what expresses the absence condition)"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Event name, cron/schedule, or segment id"
+        },
+        "entry_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reentry_policy": {
+          "type": "string"
+        }
       }
     },
     "audience": {
       "type": "object",
-      "required": ["include"],
+      "required": [
+        "include"
+      ],
       "additionalProperties": false,
       "properties": {
-        "include": { "type": "string", "minLength": 1 },
-        "exclude": { "type": "array", "items": { "type": "string" } },
-        "estimated_volume": { "type": ["integer", "null"], "minimum": 0 }
+        "include": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "estimated_volume": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
       }
     },
     "exit": {
       "type": "object",
-      "required": ["success_event"],
+      "required": [
+        "success_event"
+      ],
       "additionalProperties": false,
       "properties": {
-        "success_event": { "type": "string", "minLength": 1 },
-        "success_window_days": { "type": "integer", "minimum": 1 },
-        "other_exits": { "type": "array", "items": { "type": "string" } }
+        "success_event": {
+          "type": "string",
+          "minLength": 1
+        },
+        "success_window_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "other_exits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "success_window": {
+          "$ref": "#/$defs/duration"
+        },
+        "exit_conditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event",
+              "check"
+            ],
+            "properties": {
+              "event": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "authoritative",
+                  "behavioral",
+                  "inferred",
+                  "engagement"
+                ]
+              },
+              "check": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "entry",
+                    "before_each_send"
+                  ]
+                },
+                "minItems": 1
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          }
+        }
       }
     },
     "steps": {
@@ -148,19 +743,41 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["index", "wait", "channel", "intent"],
+        "required": [
+          "index",
+          "wait",
+          "channel",
+          "intent"
+        ],
         "additionalProperties": false,
         "properties": {
-          "index": { "type": "integer", "minimum": 1 },
+          "index": {
+            "type": "integer",
+            "minimum": 1
+          },
           "wait": {
             "type": "string",
             "pattern": "^P(?!$)(?:\\d+W|(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?(\\d+S)?)?)$",
             "description": "Relative wait, e.g. PT1H, P1D, P1W (ISO 8601 duration — the week designator is mutually exclusive with D/T per the standard, hence the separate alternative). Mirrors scripts/validate_output.py's ISO_WAIT regex — kept in both places deliberately: the schema makes the constraint visible to any external tool reading this file directly, the Python check stays the always-on backstop for when the jsonschema library isn't installed (check_journey falls back to a structural check that skips patterns entirely)."
           },
-          "channel": { "$ref": "#/$defs/channel" },
-          "intent": { "type": "string", "minLength": 1 },
-          "branch_condition": { "type": ["string", "null"], "description": "Condition to enter this step; null for linear steps" },
-          "copy_ref": { "type": "string", "description": "Block id in the copy output, e.g. step-2" }
+          "channel": {
+            "$ref": "#/$defs/channel"
+          },
+          "intent": {
+            "type": "string",
+            "minLength": 1
+          },
+          "branch_condition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Condition to enter this step; null for linear steps"
+          },
+          "copy_ref": {
+            "type": "string",
+            "description": "Block id in the copy output, e.g. step-2"
+          }
         }
       }
     },
@@ -169,13 +786,35 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["name", "type", "definition"],
+        "required": [
+          "name",
+          "type",
+          "definition"
+        ],
         "additionalProperties": false,
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "type": { "type": "string", "enum": ["primary", "secondary", "guardrail"] },
-          "definition": { "type": "string", "minLength": 1 },
-          "target": { "type": ["string", "null"] }
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "primary",
+              "secondary",
+              "guardrail"
+            ]
+          },
+          "definition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       }
     },
@@ -183,18 +822,265 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "holdout_pct": { "type": "number", "minimum": 0, "maximum": 50 },
-        "ab_test": { "type": ["string", "null"] }
+        "holdout_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 50
+        },
+        "ab_test": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "data_gaps": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Missing events/attributes that would improve this journey"
     },
     "flow": {
       "$ref": "#/$defs/flowNode",
       "description": "OPTIONAL explicit branch tree — the authoritative BRANCH structure of this journey. When present, scripts/journey_render.py generates the journey-doc §8 Mermaid diagram from it (branch-faithful, not a linear approximation) and scripts/build_canvas.py uses it directly as the canvas node-tree. The flat `steps` array above stays the source for the §5 step table (per-step wait/intent/channel/branch_condition/copy_ref linkage). Absent on pre-existing journeys, which keep hand-authored mechanical sections and a flat linear canvas fallback — hence optional."
+    },
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "2.0"
+      ]
+    },
+    "journey_class": {
+      "type": "string",
+      "enum": [
+        "marketing",
+        "service",
+        "transactional"
+      ],
+      "description": "service/transactional journeys are not forced into a marketing holdout design and are exempt from marketing frequency caps."
+    },
+    "start": {
+      "type": "string",
+      "description": "id of the entry node"
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "time_anchors": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "relative_to_entry"
+        ],
+        "properties": {
+          "relative_to_entry": {
+            "$ref": "#/$defs/duration"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Known relation of an event/attribute timestamp to journey entry, e.g. trial_end = entry + P7D. Lets the validator place event-anchored sends on the timeline."
+    },
+    "events_available": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Event/attribute names confirmed in the mapped inventory. Every event the journey reads must be listed; without this list event existence is reported unverifiable."
+    },
+    "reentry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy",
+        "on_duplicate_trigger"
+      ],
+      "properties": {
+        "policy": {
+          "type": "string",
+          "enum": [
+            "once",
+            "after_cooldown",
+            "each_trigger"
+          ]
+        },
+        "cooldown": {
+          "$ref": "#/$defs/duration"
+        },
+        "on_duplicate_trigger": {
+          "type": "string",
+          "enum": [
+            "ignore",
+            "restart",
+            "new_instance"
+          ],
+          "description": "What a repeated trigger does while an instance is still active"
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "design",
+        "primary_outcome"
+      ],
+      "properties": {
+        "design": {
+          "type": "string",
+          "enum": [
+            "holdout",
+            "none_low_volume",
+            "none_service",
+            "pre_post",
+            "other"
+          ]
+        },
+        "primary_outcome": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "event",
+            "window"
+          ],
+          "properties": {
+            "event": {
+              "type": "string"
+            },
+            "window": {
+              "$ref": "#/$defs/duration"
+            }
+          }
+        },
+        "holdout": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "pct",
+            "assignment",
+            "control_excludes"
+          ],
+          "properties": {
+            "pct": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 50
+            },
+            "assignment": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "unit",
+                "consistent"
+              ],
+              "properties": {
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "account",
+                    "household"
+                  ]
+                },
+                "consistent": {
+                  "type": "boolean"
+                },
+                "method": {
+                  "type": "string"
+                }
+              }
+            },
+            "control_excludes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              },
+              "description": "Which new communications the control group does NOT receive"
+            }
+          }
+        },
+        "routine_comms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "both_groups"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "both_groups": {
+                "type": "boolean"
+              }
+            }
+          },
+          "description": "Existing/routine communications (e.g. an existing welcome email) and whether both groups keep receiving them"
+        },
+        "contamination_risks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "volume_note": {
+          "type": "string",
+          "description": "What the expected volume can and cannot detect"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why there is no holdout (required for none_* designs)"
+        },
+        "alternative": {
+          "type": "string",
+          "description": "The measurement used instead of a holdout"
+        }
+      }
     }
-  }
+  },
+  "x-schema-version": "2.0",
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "schema_version"
+        ]
+      },
+      "then": {
+        "required": [
+          "schema_version",
+          "journey_class",
+          "start",
+          "nodes",
+          "reentry"
+        ],
+        "properties": {
+          "exit": {
+            "required": [
+              "success_event",
+              "exit_conditions"
+            ]
+          }
+        }
+      },
+      "else": {
+        "required": [
+          "steps"
+        ]
+      }
+    }
+  ]
 }

@@ -42,6 +42,12 @@ Refinements to how caps are applied:
 - **Cap by engagement segment:** a user showing declining engagement gets *fewer* messages under the cap, not more — piling volume onto someone already softening accelerates the drift.
 - **Rising unsubscribes/opt-outs are read as a volume signal first**, a content signal second. Audit frequency before rewriting copy.
 
+**Windows are rolling, not calendar weeks.** "4 / week" means at most 4 inside any 7 consecutive days, whichever day they start: a Saturday–Monday burst that straddles two calendar weeks is still one window. `validate_output.py` computes the worst path's load per channel this way from each journey's node graph, adds every journey a user can be in at the same time (overlap combos, declared existing journeys, campaign sends), and never takes a journey's own declared count as the source of truth. When existing journeys outside the portfolio are unknown, frequency is reported as verified within the portfolio only, not globally. A 2.0 portfolio states what happens at a breach in `frequency_policy.on_breach`: `defer` (hold the lower-priority send until the window frees up), `skip` (drop it), or `priority` (the contact policy's ranking decides who sends).
+
+## Closed channels and re-permission
+
+A channel the user closed (unsubscribed, opted out, withdrew consent) stays closed. A journey never reopens it on its own and never treats "the channel is technically still deliverable" as permission. Re-permission is a separate thing: the user actively grants consent again, recorded by an authoritative consent event, and only after that event may the channel be used, and only for what was granted. A re-permission request itself goes out on a channel that is still open. In the journey JSON, a closed channel is listed in `constraints.withdrawn_channels`; the validator fails any send on it that isn't preceded on the same path by an authoritative consent-granted decision.
+
 ## Quiet hours
 
 | Channel | Default quiet hours (user local) |
@@ -54,7 +60,7 @@ Quiet hours are evaluated in the **user's timezone when known**. Unknown user ti
 
 ## Enforcement: what's code-checked vs. what isn't
 
-`scripts/validate_output.py` enforces two of the rules above as hard failures before any deliverable reaches the user: **channel consent** (a step's channel must be in the journey's `constraints.allowed_channels`) and **frequency caps** (portfolio-wide weekly math, parsed live from the table above by `load_default_caps()` — never hand-copied, so the check can't silently drift from this file). Both are fully computable from journey/portfolio JSON alone.
+`scripts/validate_output.py` enforces two of the rules above as hard failures before any deliverable reaches the user: **channel consent** (a step's channel must be in the journey's `constraints.allowed_channels`) and **frequency caps** (worst-path rolling 7-day math computed from the node graph, parsed live from the table above by `load_default_caps()` — never hand-copied, so the check can't silently drift from this file). Both are fully computable from journey/portfolio JSON alone.
 
 **Quiet hours are not code-checked, and can't be from journey JSON alone.** A step's `wait` (`templates/journey.schema.json`) is a relative ISO 8601 duration from the previous step or trigger — the schema carries no absolute clock time or timezone, because the real trigger instant is only known once the journey is live in a CRM. Quiet-hours compliance today rests entirely on `journey-architect`'s design-time judgment (schedule around the window) and `copy-reviewer`'s content check (no "right now" timing promises) — there is no code backstop, and none is possible at this layer.
 

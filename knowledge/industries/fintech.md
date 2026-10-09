@@ -22,6 +22,9 @@ pattern_priorities:
   loyalty: P2
   channel-opt-in: P2
   lead-nurture: P2
+  renewal-reminder: P2
+  cancellation-winddown: P2
+  unengaged-sunset: P2
 typical_channels: [email, push, sms]
 ---
 

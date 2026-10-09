@@ -5,7 +5,7 @@ description: Structured questioning to fill information gaps before journey gene
 metadata:
   version: 0.2.0
   category: intake
-  updated: 2026-08-14
+  updated: 2026-10-09
 ---
 
 # Lifecycle Intake — Structured Gap Filling
@@ -27,7 +27,9 @@ Ask a question only if its answer is (a) not derivable from connected data, and 
 | Primary goal (growth / retention / revenue / reactivation) | journey prioritization | Always, unless user already stated it |
 | Product rhythm — how often a typical user engages/purchases (daily / weekly / occasional-seasonal, with the actual cadence) | every lapse window, dormancy threshold, and cadence | Always on T3 (it is the only way to set winback/reactivation clocks without data); on T1/T2 only if not computable from median gaps |
 | Channel inventory + rough audience size per channel | step channel selection | Always on T2/T3; on T1 only if not inferable |
-| Existing automations (what already runs) | dedupe — don't generate what exists | Always |
+| Existing automations (what already runs: name, audience, channels, roughly how many messages a week) | coverage-overlap check, and the portfolio's `external_journeys` so frequency counts them | Always. "Unknown" is a valid answer: it is recorded as `external_journeys_status: unknown` and frequency is then verified only inside the new portfolio |
+| Channel consent and opt-outs (which channels users have consented to, which were closed) | channel selection, `withdrawn_channels` | Always on T2/T3; on T1 only if not in the data |
+| Meaning of key date fields (e.g. is `renewal_date` the policy end or the billing date; is `trial_end` the moment access stops) | event/attribute timing anchors | When a journey anchors a send to that date |
 | Multi-vertical product lines — does the company run genuinely separate product lines, each with its own funnel and conversion event (not just several features sharing one funnel)? If yes: each vertical's name, its closest `knowledge/industries/` fit, and how its events are named (e.g. "do the wallet features' events all start with `wallet_`?") | brand config `verticals`; per-vertical DQS/funnel/pattern-priorities in connect/map/journeys | When the event inventory shows 2+ event-name clusters with no shared conversion event, or the user volunteers it |
 | Brand tone (2–3 adjectives) + formality (sen/siz, formal/informal) | lexicon calibration | Before any copy |
 | Incentive policy (may journeys offer discounts? max % + is there a CLV threshold above which value-adds replace discounts — priority support, early access, extended feature trial) | incentive-gated steps: above the CLV bar prefer a value-add (protects margin, doesn't train price expectations); below it a capped discount. Threshold comes from the account's real unit economics, never a guessed round number. **If the user doesn't know their CLV:** skip the value-add/discount split, default to capped-discount-only, and record the threshold as an open gap — never guess a number to fill it | If sector uses incentives |
@@ -64,6 +66,14 @@ Ask a question only if its answer is (a) not derivable from connected data, and 
     ```
   - A numbered question still accepts free text instead of a number — the list is a shortcut, never the only valid input. "Diğer (belirt)" is implicit, not a listed 5th option, per the enumerated-options convention used elsewhere in this repo.
 
+## Defaults vs facts
+
+Two kinds of missing information, handled differently:
+- **Safe, reversible preferences** (tone, quiet hours, copy language, holdout share, breadth) take a documented default without a question when the user hasn't stated one. Every default used is listed under `assumptions` and in the dossier.
+- **Facts that change whether a journey is correct** (channel consent, whether an event exists, existing communications, what a date means) are never filled with a guess. If unanswered, record them as `open_items`; the journeys that depend on them are delivered as **drafts**, separate from journeys that are ready to implement.
+
+When the router's start message already asked these, intake reads those answers and asks nothing again.
+
 ## Plausibility check
 
 If a user's answer to a quantitative question (audience size, channel volume) differs from connected data (T1/T2) by an order of magnitude or more, surface the mismatch as one soft confirmation rather than silently trusting either source — *"50k email abonesi dedin ama bağlı GA4 verisi ~2k toplam kullanıcı gösteriyor; senin rakamını mı kullanayım, veriyi mi, yoksa bu ikisi farklı kapsamlar mı (ör. ayrı bir ESP listesi)?"* This is not a validation gate — CLAUDE.md rule 9's trust hierarchy still applies and the user's answer wins by default — it just makes a real discrepancy visible instead of resolving it silently.
@@ -75,13 +85,15 @@ An **Intake Summary** block that downstream skills read verbatim:
 ```
 goal: retention-first
 channels: email (45k), push (12k), sms (none)
-existing_automations: [welcome email (Mailchimp)]
+existing_automations: [welcome email: new signups, email, ~2/week for 2 weeks]
 tone: sıcak, net, esprili-değil · formality: sen
 incentive_policy: max 10%, only last-step, needs approval
 languages: [tr]
 markets: [TR]
 sector_answers: {consumables: yes, repeat_cycle: ~40 days}
-assumptions: [audience sizes are user estimates]
+assumptions: [audience sizes are user estimates, quiet hours = compliance default]
+open_items: [push consent rate unknown (affects ecom-cart-01 step s2)]
+external_journeys_status: declared   # declared | none_reported | unknown
 ```
 
 ## Persistence (brand config)

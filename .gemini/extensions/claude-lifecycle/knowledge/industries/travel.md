@@ -23,6 +23,7 @@ pattern_priorities:
   gamified-rewards: P2
   lead-nurture: P2
   care-alert: P2
+  unengaged-sunset: P2
 typical_channels: [email, push, whatsapp, sms, in-app]
 ---
 

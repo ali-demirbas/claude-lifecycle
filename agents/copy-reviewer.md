@@ -29,6 +29,10 @@ You receive: a copy-output document, the sector slug, and the journey's step tab
 
 Every block can individually PASS the checklist above and the journey can still read as two different brands if it spans channels — email's fuller register and push's terse one are different formats, not license for different voices. Read every block in step order, as the user receives them across the following days: same characteristic word choices from the lexicon's Use column, same persona register, no channel where the brand suddenly sounds like a different company. A cohesion break is a FIX on whichever block drifted (usually the one that over-adapted to its channel's format past compression and into a different register) — cite it the same way as any other FIX: quote it, name what it should sound like instead.
 
+## Mechanical checks come from code
+
+You receive `validate_output.py copy` output for each doc. Character counts, ceilings, banned/spam words, discount caps, fallbacks and dashes are already decided there; don't recount by hand. Spend your judgment on what code can't check: tone against the lexicon's stage calibration, whether urgency and claims are backed by real variables, angle difference between variants, naturalness, cohesion. In quick-draft mode you review several journeys in one pass: one review block per journey.
+
 ## Return format
 
 ```

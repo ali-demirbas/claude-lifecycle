@@ -106,6 +106,66 @@ def _flat_root(doc):
     return entry
 
 
+def _v2_root(doc):
+    """Schema 2.0 graph -> canvas tree. A node reached from several branches
+    (a merge) is drawn under each parent, tagged as shared, so the tree stays
+    faithful without the canvas needing a graph renderer."""
+    import journey_graph as jg  # noqa: PLC0415
+    res = jg.analyze(doc)
+    if not res["structure_ok"]:
+        errs = [m for lvl, m, _ in res["findings"].items if lvl == "error"]
+        raise ValueError(f"{doc.get('id')}: journey graph is broken: {errs[:3]}")
+    by_id = res["by_id"]
+    first_t = {}
+    for tl in res["timelines"]:
+        for nid, _, tsec in tl:
+            if tsec is not None:
+                first_t[nid] = min(first_t.get(nid, tsec), tsec)
+    incoming = {}
+    for n in by_id.values():
+        for _, tgt in jg.successors(n):
+            incoming[tgt] = incoming.get(tgt, 0) + 1
+
+    def day(nid):
+        tsec = first_t.get(nid)
+        return f"Gün {tsec // jg.DAY}" if tsec is not None else "Zaman: olaya bağlı"
+
+    def to_node(nid):
+        n = by_id[nid]
+        disp = n.get("display") or {}
+        k = n.get("kind")
+        shared = " · ortak adım" if incoming.get(nid, 0) > 1 else ""
+        if k == "entry":
+            trig = doc.get("trigger") or {}
+            node = {"kind": "entry", "tag": disp.get("tag") or "Giriş",
+                    "title": disp.get("title") or trig.get("value", doc.get("id", "")),
+                    "rows": disp.get("rows") or [{"icon": "clock", "html": f"<b>Tetikleyici:</b> {trig.get('value', '')}"}]}
+        elif k == "message":
+            ch = n.get("channel", "")
+            from journey_render import anchor_text  # noqa: PLC0415
+            node = {"kind": "message", "channel": ch,
+                    "tag": disp.get("tag") or f"{day(nid)} · {ch}{shared}",
+                    "title": disp.get("title") or n.get("intent", ""),
+                    "rows": disp.get("rows") or [{"icon": _CHANNEL_ICON.get(ch, "mail"),
+                                                  "html": f"Zamanlama: {anchor_text(n.get('send'))}"}]}
+        elif k == "decision":
+            sig = n.get("signal") or {}
+            node = {"kind": "decision", "tag": disp.get("tag") or f"{day(nid)} · Yol ayrımı{shared}",
+                    "title": disp.get("title") or f"{sig.get('name')}?",
+                    "rows": disp.get("rows") or [{"icon": "filter", "html": f"Sinyal: {sig.get('name')} ({sig.get('source')})"}]}
+        else:
+            node = {"kind": "exit", "exit": "good" if n.get("outcome") == "good" else "bad",
+                    "title": disp.get("title") or n.get("reason", "Çıkış")}
+        if disp.get("extra"):
+            node["extra"] = disp["extra"]
+        kids = [{"label": lab, "node": to_node(tgt)} for lab, tgt in jg.successors(n)]
+        if kids:
+            node["children"] = kids
+        return node
+
+    return to_node(doc["start"])
+
+
 def journey_to_canvas(doc):
     """Map a per-journey schema JSON onto one canvas journey object
     ({id, skill, label, purpose, segment, goal, primaryMetric, root}). The node
@@ -124,7 +184,7 @@ def journey_to_canvas(doc):
         "segment": (doc.get("audience") or {}).get("include", ""),
         "goal": doc.get("objective", ""),
         "primaryMetric": _primary_metric(doc),
-        "root": doc["flow"] if doc.get("flow") else _flat_root(doc),
+        "root": _v2_root(doc) if doc.get("schema_version") == "2.0" else (doc["flow"] if doc.get("flow") else _flat_root(doc)),
     }
 
 
@@ -221,7 +281,12 @@ def main(argv):
                 if not isinstance(doc, dict) or "id" not in doc:
                     print(f"error: {jp} is not a journey JSON object (no 'id')", file=sys.stderr)
                     return 2
-                journeys.append(journey_to_canvas(doc))
+                try:
+                    journeys.append(journey_to_canvas(doc))
+                except ValueError as e:
+                    print(f"error: {e} — refusing to write a canvas for an invalid journey; "
+                          f"the validated JSON/markdown outputs remain the deliverable", file=sys.stderr)
+                    return 1
         else:
             journeys = json.loads(Path(args.journeys).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as e:

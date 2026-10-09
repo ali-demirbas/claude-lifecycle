@@ -1,6 +1,8 @@
 {
+  "schema_version": "2.0",
   "id": "ecom-abandoned-cart-01",
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "journey_class": "marketing",
   "constraints": {
     "max_discount_pct": 10,
     "allowed_channels": [
@@ -14,6 +16,7 @@
   "priority": "P0",
   "data_tier": "T1",
   "dqs": 74,
+  "depth_class": "branched",
   "objective": "Recover revenue from abandoned carts; primary KPI is cart recovery rate (purchases within the 7-day window / journeys entered).",
   "trigger": {
     "type": "event",
@@ -23,8 +26,7 @@
       "cart non-empty after arming window",
       "messageable on >= 1 channel (consent checked per channel per step)",
       "identified user (user_id present)"
-    ],
-    "reentry_policy": "once per 7 days"
+    ]
   },
   "audience": {
     "include": "Identified users whose cart is non-empty 1 hour after the last add_to_cart, with no purchase since",
@@ -36,80 +38,270 @@
     ],
     "estimated_volume": 650
   },
+  "events_available": [
+    "add_to_cart",
+    "remove_from_cart",
+    "begin_checkout",
+    "purchase",
+    "cart_value",
+    "email_unsubscribe",
+    "push_opt_out",
+    "cart_emptied"
+  ],
   "exit": {
     "success_event": "purchase",
-    "success_window_days": 7,
+    "success_window": "P7D",
     "other_exits": [
-      "unsubscribe (exits that channel's steps; whole journey if single consented channel)",
       "journey completed",
-      "cart emptied by user",
-      "entered higher-priority transactional flow"
+      "entered a higher-priority transactional flow"
+    ],
+    "exit_conditions": [
+      {
+        "event": "purchase",
+        "source": "authoritative",
+        "check": [
+          "entry",
+          "before_each_send"
+        ],
+        "note": "identity-stitched, so a purchase on another device also stops queued sends"
+      },
+      {
+        "event": "email_unsubscribe",
+        "source": "authoritative",
+        "check": [
+          "entry",
+          "before_each_send"
+        ],
+        "note": "stops email sends"
+      },
+      {
+        "event": "push_opt_out",
+        "source": "authoritative",
+        "check": [
+          "entry",
+          "before_each_send"
+        ],
+        "note": "stops push sends"
+      },
+      {
+        "event": "cart_emptied",
+        "source": "behavioral",
+        "check": [
+          "before_each_send"
+        ]
+      }
     ]
   },
-  "steps": [
+  "reentry": {
+    "policy": "after_cooldown",
+    "cooldown": "P7D",
+    "on_duplicate_trigger": "restart"
+  },
+  "start": "entry",
+  "nodes": [
     {
-      "index": 1,
-      "wait": "PT1H",
+      "id": "entry",
+      "kind": "entry",
+      "next": "s1"
+    },
+    {
+      "id": "s1",
+      "kind": "message",
       "channel": "email",
+      "purpose": "marketing",
       "intent": "Cart reminder: contents + free-shipping threshold, zero pressure",
-      "branch_condition": null,
+      "send": {
+        "from": "entry",
+        "offset": "PT1H"
+      },
+      "next": "d1",
       "copy_ref": "step-1"
     },
     {
-      "index": 2,
-      "wait": "PT4H",
+      "id": "d1",
+      "kind": "decision",
+      "signal": {
+        "type": "event",
+        "name": "begin_checkout",
+        "source": "behavioral",
+        "latency": "PT1H"
+      },
+      "window": {
+        "from": {
+          "from": "entry",
+          "offset": "P0D"
+        },
+        "to": {
+          "from": "entry",
+          "offset": "PT5H"
+        }
+      },
+      "branches": [
+        {
+          "when": "occurred",
+          "next": "s2"
+        },
+        {
+          "when": "not_occurred",
+          "next": "s3"
+        }
+      ],
+      "unmeasurable": "s3"
+    },
+    {
+      "id": "s2",
+      "kind": "message",
       "channel": "push",
+      "purpose": "marketing",
       "intent": "Checkout continuation: resume payment step, deeplink to checkout",
-      "branch_condition": "begin_checkout fired, no purchase",
+      "send": {
+        "from": "entry",
+        "offset": "PT5H"
+      },
+      "next": "s4",
       "copy_ref": "step-2"
     },
     {
-      "index": 3,
-      "wait": "PT16H",
+      "id": "s3",
+      "kind": "message",
       "channel": "push",
-      "intent": "Short cart nudge, deeplink to cart",
-      "branch_condition": "no begin_checkout AND step 1 not opened",
+      "purpose": "marketing",
+      "intent": "Short cart nudge, deeplink to cart (sent inside quiet-hour limits)",
+      "send": {
+        "from": "entry",
+        "offset": "PT20H"
+      },
+      "next": "s4",
       "copy_ref": "step-3"
     },
     {
-      "index": 4,
-      "wait": "P1D",
+      "id": "s4",
+      "kind": "message",
       "channel": "email",
+      "purpose": "marketing",
       "intent": "Objection handling: shipping cost, 30-day returns, payment options",
-      "branch_condition": null,
+      "send": {
+        "from": "entry",
+        "offset": "P2D"
+      },
+      "next": "d2",
       "copy_ref": "step-4"
     },
     {
-      "index": 5,
-      "wait": "P2D",
+      "id": "d2",
+      "kind": "decision",
+      "signal": {
+        "type": "attribute",
+        "name": "cart_value",
+        "source": "authoritative"
+      },
+      "window": {
+        "from": {
+          "from": "entry",
+          "offset": "P2D"
+        },
+        "to": {
+          "from": "entry",
+          "offset": "P2D"
+        }
+      },
+      "branches": [
+        {
+          "when": "< 1500 TL",
+          "next": "s5"
+        },
+        {
+          "when": ">= 1500 TL",
+          "next": "s6"
+        }
+      ],
+      "default": "s5",
+      "unmeasurable": "s5"
+    },
+    {
+      "id": "s5",
+      "kind": "message",
       "channel": "email",
+      "purpose": "marketing",
       "intent": "Social proof on cart items (reviews and purchase counts from real data)",
-      "branch_condition": "cart_value < 1500 TL",
+      "send": {
+        "from": "entry",
+        "offset": "P4D"
+      },
+      "next": "s7",
       "copy_ref": "step-5"
     },
     {
-      "index": 6,
-      "wait": "P2D",
+      "id": "s6",
+      "kind": "message",
       "channel": "email",
+      "purpose": "marketing",
       "intent": "High-value cart: personal styling help offer (human reply-to)",
-      "branch_condition": "cart_value >= 1500 TL",
+      "send": {
+        "from": "entry",
+        "offset": "P4D"
+      },
+      "next": "s7",
       "copy_ref": "step-6"
     },
     {
-      "index": 7,
-      "wait": "P2D",
+      "id": "s7",
+      "kind": "message",
       "channel": "push",
+      "purpose": "marketing",
       "intent": "Real expiry notice: cart purges on {{cart_expiry_date}} (true system date)",
-      "branch_condition": null,
+      "send": {
+        "from": "entry",
+        "offset": "P6D"
+      },
+      "next": "d3",
       "copy_ref": "step-7"
     },
     {
-      "index": 8,
-      "wait": "P1D",
+      "id": "d3",
+      "kind": "decision",
+      "signal": {
+        "type": "attribute",
+        "name": "cart_value",
+        "source": "authoritative"
+      },
+      "window": {
+        "from": {
+          "from": "entry",
+          "offset": "P6D"
+        },
+        "to": {
+          "from": "entry",
+          "offset": "P6D"
+        }
+      },
+      "branches": [
+        {
+          "when": ">= 1500 TL",
+          "next": "s8"
+        }
+      ],
+      "default": "done",
+      "unmeasurable": "done"
+    },
+    {
+      "id": "s8",
+      "kind": "message",
       "channel": "email",
-      "intent": "Incentive (max 10%), approval-gated per intake policy",
-      "branch_condition": "cart_value >= 1500 TL AND incentive approved",
+      "purpose": "marketing",
+      "intent": "Incentive (max 10%), approval-gated per intake policy: not sent until approved",
+      "send": {
+        "from": "entry",
+        "offset": "P6DT12H"
+      },
+      "next": "done",
       "copy_ref": "step-8"
+    },
+    {
+      "id": "done",
+      "kind": "exit",
+      "reason": "completed",
+      "outcome": "neutral"
     }
   ],
   "kpis": [
@@ -138,9 +330,33 @@
       "target": "< 0.5% per send"
     }
   ],
-  "experiment": {
-    "holdout_pct": 10,
-    "ab_test": "step-1 subject line: Variant A (Sepetin seni bekliyor...) vs Variant B ({{product_name}} hala sepetinde)"
+  "measurement": {
+    "design": "holdout",
+    "primary_outcome": {
+      "event": "purchase",
+      "window": "P7D"
+    },
+    "holdout": {
+      "pct": 10,
+      "assignment": {
+        "unit": "user",
+        "consistent": true,
+        "method": "hash of user_id"
+      },
+      "control_excludes": [
+        "every send in this journey"
+      ]
+    },
+    "routine_comms": [
+      {
+        "name": "order and shipping transactional emails",
+        "both_groups": true
+      }
+    ],
+    "contamination_risks": [
+      "users also in browse-abandonment receive a related reminder; the portfolio's entry gate defers one of them"
+    ],
+    "volume_note": "~650 entrants/week gives ~65 control users/week: read the lift after at least 4 weeks (~260 control users), and treat a small difference as inconclusive"
   },
   "data_gaps": [
     "cart_value computed CRM-side from synced add_to_cart/remove_from_cart events; native cart-state attribute would remove drift risk",

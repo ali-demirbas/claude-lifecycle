@@ -8,7 +8,7 @@ The portfolio is the top-level deliverable of `lifecycle-journeys`. It always pr
 
 # Lifecycle Journey Portfolio — <Company / Project>
 
-**Generated:** <date> · **Data tier:** T1 | T2 | T3
+**Generated:** <date> · **Data tier:** T1 | T2 | T3 · **Validation:** `validate_output.py` <version> · schema 2.0 · <passed | incomplete: n unverified | failed>
 **Goal weighting:** <user goal from intake, e.g. "retention-first">
 
 **Single-industry brands:** **Industry:** <sector> · **DQS:** <n>/100 · **Activation:** ready | **blocked — <reason, e.g. no per-user identity>** *(mandatory when the DQS activation flag is set; see docs/data-quality-score.md hard rule 3)*
@@ -32,7 +32,9 @@ The portfolio is the top-level deliverable of `lifecycle-journeys`. It always pr
 | … | | | | | | | | |
 | n | <name> | <vertical name> | `<id>` | Winback | P1 | — | — | 🔒 blocked — missing `<event>` |
 
-Status values: `✅ generated` · `🔒 blocked — missing <event>` (goes to tracking plan) · `⏸ deferred` (low priority for stated goal).
+Status values: `✅ ready` (generated, validator passed, no open correctness items) · `📝 draft` (generated, but an open item affects correctness: channel consent, an event's existence, an existing communication, a date's meaning; listed in the journey doc §9) · `💡 playbook-recommended` (T3: suggested from sector defaults, not confirmed by data) · `🔒 blocked — missing <event>` (goes to tracking plan) · `⏸ deferred` (low priority for the goal, user scope, or an existing automation that already covers it).
+
+Depth means sends on the longest path through the journey's graph; mutually exclusive branches are not added together.
 
 The Vertical column (multi-vertical brands only) and each row's Depth carry into `portfolio.json`'s `vertical` and the journey JSON's `depth_class` fields respectively — this table is not the only place either fact lives, and the two must agree (see `scripts/validate_output.py consistency`, and the portfolio registry's `vertical` field per journey).
 
@@ -61,8 +63,10 @@ Every gap gets one sentence: why it exists (missing data vs. low priority) and w
 
 One shared section across the whole portfolio, always — including for multi-vertical brands. Vertical boundaries are an internal planning split, not an exemption from frequency caps.
 
-- Journeys sharing a trigger or audience, and which wins.
-- Worst-case messages/user/week if all journeys run; flag if it exceeds the cap in [consent-and-quiet-hours.md](../knowledge/compliance/consent-and-quiet-hours.md).
+- **Contact policy:** the precedence order, concurrent-journey cap, entry gate and re-entry cooldown that decide who sends when a user qualifies for several journeys, and what happens at a cap breach (`defer`, `skip` or `priority`).
+- **Computed load:** per audience group and per overlap combo, the worst-path sends per rolling 7 days per channel, as computed by `validate_output.py` from the journey files (paste its numbers; never estimate by hand), against the caps in [consent-and-quiet-hours.md](../knowledge/compliance/consent-and-quiet-hours.md).
+- **Existing journeys outside this portfolio:** declared (name, audience, messages per 7 days, included in the load above) / none reported / unknown. When unknown, say so plainly: frequency is verified within this portfolio only, not globally.
+- **Handoffs:** which journey hands users to which, with queued sends suppressed; no loop without a cooldown.
 
 ## 5. Launch roadmap (required)
 

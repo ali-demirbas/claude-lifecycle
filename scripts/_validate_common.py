@@ -4,6 +4,7 @@ import re
 
 failures = []
 warnings = []
+unverifiable_items = []  # (msg, critical)
 
 
 def fail(msg, src=None):
@@ -16,6 +17,15 @@ def fail(msg, src=None):
         msg = f"{msg} · rule: {src}"
     failures.append(msg)
     print(f"FAIL: {msg}")
+
+
+def unverifiable(msg, critical=True, src=None):
+    """A fact the validator could not establish. Critical items block an
+    unconditional pass (exit 3), so 'not checked' is never reported as 'passed'."""
+    if src:
+        msg = f"{msg} · rule: {src}"
+    unverifiable_items.append((msg, critical))
+    print(f"  unverifiable{' (critical)' if critical else ''}: {msg}")
 
 
 def warn(msg, src=None):

@@ -1,0 +1,15 @@
+case: 45-subscription-t3-email-only
+company: Sahne+
+sector: subscription-media
+tier: T3
+rule_refs:
+  - skills/lifecycle-journeys/SKILL.md (T3 patterns are playbook-recommended, not eligible)
+  - templates/journey.schema.json (dqs null for T3)
+  - knowledge/compliance/consent-and-quiet-hours.md (unknown existing journeys - frequency verified within the portfolio only)
+run:
+  copy: false
+assertions:
+  must_generate: [churn-prevention]
+  required_anywhere: ["playbook-recommended", "\"dqs\": null"]
+  forbidden_anywhere: ["\"channel\": \"push\"", "\"channel\": \"sms\"", "not opened"]
+  journeys_validate: pass_or_unverified

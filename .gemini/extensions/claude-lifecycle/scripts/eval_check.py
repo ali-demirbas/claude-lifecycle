@@ -17,6 +17,7 @@ import subprocess
 import sys
 
 from _validate_common import tr_fold
+import journey_graph as jg
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(HERE, ".."))
@@ -181,13 +182,15 @@ def check_case(case_dir, out_root=None):
             continue
         try:
             d = json.load(open(p, encoding="utf-8"))
-            if isinstance(d, dict) and "steps" in d:
+            if isinstance(d, dict) and ("steps" in d or "nodes" in d):
                 journeys.append((p, d))
         except json.JSONDecodeError:
             pass
     steps_by_pattern = {}
     for _p, d in journeys:
-        steps_by_pattern.setdefault(d.get("pattern"), []).append(len(d.get("steps", [])))
+        # schema 2.0: sends on the longest path (exclusive branches not added); 1.x: flat step count
+        n_steps = jg.analyze(d)["max_msgs_on_path"] if jg.is_v2(d) else len(d.get("steps", []))
+        steps_by_pattern.setdefault(d.get("pattern"), []).append(n_steps)
     for pat, n in (a.get("min_steps") or {}).items():
         counts = steps_by_pattern.get(pat)
         if not counts:
@@ -216,6 +219,18 @@ def check_case(case_dir, out_root=None):
     for s in a.get("forbidden_anywhere", []):
         if tr_fold(str(s)) in blob:
             fail(f"forbidden string found in output: '{s}'")
+
+    # whole-output validation: the generated journeys/portfolio must pass the
+    # output validator ("pass"), or pass with only unverifiable items listed
+    # ("pass_or_unverified", exit 3) — never with errors
+    jv = a.get("journeys_validate")
+    if jv:
+        vo = os.path.join(HERE, "validate_output.py")
+        r = subprocess.run([sys.executable, vo, "all", out_dir], capture_output=True, text=True)
+        allowed = {0} if jv == "pass" else {0, 3}
+        if r.returncode not in allowed:
+            tail = [ln for ln in r.stdout.splitlines() if ln.strip()][-6:]
+            fail(f"journeys_validate={jv}: validate_output.py all exited {r.returncode}: " + " | ".join(tail))
 
     # copy assertions
     c = a.get("copy") or {}

@@ -4,6 +4,72 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+Planned as 0.3.0. Not released yet: the acceptance tests pass, and the before/after scenario comparison is still to run. What changes for users is below. Migrating existing outputs: [docs/migration-0.3.0.md](docs/migration-0.3.0.md). Every fixed defect, with where it lived and the test that catches it: [docs/audit/0.3.0-findings.md](docs/audit/0.3.0-findings.md).
+
+### Changed — journeys are now checked for timing, frequency and exits, not just shape
+
+- **Journey JSON schema 2.0.** A journey is a node graph: one entry, sends, decisions and exits, linked by id. The old format was a flat step list plus a display-only tree.
+  - Every send names what its wait is measured from: entry, a named earlier node, or an event/attribute date with a declared relation to entry. Calendar times carry a timezone.
+  - In 0.2.0 the same waits could be read as 30 days or 82 days, and real runs did both.
+- **Decisions are explicit.** Each one reads a single signal with its source, inside a window, and routes separately for "occurred", "not occurred" and **"can't be measured"**.
+  - Missing data is never read as "didn't happen", and never as disinterest.
+  - An email open is no longer accepted as a branching signal. Five branches in real 0.2.0 outputs relied on one.
+  - Mutually exclusive paths are separate branches, so their waits are no longer added together.
+- **Frequency is computed, not trusted.**
+  - The validator builds every path's timeline and counts the worst load per channel inside any rolling 7 days.
+  - It adds every journey a user can be in at once, plus existing journeys the user declared.
+  - A journey's declared weekly count is checked against that number. A real 0.2.0 run declared 2 emails a week for a journey that sends 4, and passed. When existing journeys are unknown, the result says frequency is verified within the portfolio only.
+  - Portfolios state what happens at a breach: defer, skip or priority.
+- **Exits are re-checked before every send**, not only at entry: conversion, consent withdrawal and pattern-specific stops. Re-entry states its cooldown and what a repeated trigger does while an instance is running. Handoffs suppress queued sends and can't loop without a cooldown.
+- **Measurement is a design, not a fixed 10%.** Each journey states its primary outcome and window. A holdout states its consistent per-user assignment, what the control doesn't receive, routine communications per group, contamination risks and what the volume can detect. Without a holdout, the journey gives the reason and the alternative. Service and transactional journeys aren't held out like marketing.
+- **Three validator outcomes: error, warning, unverifiable.** A critical unverifiable item (unknown timing, unknown existing journeys, event existence not checkable) exits with code 3 and is never reported as passed. Results carry the validator and schema versions.
+- **A broken canvas is never a deliverable.** build_canvas refuses an invalid journey and writes nothing; the validator fails an empty canvas. The validated JSON and markdown remain the output.
+- **All 29 patterns follow one contract** ([docs/pattern-contract.md](docs/pattern-contract.md)). Each states:
+  - signal sources, and signals that aren't enough on their own;
+  - entry and exit conditions checked before each send;
+  - re-entry rules;
+  - anchored step blueprints with no open-based branches;
+  - timing and channel fit;
+  - frequency and overlap;
+  - the measurement approach;
+  - what to do when data is missing.
+  - Notable rule changes:
+    - The post-purchase review request no longer depends on a private rating, so there is no review gating.
+    - Closed channels are never reopened automatically; re-permission comes only from the user.
+    - Cross-sell ranking runs only once the brand has configured data-sufficiency thresholds; there are no invented universal minimums.
+- **Starting the pipeline asks once.**
+  - Scope, breadth and the facts that change correctness are asked in one start message: channel consent, existing communications, what key dates mean.
+  - Safe preferences take stated defaults.
+  - Journeys built while a correctness fact is still missing are delivered as drafts, separate from journeys ready to implement.
+- **Copy has two named modes:** full, and quick draft (P0 only, one review pass, labelled as a draft). The mode is never switched silently.
+
+### Added
+
+- **3 patterns:**
+  - `renewal-reminder`: a service notice that counts down to the real renewal date and branches on auto vs manual renewal;
+  - `cancellation-winddown`: confirms the end date, includes a pause variant, and starts win-back only after access ends;
+  - `unengaged-sunset`: fewer messages before none; a sender-side suppression, which is not a consent withdrawal.
+- Rules adapted from the author's own journey library into 25 patterns, rewritten, with each source recorded in [docs/audit/0.3.0-pattern-provenance.md](docs/audit/0.3.0-pattern-provenance.md).
+- `validate_output.py timeline` (each path's send times and worst 7-day load), 41 acceptance tests, `journeys_validate` eval assertion.
+- 3 comparison scenarios (`evals/cases/43–45`). `run_evals.py` now records input/output/cache tokens, per-model usage, the plugin version and a run label.
+- Event taxonomy entries for subscription lifecycle and control signals (consent withdrawal, order cancellation, low rating, support case, and others).
+
+### Changed — cost
+
+- Journey and copy agents write their own files and return a short receipt, so the orchestrator no longer re-types their documents.
+- Each agent reads one context bundle built by `scripts/bundle_context.py` (only that journey's pattern and the rules it needs) instead of the orchestrator pasting ~10k tokens into every prompt.
+- Copy runs the mechanical checks in code before the reviewer, so the reviewer judges tone and claims only.
+- Fix loops stop after two rounds with a recorded diagnosis.
+- The router recommends a fresh session for a long run.
+- The bundle got larger (~18k tokens) because the 2.0 schema is the contract the agent must follow. Measured savings, if any, will be reported from the scenario comparison, not assumed.
+
+### Fixed
+
+- The shipped cart-recovery example branched on "step 1 not opened" and listed its two alternative value branches as sequential steps. It is migrated to schema 2.0.
+- `CLAUDE.md` forbade a measurement section the journey template requires. The rule now applies to the canvas only.
+- The router cited a CLAUDE.md rule that doesn't exist.
+
+
 ## [0.2.0] - 2026-09-28
 
 The first release since 0.1.0. Everything below this block accumulated under Unreleased between July and September; the block itself is what closes the gap between designing a journey and trusting it enough to send.

@@ -23,6 +23,9 @@ pattern_priorities:
   anniversary: P2
   channel-opt-in: P2
   lead-nurture: P1
+  renewal-reminder: P1
+  cancellation-winddown: P1
+  unengaged-sunset: P2
 typical_channels: [email, in_app, push]
 ---
 

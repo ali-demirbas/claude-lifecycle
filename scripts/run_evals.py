@@ -21,7 +21,8 @@ Requires the `claude` CLI on PATH and an authenticated session. Costs real
 usage: this is a pre-release / after-knowledge-change tool, not a per-PR CI
 gate (the deterministic tests in scripts/tests/ remain that gate).
 
-Run metadata (cost, turns, duration, pass/fail) is appended to
+Run metadata (cost, turns, duration, pass/fail, input/output/cache-read/
+cache-write tokens, per-model usage, plugin version, --label) is appended to
 evals/out/_runs.jsonl so score and cost can be compared across releases.
 """
 import argparse
@@ -34,6 +35,10 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+try:
+    PLUGIN_VERSION = json.load(open(os.path.join(HERE, "..", ".claude-plugin", "plugin.json")))["version"]
+except Exception:  # noqa: BLE001
+    PLUGIN_VERSION = "?"
 REPO = os.path.normpath(os.path.join(HERE, ".."))
 CASES = os.path.join(REPO, "evals", "cases")
 OUT = os.path.join(REPO, "evals", "out")
@@ -115,6 +120,11 @@ def run_case(case_id, args):
         "cost_usd": meta.get("total_cost_usd"),
         "turns": meta.get("num_turns"),
         "seconds": round(elapsed),
+        "usage": {k: (meta.get("usage") or {}).get(k) for k in
+                  ("input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")},
+        "model_usage": meta.get("modelUsage"),
+        "plugin_version": PLUGIN_VERSION,
+        "label": args.label,
         "result_tail": str(meta.get("result", ""))[-600:],
     }
 
@@ -127,6 +137,7 @@ def main():
     ap.add_argument("--parallel", type=int, default=2)
     ap.add_argument("--model")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--label", default="", help="free-text tag stored with each run, e.g. 'baseline-0.2.0' or '0.3.0-sonnet-agents'")
     args = ap.parse_args()
 
     available = sorted(d for d in os.listdir(CASES) if os.path.isdir(os.path.join(CASES, d)))

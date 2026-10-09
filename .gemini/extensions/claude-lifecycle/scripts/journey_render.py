@@ -49,6 +49,8 @@ STEP_SEP = "|---|------|---------|----------------|------------------|----------
 _WAIT_RE = re.compile(r"^P(?:(\d+)W|(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?)$")
 
 # Per-kind id prefixes for the Mermaid node ids; the single entry node is always T.
+import journey_graph as jg  # noqa: E402
+
 _KIND_PREFIX = {"message": "S", "decision": "D", "wait": "W", "exit": "X"}
 
 
@@ -77,8 +79,73 @@ def _fmt_wait(iso, first):
     return f"+{short} after trigger" if first else f"+{short}"
 
 
+V2_HEADER = "| Node | When | Channel | Message intent | Reached via | Copy ref |"
+V2_SEP = "|------|------|---------|----------------|-------------|----------|"
+
+
+def anchor_text(a):
+    """Anchor -> plain text: '+P1D after entry', 'trial_end -P2D', '+P1D after d1'."""
+    if not isinstance(a, dict):
+        return "?"
+    off = a.get("offset", "P0D")
+    src = a.get("from")
+    ref = {"entry": "entry", "node": a.get("node"), "event": a.get("event"), "attribute": a.get("attribute")}.get(src, "?")
+    txt = f"{ref} {off}" if off.startswith("-") else f"+{off} after {ref}"
+    cal = a.get("calendar")
+    if cal:
+        txt += f" at {cal.get('time_of_day')} ({cal.get('timezone') or 'no timezone'})"
+    return txt
+
+
+def _ordered_messages(doc):
+    """Message nodes in a deterministic order (earliest computed time, then node
+    order) and, per message, the nearest decision outcome(s) leading to it. A
+    message every outcome of that decision reaches (a merge) shows no condition."""
+    res = jg.analyze(doc)
+    by_id = res["by_id"]
+    first_t, via = {}, {}
+    order = {n.get("id"): i for i, n in enumerate(doc.get("nodes") or [])}
+    for path, tl in zip(res["paths"], res["timelines"]):
+        last = None
+        for idx, (nid, lab) in enumerate(path):
+            if lab and idx > 0 and by_id[path[idx - 1][0]].get("kind") == "decision":
+                last = (path[idx - 1][0], lab)
+            if by_id[nid].get("kind") == "message":
+                via.setdefault(nid, {})
+                if last:
+                    via[nid].setdefault(last[0], set()).add(last[1])
+                else:
+                    via[nid].setdefault(None, set())
+        for nid, _, tsec in tl:
+            if tsec is not None:
+                first_t[nid] = min(first_t.get(nid, tsec), tsec)
+    reached = {}
+    for nid, per_dec in via.items():
+        parts = []
+        for dec, labels in per_dec.items():
+            if dec is None:
+                continue
+            outcomes = {lab for lab, _ in jg.successors(by_id[dec])}
+            if labels >= outcomes:
+                continue
+            parts.append(f"{dec}={' / '.join(sorted(labels))}")
+        reached[nid] = " · ".join(parts)
+    msgs = [n for n in doc.get("nodes") or [] if n.get("kind") == "message"]
+    msgs.sort(key=lambda n: (first_t.get(n["id"], float("inf")), order[n["id"]]))
+    return msgs, reached
+
+
 def render_step_table(doc):
-    """The §5 markdown table (header + separator + one row per flat step)."""
+    """The §5 markdown table. Schema 2.0: one row per message node with its
+    explicit anchor; 1.x: one row per flat step."""
+    if jg.is_v2(doc):
+        rows = [V2_HEADER, V2_SEP]
+        msgs, via = _ordered_messages(doc)
+        for n in msgs:
+            reached = via.get(n["id"]) or EMPTY
+            rows.append(f"| {n['id']} | {anchor_text(n.get('send'))} | {n.get('channel', '')} | "
+                        f"{n.get('intent', '')} | {reached} | {n.get('copy_ref') or EMPTY} |")
+        return "\n".join(rows)
     rows = [STEP_HEADER, STEP_SEP]
     for st in doc.get("steps", []):
         idx = st.get("index")
@@ -121,6 +188,25 @@ def render_mermaid(doc):
     emitted (decision children carry their branch label). Declaring nodes before
     edges keeps the output unambiguous and independent of how many parents a node
     has — a plain, always-valid Mermaid shape."""
+    if jg.is_v2(doc):
+        decls, edges = [], []
+        for n in doc.get("nodes") or []:
+            nid = re.sub(r"[^A-Za-z0-9_]", "_", n["id"])
+            disp = n.get("display") or {}
+            k = n.get("kind")
+            if k == "decision":
+                title = disp.get("title") or f"{(n.get('signal') or {}).get('name')}?"
+            elif k == "exit":
+                title = disp.get("title") or n.get("reason")
+            elif k == "entry":
+                title = disp.get("title") or (doc.get("trigger") or {}).get("value") or "entry"
+            else:
+                title = disp.get("title") or n.get("intent")
+            decls.append("    " + _node_decl(nid, {"kind": k, "title": title, "channel": n.get("channel")}))
+            for lab, tgt in jg.successors(n):
+                tid = re.sub(r"[^A-Za-z0-9_]", "_", tgt)
+                edges.append(f"    {nid} -->|{_mm_text(lab)}| {tid}" if lab else f"    {nid} --> {tid}")
+        return "\n".join(["```mermaid", "flowchart TD"] + decls + edges + ["```"])
     flow = doc.get("flow")
     if not flow:
         return ""
@@ -206,7 +292,7 @@ def main(argv):
     except (OSError, json.JSONDecodeError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
-    if not isinstance(doc, dict) or "flow" not in doc:
+    if not isinstance(doc, dict) or ("flow" not in doc and not jg.is_v2(doc)):
         print(
             f"error: {args.journey} has no 'flow' field — journey_render only renders the "
             "explicit branch tree. Older journeys keep their hand-authored §5 table and §8 diagram.",

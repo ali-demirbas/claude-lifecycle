@@ -67,6 +67,7 @@ assertions:
   audience_must_exclude: [<id>, ...]         # id may not appear in any journey audience.include
   required_anywhere: [<substring>, ...]      # grep across all out-files (case-insensitive)
   forbidden_anywhere: [<substring>, ...]
+  journeys_validate: pass | pass_or_unverified   # validate_output.py all on the run's output: exit 0, or 0/3 (unverifiable items only)
   copy:
     forbidden: [<substring>, ...]            # grep in copy *.md only
     required: [<substring>, ...]

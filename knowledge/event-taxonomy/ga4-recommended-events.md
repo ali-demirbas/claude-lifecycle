@@ -26,6 +26,32 @@ stages: [acquisition, activation, engagement, revenue, retention, winback]
 | `join_group` | retention | medium | Community signal |
 | `app_remove` (Android) | winback-adjacent | high (negative) | Only reachable via email/SMS afterwards |
 
+## Lifecycle control signals (custom conventions used by the journey patterns)
+
+| Event (convention) | Stage | Intent weight |
+|---|---|---|
+| `consent_withdrawn` (per channel: email unsubscribe, push opt-out, SMS/İYS revocation) | control (stops sends) | very high (negative) |
+| `order_cancelled` | revenue (negative) | high |
+| `low_rating_submitted` (rating at or below a configurable threshold) | retention (risk) | high (negative) |
+| `item_discontinued` (withdrawn from the catalogue, not out of stock) | control | medium |
+| `stock_alert_unsubscribe` | control | medium (negative) |
+| `price_increase` | control | medium |
+| `lead_qualified` (sales-ready, from the CRM of record) | acquisition → handoff | high |
+| `support_ticket_opened` / `support_case_opened` (same signal; use whichever the support system emits) | control (pauses marketing) | high (negative) |
+| `cancellation_intent` (cancel flow started, not completed) | retention (risk) | very high (negative) |
+| `csm_owner_assigned` | control (human owner takes over) | medium |
+| `continue_later_selected` / `help_declined` | control | medium |
+| `feature_opened` (product event, not a message click) | engagement | medium |
+| `in_app_shown` / `profile_question_dismissed` | control | low |
+| `usage_recovered` (derived: usage back above the account's own baseline, computed, never a falling risk score) | retention | high |
+| `coverage_ended` (insurance: the policy's cover actually stopped) | winback-adjacent | high (negative) |
+| `email_delivered` (ESP delivery record; the base for "silence" in unengaged-sunset) | control | low |
+| `access_restored` (after a payment-related suspension) | revenue (protect) | high |
+
+`incentive_ledger` and `sender_suppression` are records, not events: a per-person log of comeback incentives already issued, and the sender-side suppression list. A sender-side suppression is not a consent withdrawal and never stops transactional or service messages.
+
+`activation_event` and `account_activated` in pattern files are placeholders for the sector's own activation event (`knowledge/industries/<sector>.md` `activation_definition`); map them per account, never emit them literally.
+
 ## Commerce funnel
 
 | GA4 event | Stage | Intent weight |
@@ -59,6 +85,12 @@ stages: [acquisition, activation, engagement, revenue, retention, winback]
 | `trial_end` | revenue-intent | very high |
 | `subscription_start` / `subscribe` | revenue | high |
 | `subscription_cancel` | winback-adjacent | high (negative) |
+| `subscription_renewed` | retention | high |
+| `subscription_expired` (paid access actually ended) | winback-adjacent | high (negative) |
+| `subscription_reactivated` | retention | high |
+| `subscription_pause` / `subscription_resumed` | retention | medium |
+| `plan_changed` (with `from_plan`/`to_plan`) | revenue / retention | medium |
+| `renewal_quote_issued` (insurance, contracts) | retention | high |
 | `payment_failed` | revenue (protect) | very high |
 | `feature_used` (with `feature` param) | engagement | medium |
 | `invite_sent` / `invite_accepted` | engagement | high |

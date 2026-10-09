@@ -17,6 +17,7 @@ Usage:
                                                       branch-presence/KPI-count+types agree
                                                       (never diffs intent text or wait-duration
                                                       equivalence — those stay a human read)
+  validate_output.py timeline <journey.json>           per-path send times + worst 7-day load
   validate_output.py dossier <dossier.md>             DQS line carries a reliability tag
   validate_output.py audience <audiences.sql|audiences-traits.json>
                                                       every audience: activation_status + validates
@@ -24,7 +25,8 @@ Usage:
                                                       also auto-pairs a journey-doc.md with its
                                                       journey JSON (by id) for the consistency check
 
-Exit codes: 0 = pass (warnings allowed), 1 = violations found, 2 = usage error.
+Exit codes: 0 = pass (warnings allowed), 1 = violations found, 2 = usage error,
+            3 = no violations but critical items unverifiable (never report as passed).
 """
 import glob
 import json
@@ -32,7 +34,11 @@ import os
 import re
 import sys
 
-from _validate_common import fail, failures, tr_diacritic_stripped_hits, tr_fold, warn, warnings
+from _validate_common import (fail, failures, tr_diacritic_stripped_hits, tr_fold, unverifiable,
+                              unverifiable_items, warn, warnings)
+import journey_graph as jg
+
+VALIDATOR_VERSION = "2.0.0"
 
 CHANNELS = {"email", "push", "sms", "in_app", "whatsapp"}
 ISO_WAIT = re.compile(r"^P(?!$)(?:\d+W|(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?)$")
@@ -225,6 +231,7 @@ def check_journey(path):
     # depth_range — "does this many steps make sense for this pattern" is a
     # question no static JSON Schema can answer, since the answer depends on
     # a *different* file's own frontmatter, not a fixed rule.
+    pattern_fm = ""
     pat = doc.get("pattern")
     if pat:
         here = os.path.dirname(os.path.abspath(__file__))
@@ -244,13 +251,18 @@ def check_journey(path):
                 )
             range_m = re.search(r"^depth_range:\s*\[\s*(\d+)\s*,\s*(\d+)\s*\]", pattern_fm, re.M)
             n_steps = len(doc.get("steps", []))
-            if range_m and n_steps:
+            if range_m and n_steps and not jg.is_v2(doc):
                 lo, hi = int(range_m.group(1)), int(range_m.group(2))
                 if not (lo <= n_steps <= hi):
                     fail(
                         f"{path}: {n_steps} steps is outside {pat}.md's own depth_range [{lo}, {hi}] — "
                         f"either the depth class was miscomputed or this pattern isn't the right fit"
                     )
+
+    if jg.is_v2(doc):
+        check_journey_v2(path, doc, pattern_fm)
+        return
+    _report(path, jg.analyze_legacy(doc))
 
     # 3. constraints vs steps (compliance-class: hard fail)
     cons = doc.get("constraints") or {}
@@ -304,6 +316,74 @@ def check_journey(path):
                 f"(found: {sample}) — flow.title/tag/rows[].html is customer-facing "
                 f"canvas text; preserve every diacritic"
             )
+
+
+def _report(path, F):
+    """Route journey_graph findings into the shared fail/warn/unverifiable lists."""
+    for level, msg, critical in F.items:
+        if level == "error":
+            fail(f"{path}: {msg}")
+        elif level == "warning":
+            warn(f"{path}: {msg}")
+        else:
+            unverifiable(f"{path}: {msg}", critical=critical)
+
+
+def _caps_window():
+    return 7 * jg.DAY
+
+
+def check_journey_v2(path, doc, pattern_fm, inventory=None, report=True):
+    """Schema 2.0 semantics: graph, timing anchors, decisions, exits, measurement,
+    events, frequency. Returns the analysis dict so portfolio mode can reuse it."""
+    res = jg.analyze(doc, inventory=inventory, window=_caps_window())
+    F = res["findings"]
+    if pattern_fm:
+        range_m = re.search(r"^depth_range:\s*\[\s*(\d+)\s*,\s*(\d+)\s*\]", pattern_fm, re.M)
+        n = res["max_msgs_on_path"]
+        if range_m and res["structure_ok"]:
+            lo, hi = int(range_m.group(1)), int(range_m.group(2))
+            if not (lo <= n <= hi):
+                F.error(f"longest path has {n} sends, outside {doc.get('pattern')}.md's depth_range [{lo}, {hi}]")
+    if res["structure_ok"] and doc.get("journey_class") == "marketing":
+        caps = load_default_caps()
+        for ch, v in res["freq"].items():
+            cap = caps.get(ch)
+            if cap is not None and v > cap:
+                msg = (f"worst path sends {v} {ch} message(s) inside a rolling 7-day window, over the cap of {cap}")
+                if res["freq_has_unknown"]:
+                    F.unverifiable(msg + " (upper bound: some send times are not computable)")
+                else:
+                    F.error(msg + " (Frequency Cap Violation)")
+    if report:
+        _report(path, F)
+        if res["structure_ok"] and not any(l == "error" for l, _, _ in F.items):
+            ok(f"schema 2.0: {len(res['paths'])} path(s), max {res['max_msgs_on_path']} sends on a path, "
+               f"worst 7-day load {dict(sorted(res['freq'].items()))}")
+    return res
+
+
+def print_timeline(path):
+    doc = json.load(open(path, encoding="utf-8"))
+    if not jg.is_v2(doc):
+        fe, ch = jg.legacy_timelines(doc)
+        print(f"== timeline (legacy 1.x, two readings): {path}")
+        for (s, a), (_, b) in zip(fe, ch):
+            print(f"  step {s.get('index')} {s.get('channel')}: from entry @ {jg.fmt(a)} · chained @ {jg.fmt(b)}")
+        return
+    res = jg.analyze(doc, window=_caps_window())
+    print(f"== timeline: {path}")
+    for i, tl in enumerate(res["timelines"], 1):
+        route = " > ".join(f"{nid}" + (f" [{lab}]" if lab else "") for nid, lab in res["paths"][i - 1])
+        print(f"path {i}: {route}")
+        for nid, lab, tsec in tl:
+            n = res["by_id"][nid]
+            if n.get("kind") == "message":
+                print(f"  {nid} @ {jg.fmt(tsec)}  {n.get('channel')}")
+            elif n.get("kind") == "decision":
+                print(f"  {nid} @ {jg.fmt(tsec)}  decision on {(n.get('signal') or {}).get('name')}")
+    print(f"worst rolling 7-day load: {dict(sorted(res['freq'].items()))}")
+    _report(path, res["findings"])
 
 
 # ------------------------------------------------------------------- copy
@@ -790,8 +870,8 @@ def check_consistency(md_path, json_path):
         else:
             warn(f"{json_path}: markdown declares depth class '{md_depth}' but JSON has no depth_class field")
 
-    if doc.get("flow"):
-        # Explicit-branch-tree journeys: the §5 step table and §8 Mermaid are
+    if doc.get("flow") or jg.is_v2(doc):
+        # Explicit-branch-tree journeys (and every schema-2.0 node graph): the §5 step table and §8 Mermaid are
         # GENERATED, not hand-authored. Regenerate both from the JSON and require
         # the doc to reproduce them exactly. The exact §5 match subsumes the old
         # per-row channel + branch-presence checks (they are just columns of that
@@ -861,17 +941,19 @@ def check_consistency(md_path, json_path):
 def check_portfolio(path):
     """portfolio.json: machine-readable journey registry.
 
-    {"brand": str, "caps": {channel: n, "total": n}?, "journeys": [
-       {"id","pattern","stage","priority","channels":[...],
-        "audience_group": str, "est_msgs_per_week": {channel: n},
-        "vertical": str?}]}
+    {"brand": str, "schema_version": "2.0"?, "caps": {...}?,
+     "frequency_policy": {"window": "P7D", "on_breach": "defer|skip|priority"},   (2.0)
+     "external_journeys_status": "declared|none_reported|unknown",                  (2.0)
+     "external_journeys": [{"name","audience_groups":[...],"msgs":{ch:n}|null,"window":"P7D"}],
+     "events_available": [...]?,
+     "journeys": [{"id","file"?,"pattern","stage","priority","channels",
+                   "audience_group","est_msgs_per_week": {ch: n},"vertical"?}],
+     "audience_overlaps": [[g1, g2], ...], "campaign_msgs_per_week": {ch: n}?}
 
-    `vertical` is optional and only meaningful for multi-vertical brands —
-    absent entirely for single-industry brands. It exists so a downstream
-    consumer working from this JSON alone (lifecycle-export, an eval script)
-    can group/filter journeys by vertical without re-deriving it from
-    knowledge/brands/<brand>.md's applicable_industries mapping.
-    """
+    Frequency is computed from each journey file's actual sends (worst path,
+    rolling 7-day window). est_msgs_per_week is a declaration to check, never
+    the source of truth: a declaration below the computed load fails.
+    Group and overlap sums assume entries can coincide (conservative)."""
     print(f"== portfolio: {path}")
     try:
         with open(path, encoding="utf-8") as f:
@@ -884,6 +966,9 @@ def check_portfolio(path):
     if not js:
         fail(f"{path}: no journeys in registry")
         return
+    v2p = doc.get("schema_version") == "2.0"
+    base_dir = os.path.dirname(os.path.abspath(path))
+    inventory = doc.get("events_available")
 
     ids = [j.get("id") for j in js]
     for dup in {i for i in ids if ids.count(i) > 1}:
@@ -892,31 +977,102 @@ def check_portfolio(path):
     verticals_present = [j.get("vertical") for j in js if j.get("vertical")]
     if verticals_present and len(verticals_present) < len(js):
         missing = [j.get("id") for j in js if not j.get("vertical")]
-        warn(
-            f"{path}: {len(verticals_present)}/{len(js)} journeys declare 'vertical' — "
-            f"mixed declaration in one registry usually means an oversight, not a real "
-            f"single-industry journey mixed into a multi-vertical brand's portfolio. "
-            f"Missing on: {missing}"
-        )
+        warn(f"{path}: {len(verticals_present)}/{len(js)} journeys declare 'vertical' — mixed declaration "
+             f"usually means an oversight. Missing on: {missing}")
+
+    policy = doc.get("frequency_policy") or {}
+    if v2p:
+        if policy.get("on_breach") not in ("defer", "skip", "priority"):
+            fail(f"{path}: frequency_policy.on_breach must say what happens at a cap breach: defer | skip | priority")
+        if policy.get("window", "P7D") != "P7D":
+            unverifiable(f"{path}: frequency window {policy.get('window')} — caps are defined per rolling 7 days; "
+                         f"other windows are not computed")
 
     caps = {**load_default_caps(), **(doc.get("caps") or {})}
-    groups = {}
+    loads, analyses = {}, {}
     for j in js:
-        g = j.get("audience_group", "all")
-        per = j.get("est_msgs_per_week", {})
-        if not isinstance(per, dict):
-            # registry contract (lifecycle-journeys step 6): per-CHANNEL dict,
-            # e.g. {"email": 2, "push": 1} — a bare total can't be checked
-            # against per-channel caps
-            fail(
-                f"{path}: journey '{j.get('id')}': est_msgs_per_week must be a per-channel "
-                f"dict like {{\"email\": 2, \"push\": 1}}, got {type(per).__name__} "
-                f"({per!r}) — see the registry contract in lifecycle-journeys"
-            )
+        jid = j.get("id")
+        declared = j.get("est_msgs_per_week")
+        if declared is not None and not isinstance(declared, dict):
+            fail(f"{path}: journey '{jid}': est_msgs_per_week must be a per-channel dict like "
+                 f"{{\"email\": 2, \"push\": 1}}, got {type(declared).__name__} ({declared!r})")
+            declared = None
+        computed, legacy, cls = None, False, "marketing"
+        f = j.get("file")
+        if f:
+            fp = f if os.path.isabs(f) else os.path.join(base_dir, f)
+            if not os.path.isfile(fp):
+                fail(f"{path}: journey '{jid}': file '{f}' not found")
+            else:
+                try:
+                    jd = json.load(open(fp, encoding="utf-8"))
+                except Exception as e:  # noqa: BLE001
+                    jd = None
+                    fail(f"{path}: journey '{jid}': file '{f}' is not valid JSON ({e})")
+                if jd is not None and jg.is_v2(jd):
+                    cls = jd.get("journey_class", "marketing")
+                    res = check_journey_v2(fp, jd, "", inventory=inventory, report=False)
+                    analyses[jid] = (jd, res)
+                    if res["structure_ok"]:
+                        computed = {k: v for k, v in res["freq"].items() if k != "total"}
+                        if res["freq_has_unknown"]:
+                            unverifiable(f"{path}: journey '{jid}': some send times are not computable; its load "
+                                         f"is a conservative upper bound")
+                    else:
+                        fail(f"{path}: journey '{jid}': graph is broken; run `validate_output.py journey {f}`")
+                elif jd is not None:
+                    computed, legacy = jg.legacy_frequency(jd)[0], True
+                    unverifiable(f"{path}: journey '{jid}' is legacy 1.x: only a lower bound of its weekly load "
+                                 f"can be computed (unconditioned steps, both readings of its waits)")
+        elif v2p:
+            fail(f"{path}: journey '{jid}' has no 'file': frequency must be computed from the journey's sends")
+        if cls in ("service", "transactional"):
             continue
-        groups.setdefault(g, {}).setdefault("_journeys", []).append(j.get("id"))
-        for ch, n in per.items():
+        if computed is not None:
+            if isinstance(declared, dict):
+                for ch, v in sorted(computed.items()):
+                    d = declared.get(ch, 0)
+                    if d < v:
+                        fail(f"{path}: journey '{jid}': declares {d} {ch} message(s) per week, but {'at least ' if legacy else ''}"
+                             f"computed {v} from its sends inside a rolling 7-day window — the declaration is not "
+                             f"a verification source")
+            loads[jid] = (j.get("audience_group", "all"), computed)
+        else:
+            if not v2p:
+                unverifiable(f"{path}: journey '{jid}': frequency taken from its own declaration (no journey file), "
+                             f"not computed from sends")
+            if isinstance(declared, dict):
+                loads[jid] = (j.get("audience_group", "all"), declared)
+
+    groups = {}
+    for jid, (g, load) in loads.items():
+        groups.setdefault(g, {"_journeys": []})["_journeys"].append(jid)
+        for ch, n in load.items():
             groups[g][ch] = groups[g].get(ch, 0) + n
+
+    status = doc.get("external_journeys_status")
+    if status == "declared":
+        for e in doc.get("external_journeys") or []:
+            name = e.get("name", "?")
+            msgs = e.get("msgs")
+            if not isinstance(msgs, dict):
+                unverifiable(f"{path}: existing journey '{name}' has no message counts; global frequency not verified")
+                continue
+            if e.get("window", "P7D") != "P7D":
+                unverifiable(f"{path}: existing journey '{name}' counted per {e.get('window')}, not per 7 days")
+                continue
+            for g in e.get("audience_groups") or ["all"]:
+                grp = groups.setdefault(g, {"_journeys": []})
+                grp["_journeys"].append(f"existing:{name}")
+                for ch, n in msgs.items():
+                    grp[ch] = grp.get(ch, 0) + n
+    elif status == "none_reported":
+        ok("user reported no existing journeys outside this portfolio")
+    else:
+        unverifiable(f"{path}: existing journeys outside this portfolio are unknown — frequency is verified "
+                     f"within this portfolio only, NOT globally")
+
+    breach_note = f" · on breach: {policy['on_breach']}" if policy.get("on_breach") else ""
 
     def check_caps(label, sums):
         total = sum(v for k, v in sums.items() if k != "_journeys")
@@ -924,69 +1080,70 @@ def check_portfolio(path):
             if ch == "_journeys":
                 continue
             if n > caps.get(ch, 99):
-                fail(
-                    f"{path}: {label}: worst case {n} {ch}-msgs/week exceeds "
-                    f"cap {caps[ch]} (journeys: {sums['_journeys']}) — Frequency Cap Violation",
-                    src="knowledge/compliance/consent-and-quiet-hours.md § Default frequency caps",
-                )
+                fail(f"{path}: {label}: worst case {n} {ch}-msgs per rolling 7 days exceeds cap {caps[ch]} "
+                     f"(journeys: {sums['_journeys']}) — Frequency Cap Violation{breach_note}",
+                     src="knowledge/compliance/consent-and-quiet-hours.md § Default frequency caps")
         if total > caps["total"]:
-            fail(
-                f"{path}: {label}: worst case {total} msgs/week total exceeds "
-                f"cap {caps['total']} — Frequency Cap Violation",
-                src="knowledge/compliance/consent-and-quiet-hours.md § Default frequency caps",
-            )
+            fail(f"{path}: {label}: worst case {total} msgs per rolling 7 days total exceeds cap {caps['total']} "
+                 f"— Frequency Cap Violation{breach_note}",
+                 src="knowledge/compliance/consent-and-quiet-hours.md § Default frequency caps")
 
     for g, sums in groups.items():
         check_caps(f"audience group '{g}'", sums)
-
-    # Cross-group overlap: a real user can sit in several audience groups at
-    # once (new signup who abandons a cart in the same week). Per-group sums
-    # alone silently approve that violation. The registry declares which
-    # groups can overlap; each declared combo is checked as one merged user.
     overlaps = doc.get("audience_overlaps") or []
     overlap_sums = {}
     for combo in overlaps:
         merged = {"_journeys": []}
         for g in combo:
             for ch, n in groups.get(g, {}).items():
-                if ch == "_journeys":
-                    merged["_journeys"] += n
-                else:
-                    merged[ch] = merged.get(ch, 0) + n
+                merged[ch] = (merged.get(ch, 0) + n) if ch != "_journeys" else merged["_journeys"] + n
         overlap_sums["+".join(combo)] = merged
         check_caps(f"overlap {'+'.join(combo)}", merged)
-    # Campaign-week math (knowledge/calendar-rules.md): declared campaign
-    # sends count against the SAME caps — the cap doesn't grow because it's
-    # Black Friday. When the registry declares them, every group AND overlap
-    # combo is re-checked with the campaign load added (a combo's baseline
-    # can be under cap while combo+campaign pushes it over — checking groups
-    # alone misses exactly that cross-group case during a campaign window).
     camp = doc.get("campaign_msgs_per_week") or {}
     if camp and not isinstance(camp, dict):
         fail(f"{path}: campaign_msgs_per_week must be a per-channel dict, got {type(camp).__name__}")
         camp = {}
     if camp:
-        for g, sums in groups.items():
-            merged = {k: v for k, v in sums.items()}
+        for label, sums in [(f"audience group '{g}'", s) for g, s in groups.items()] + \
+                           [(f"overlap {k}", s) for k, s in overlap_sums.items()]:
+            merged = dict(sums)
             for ch, n in camp.items():
-                if ch != "_journeys":
-                    merged[ch] = merged.get(ch, 0) + n
-            check_caps(f"campaign week — audience group '{g}'", merged)
-        for label, sums in overlap_sums.items():
-            merged = {k: v for k, v in sums.items()}
-            for ch, n in camp.items():
-                if ch != "_journeys":
-                    merged[ch] = merged.get(ch, 0) + n
-            check_caps(f"campaign week — overlap {label}", merged)
-
+                merged[ch] = merged.get(ch, 0) + n
+            check_caps(f"campaign week — {label}", merged)
     if len(groups) > 1 and not overlaps:
-        warn(
-            f"{path}: {len(groups)} audience groups but no audience_overlaps declared — "
-            "cross-group frequency (one user in several groups at once) is UNCHECKED. "
-            "Declare audience_overlaps: [[groupA, groupB], ...] or confirm the groups "
-            "are mutually exclusive by definition."
-        )
-    ok(f"{len(js)} journeys, {len(groups)} audience groups, {len(overlaps)} overlap combos checked against caps")
+        warn(f"{path}: {len(groups)} audience groups but no audience_overlaps declared — cross-group frequency "
+             f"(one user in several groups at once) is UNCHECKED")
+
+    # handoffs between journeys: target exists, no uncontrolled return loops
+    edges = {}
+    for jid, (jd, res) in analyses.items():
+        for n in res["by_id"].values():
+            h = n.get("handoff") if n.get("kind") == "exit" else None
+            if h and h.get("to"):
+                if h["to"] not in ids:
+                    fail(f"{path}: journey '{jid}' hands off to '{h['to']}', which is not in this portfolio")
+                edges.setdefault(jid, set()).add(h["to"])
+
+    def cyc(u, trail):
+        for v in edges.get(u, ()):
+            if v in trail:
+                return trail[trail.index(v):] + [v]
+            r = cyc(v, trail + [v])
+            if r:
+                return r
+        return None
+
+    seen_cycles = set()
+    for s in edges:
+        c = cyc(s, [s])
+        if c and frozenset(c) not in seen_cycles:
+            seen_cycles.add(frozenset(c))
+            uncooled = [x for x in c[:-1] if (analyses.get(x, ({}, None))[0].get("reentry") or {}).get("policy") != "after_cooldown"]
+            if uncooled:
+                fail(f"{path}: handoff loop {' -> '.join(c)} with no cooldown on {uncooled}: a user can bounce "
+                     f"between these journeys indefinitely")
+    ok(f"{len(js)} journeys, {len(groups)} audience groups, {len(overlaps)} overlap combos checked against caps "
+       f"(computed from sends where a journey file is given)")
 
 
 # ---------------------------------------------------------------- canvas
@@ -1023,6 +1180,15 @@ def check_canvas(path, template):
         tpl_sk = _canvas_skeleton(open(template, encoding="utf-8").read())
     except Exception as e:  # noqa: BLE001
         fail(f"{path}: unreadable: {e}")
+        return
+    text = open(path, encoding="utf-8").read()
+    m = re.search(r"const JOURNEYS\s*=\s*(\[.*?\n\]);", text, re.S)
+    body = m.group(1) if m else ""
+    if not m or not re.search(r"\{", body):
+        fail(f"{path}: JOURNEYS is empty — a canvas with no journeys is not a deliverable")
+        return
+    if not re.search(r"""["']?\b(kind|steps)\b["']?\s*:""", body):
+        fail(f"{path}: JOURNEYS has no nodes or steps — the canvas would render blank")
         return
     if out_sk == tpl_sk:
         ok("canvas skeleton matches the template outside swappable regions")
@@ -1143,6 +1309,9 @@ def main(argv):
             print("usage: validate_output.py consistency <journey.md> <journey.json>")
             return 2
         check_consistency(rest[0], rest[1])
+    elif mode == "timeline":
+        for p in rest:
+            print_timeline(p)
     elif mode == "dossier":
         for p in rest:
             check_dossier(p)
@@ -1177,7 +1346,7 @@ def main(argv):
                         peek = json.load(f)
                 except Exception:  # noqa: BLE001
                     continue
-                if isinstance(peek, dict) and "steps" in peek and "kpis" in peek and "id" in peek:
+                if isinstance(peek, dict) and ("steps" in peek or "nodes" in peek) and "kpis" in peek and "id" in peek:
                     journey_json_by_id[peek["id"]] = p
 
         for dirpath, _dirs, files in os.walk(root):
@@ -1200,7 +1369,7 @@ def main(argv):
                             peek = json.load(f)
                     except Exception:  # noqa: BLE001
                         peek = None
-                    if isinstance(peek, dict) and "steps" in peek and "kpis" in peek:
+                    if isinstance(peek, dict) and ("steps" in peek or "nodes" in peek) and "kpis" in peek:
                         check_journey(p)
                     else:
                         warn(f"{p}: skipped in 'all' mode — not journey-shaped (no steps/kpis)")
@@ -1229,7 +1398,12 @@ def main(argv):
         print(__doc__)
         return 2
 
+    schema_ver = load_schema().get("x-schema-version", "?")
+    crit = [m for m, c in unverifiable_items if c]
     print()
+    print(f"validator {VALIDATOR_VERSION} · journey schema {schema_ver} · "
+          f"{len(failures)} error(s) · {len(warnings)} warning(s) · {len(unverifiable_items)} unverifiable "
+          f"({len(crit)} critical)")
     if failures:
         # A fixed, predictable block at the end — not a request to re-scan
         # interleaved FAIL/warn/ok lines above — is what makes this reliably
@@ -1248,6 +1422,14 @@ def main(argv):
         print(f"OUTPUT VALIDATION FAILED — {len(failures)} violation(s). "
               "Stop and report; do not self-correct compliance violations.")
         return 1
+    if crit:
+        print(f"UNVERIFIED ({len(crit)}):")
+        for i, m in enumerate(crit, 1):
+            print(f"  {i}. {m}")
+        print()
+        print(f"OUTPUT VALIDATION INCOMPLETE — no errors, but {len(crit)} critical item(s) could not be verified. "
+              "Present the output only together with this list; do not report it as passed.")
+        return 3
     print(f"OUTPUT VALIDATION PASSED ({len(warnings)} warning(s))")
     return 0
 

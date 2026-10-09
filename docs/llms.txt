@@ -28,7 +28,7 @@ Three input tiers: GA4 connected over MCP (behavioural triggers, multi-branch jo
 
 ## Reference
 
-- [Journey patterns](https://github.com/ali-demirbas/claude-lifecycle/tree/main/knowledge/journey-patterns): 26 sector-agnostic patterns, each with a required-event signature and depth that scales with data quality
+- [Journey patterns](https://github.com/ali-demirbas/claude-lifecycle/tree/main/knowledge/journey-patterns): 29 sector-agnostic patterns, each with a required-event signature, anchored timing and depth that scales with data quality
 - [Industry playbooks](https://github.com/ali-demirbas/claude-lifecycle/tree/main/knowledge/industries): 9 sectors — funnel shape, event expectations, pattern priorities, timing
 - [Channel rules](https://github.com/ali-demirbas/claude-lifecycle/tree/main/knowledge/channels): hard limits, banned words, consent and frequency rules for email, push, SMS, in-app and WhatsApp
 - [Journey schema](https://github.com/ali-demirbas/claude-lifecycle/blob/main/templates/journey.schema.json): a CRM-agnostic journey definition, portable to any marketing automation tool

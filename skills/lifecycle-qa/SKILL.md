@@ -5,7 +5,7 @@ description: Generate test event payloads for generated journeys — positive tr
 metadata:
   version: 0.2.0
   category: qa
-  updated: 2026-08-14
+  updated: 2026-10-09
 ---
 
 # Lifecycle QA — Trigger Payload Simulator
@@ -32,9 +32,11 @@ The hardest part of wiring a designed journey into a CRM is proving the trigger 
 | **Entry negatives** | One payload per entry condition, each violating exactly that condition (wrong event, missing required param, below threshold, excluded segment) | Proves the journey does NOT arm when it shouldn't — the failure a hand-tester never writes |
 | **Boundary pair** *(threshold conditions only)* | For a numeric/window condition ("≥ 2 view_item in 30 days"), the value just below the threshold alongside the value just at it (1 vs. 2; day 31 vs. day 30) — not one arbitrary satisfying value | Off-by-one and window-math bugs live at the edge; a single satisfying example can pass while the boundary is wrong |
 | **Branch cases** | One payload per branch condition, both sides | Proves each split routes correctly |
+| **Unmeasurable branch** *(every decision)* | A payload where the decision's signal can't be read for this user (the event isn't tracked for them, consent blocks it, or it arrives after the window closes) | Proves the `unmeasurable` route is taken, not the `not_occurred` one: missing data must never be read as "did not happen" |
 | **Timeout / no-response branch** *(wait-gated conditions)* | The no-event side of a branch keyed off a step's `wait` elapsing, not an opposing event | Proves the "nobody responded" path — this can't be proven by posting a payload; the case says whether to advance the sandbox clock or temporarily shorten the wait for the test run |
 | **Duplicate delivery** | The same trigger event (same id/params) posted twice | Proves the journey doesn't double-enter or double-fire a user on a retried/replayed delivery — the standard webhook-retry failure mode |
 | **Degraded payload** | The entry-positive event with one real-but-optional param dropped or null, per the mapped inventory's own optionality (never an invented gap) | Proves the trigger config survives the partial data real instrumentation actually sends sometimes — a suite built from one idealized sample payload can still pass while realistic partial traffic silently fails to enter |
+| **Pre-send exit check** | The success event (or a consent withdrawal) posted while a send is queued, after entry | Proves the queued message is cancelled at send time, not only that entry is blocked |
 | **Exit / suppression** | The success-exit event mid-journey; the kill-switch event where the pattern has one (refund, complaint) | Proves exits fire and suppression works — the highest-stakes test in the set |
 | **Cap probe** *(portfolio-level)* | The declared `audience_overlaps` scenario: one user triggering both journeys in the same week | Proves the pause/precedence rule actually holds in the tool, not just in the doc |
 

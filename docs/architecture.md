@@ -23,7 +23,7 @@ flowchart TD
     GATE -- yes --> ENGINE
 
     subgraph knowledge [Knowledge base]
-        PAT[journey-patterns/\n26 patterns + event signatures]
+        PAT[journey-patterns/\n29 patterns + event signatures]
         PLAY[industries/\nplaybooks: priorities, funnel, timing]
         LEX[lexicons/\nsector word choice]
         CHAN[channels/\nhard limits + rules]

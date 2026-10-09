@@ -1,0 +1,16 @@
+case: 44-ecom-low-volume-existing-welcome
+company: Kumbara Ev
+sector: ecommerce
+tier: T2
+rule_refs:
+  - docs/data-quality-score.md (hard rule 4 - volume component <= 5 caps depth at standard)
+  - knowledge/measurement.md (low volume - none_low_volume with reason and alternative)
+  - knowledge/compliance/consent-and-quiet-hours.md (existing journeys counted in frequency)
+run:
+  copy: false
+assertions:
+  must_generate: [abandoned-cart]
+  max_steps: {any: 7}
+  required_anywhere: ["external_journeys", "none_low_volume"]
+  forbidden_anywhere: ["not opened", "açılmadıysa", "\"channel\": \"push\"", "\"channel\": \"sms\""]
+  journeys_validate: pass_or_unverified

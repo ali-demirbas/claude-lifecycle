@@ -37,6 +37,13 @@ Precedence and entry-gate decisions, plus worst-case weekly load vs caps (includ
 
 Which rule sets bound the copy (lexicon, regulated flags), the review result (n blocks, violations, legal flags), and at most 1–2 sample blocks — the full set lives in the copy canvas.
 
+## 4a. Validation and modes
+
+- **Validator:** <the summary line, e.g. "validator 2.0.0 · journey schema 2.0 · 0 error(s) · 2 warning(s) · 1 unverifiable (1 critical)"> · result: passed | incomplete (list the unverified items) | failed
+- **Copy mode:** full | quick draft (P0 only) | not run
+- **Canvas:** built | failed (<reason>; the validated JSON/markdown are the deliverable)
+- **Defaults used** (safe, reversible): <tone, quiet hours, holdout design…>
+
 ## 5. Open items
 
 - Tracking plan top items (priority + which journey each unlocks)

@@ -1,0 +1,14 @@
+case: 43-saas-trial-7d-anchored
+company: Ritmo
+sector: saas
+tier: T2
+rule_refs:
+  - templates/journey.schema.json (2.0 - sends anchored to trial_end with a declared relation to entry)
+  - docs/pattern-contract.md (no open-based branching; unmeasurable route on every decision)
+run:
+  copy: false
+assertions:
+  must_generate: [trial-conversion]
+  required_anywhere: ["trial_end", "time_anchors"]
+  forbidden_anywhere: ["not opened", "açılmadıysa", "\"type\": \"open\""]
+  journeys_validate: pass_or_unverified

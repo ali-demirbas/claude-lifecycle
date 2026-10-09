@@ -5,7 +5,7 @@ description: Lifecycle marketing engine router. Use when the user says "lifecycl
 metadata:
   version: 0.2.0
   category: router
-  updated: 2026-08-14
+  updated: 2026-10-09
 ---
 
 # Lifecycle — Router
@@ -52,9 +52,13 @@ connect → map → (intake if needed) → journeys → copy → export (on requ
    - GA4 MCP tools available (`mcp__ga4__*` or similar)? → Tier 1. Confirm which property to use.
    - User has a CSV/export file? → Tier 2.
    - Neither? → Tier 3: ask for the industry (must match a file in `${CLAUDE_PLUGIN_ROOT}/knowledge/industries/`; if none matches, use the closest and say so, or offer `_template.md` for a custom playbook).
-2. **Pre-generation gate — ask these BEFORE any stage runs, in one grouped message, unless the user (or a brand config) already answered them.** These are cheap questions that gate expensive fan-out; skipping them is what makes a run silently balloon in time and tokens. Do not proceed to `connect`/`map`/`journeys` until they are settled (or explicitly defaulted with the tradeoff stated):
-   - **a) Scope:** journeys only, or journeys + copy (the full canvas pair)? State plainly that journeys + copy runs meaningfully longer and uses noticeably more tokens — the pipeline spawns one subagent per journey for the portfolio, then one writer + one reviewer per journey again for copy, each reading the sector/brand/channel rules independently. Journeys-only is the lighter, faster option; copy can always be added later as a separate `/lifecycle copy` step once the portfolio looks right. Silence or "hepsini/tümünü/full pipeline" defaults to journeys + copy (CLAUDE.md's "portfolio without copy is incomplete" rule) — but the cost/time tradeoff is stated before that default kicks in, never assumed silently.
-   - **b) Channel inventory:** which channels the brand can actually send on (email / push / SMS / in-app / WhatsApp), and roughly the audience size per channel. **Never assume a default channel set** — a journey built on push when the brand has no push consent, or on SMS with no İYS registration, is unshippable. On T1 some of this is inferable from the data; still confirm rather than assume. A brand config file (`knowledge/brands/<brand>.md` `channels_live`) answers this and skips the question. This is the same slot `lifecycle-intake`'s whitelist marks "always ask on T2/T3", surfaced here up front so channels are settled before generation, not discovered mid-run.
+2. **One start message — ask everything the run needs before any stage runs, once.** Collect what isn't already known from the conversation, a brand config, or (T1) confirmed data; never re-ask something the user already answered, and never ask a later stage's question again mid-run (intake reads what was answered here). In that single message:
+   - **Scope:** journeys only, or journeys + copy. Copy has two modes: **full** (every journey, writer + reviewer each) or **quick draft** (P0 journeys only, one review pass, labelled as a draft). State the tradeoff in one line: copy roughly doubles the run's agents. Silence or "hepsini/tümünü" means journeys + full copy, with the tradeoff stated first.
+   - **Breadth:** P0 only / P0 + P1 / everything eligible (the eligible list comes after `connect`/`map`; offer P0 + P1 as the default and confirm the count once it's known, only if it's larger than the user expects).
+   - **Facts that change correctness, never assumed:** which channels the brand can send on and for which ones users have consented or opted out; existing automations/journeys already running (name, audience, roughly how many messages a week; "unknown" is a valid answer, and then frequency is verified only inside the new portfolio); what key dates mean where the data has them (e.g. is `renewal_date` the policy end or the billing date).
+   - **Safe, reversible preferences get defaults** instead of questions: tone (sector lexicon), quiet hours (compliance file), holdout design (per journey, from volume), language (the user's). Each default used is stated in the dossier, so it can be changed later.
+   Missing correctness facts don't block design, they block readiness: journeys built without them are delivered as **drafts** with the open items listed, never as ready to implement.
+2a. **Clean context:** a full run is long. If this conversation already carries a lot of unrelated work, recommend starting the run in a fresh session (or `/clear` first); the earlier history is re-read on every turn of the run and was the single largest cost in a measured past run.
 3. Run the pipeline stages in order. Each stage's output feeds the next; summarize between stages in ≤ 3 sentences.
 4. If the user asks for a single stage, run only that stage, but state which prerequisites are missing and offer to run them.
 
@@ -63,6 +67,6 @@ connect → map → (intake if needed) → journeys → copy → export (on requ
 - Never generate journeys without a DQS (CLAUDE.md rule 1).
 - Never dump raw sub-skill mechanics on the user — they see results, not plumbing.
 - Never run `lifecycle-copy` before journeys exist, unless the user provides their own journey/step description.
-- **Never start generation without settling the step-2 pre-generation gate (scope + channels) first.** `copy` is still a standard stage of the pipeline — a journey portfolio without its copy is an incomplete deliverable for a "journeys'imi oluştur" request, so copy stays the default outcome. What the gate changes: the user hears the time/token tradeoff and can say "journeys only for now", and the brand's real channel set is confirmed, before the expensive fan-out starts instead of it running on silent assumptions.
+- **Never start generation without the step-2 start message settled** (scope, breadth, and the correctness facts — or an explicit "unknown" for each, which makes the affected journeys drafts). Copy stays the default outcome of a full run; the user hears the tradeoff first and can choose journeys only or a quick draft.
 - **Never assume the channel set.** Channels come from the user, the brand config's `channels_live`, or (T1) confirmed data — never a hardcoded email/push/in-app default. Generating on a channel the brand can't actually send produces an unshippable portfolio.
 - Never invent a sub-skill; if the request fits nothing above (e.g. "run my campaign"), say what this plugin does and does not do (it designs; it does not send).

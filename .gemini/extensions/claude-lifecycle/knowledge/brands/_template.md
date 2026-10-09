@@ -19,7 +19,14 @@ incentive_policy:
   value_adds: []                   # e.g. [priority support, early access]
 extra_banned_words: []             # brand-specific additions to lexicon/channel bans
 brand_vocabulary: []               # words/phrases the brand insists on (product names, feature names)
-existing_automations: []           # what already runs — the engine won't regenerate these
+existing_automations: []           # what already runs: [{name, audience_groups, channels, msgs: {email: 2} per 7 days or null if unknown}] — feeds coverage-overlap checks and the portfolio's external_journeys, so frequency counts them
+existing_automations_status: unknown  # declared | none_reported | unknown — unknown means frequency is verified only inside the generated portfolio
+withdrawn_channels: []             # channels users closed/opted out of; never reopened by a journey, only by an authoritative re-consent
+recommendation_thresholds:         # upsell-cross-sell data sufficiency; no universal default — until set, computed pairings are treated as unvalidated and the curated/bestseller fallback is used
+  observation_period: null         # ISO duration, e.g. P365D
+  min_sample_orders: null          # orders containing the anchor item in the period
+  min_pair_support: null           # orders containing both items
+  min_lift: null                   # only when lift is used for ranking
 ---
 
 # <Brand Name> — Company Config

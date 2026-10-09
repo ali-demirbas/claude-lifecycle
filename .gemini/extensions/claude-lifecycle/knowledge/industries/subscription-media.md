@@ -22,6 +22,9 @@ pattern_priorities:
   anniversary: P2
   channel-opt-in: P2
   gamified-rewards: P2
+  renewal-reminder: P1
+  cancellation-winddown: P1
+  unengaged-sunset: P2
 typical_channels: [email, push, in-app, whatsapp]
 ---
 

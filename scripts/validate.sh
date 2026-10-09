@@ -88,7 +88,9 @@ done
 ok "$(count_files skills/*/SKILL.md) skills checked"
 
 echo "== 2. Journey patterns: required frontmatter keys =="
-PATTERN_KEYS="name stage trigger_type required_events optional_events required_attributes optional_attributes default_channels base_steps depth_range applicable_industries"
+PATTERN_KEYS="name stage trigger_type required_events optional_events required_attributes optional_attributes default_channels base_steps depth_range applicable_industries journey_class signal_sources insufficient_alone exit_before_each_send reentry measurement_default"
+# docs/pattern-contract.md: schema-2.0 section headings every pattern carries, in order
+PATTERN_SECTIONS="## Required-event signature|### Not enough on its own|## Entry / exit|## Depth scaling|## Step blueprint|## Timing and channel fit|## Frequency and overlap|## Measurement|## When data is missing|## KPIs|## Common mistakes"
 for f in knowledge/journey-patterns/*.md; do
   fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
   for k in $PATTERN_KEYS; do
@@ -99,6 +101,18 @@ for f in knowledge/journey-patterns/*.md; do
     acquisition|activation|engagement|revenue|retention|winback) ;;
     *) err "$f: invalid stage '$stage'" ;;
   esac
+  jc=$(echo "$fm" | sed -n 's/^journey_class:[[:space:]]*//p' | head -1)
+  case "$jc" in marketing|service|transactional) ;; *) err "$f: invalid journey_class '$jc'" ;; esac
+  prev=0
+  _oldifs="$IFS"; IFS='|'; for h in $PATTERN_SECTIONS; do
+    ln=$(grep -n -F -x -- "$h" "$f" | head -1 | cut -d: -f1)
+    [ -z "$ln" ] && ln=$(grep -n -F -- "$h" "$f" | grep -E ":$h( |\(|$)" | head -1 | cut -d: -f1)
+    if [ -z "$ln" ]; then err "$f: missing section '$h' (docs/pattern-contract.md)"; elif [ "$ln" -lt "$prev" ]; then err "$f: section '$h' out of order"; else prev=$ln; fi
+  done; IFS="$_oldifs"
+  # blueprint: no open-based branching, every When names its anchor
+  bp=$(awk '/^## Step blueprint/{f=1;next} /^## /{f=0} f' "$f")
+  echo "$bp" | grep -qiE "not opened|unopened|if opened|email open|açılmad|açılmay" && err "$f: step blueprint branches on an email open"
+  echo "$bp" | awk -F'|' 'NF>5 && $2 !~ /Node|---/ {w=$3; gsub(/^ +| +$/,"",w); if (w != "—" && w !~ /^(entry|[a-z][a-z0-9_]*) [+-]/) print w}' | while read -r w; do echo "FAIL: $f: blueprint When '$w' doesn't name its anchor"; done | grep -q FAIL && err "$f: blueprint has unanchored When values"
   tt=$(echo "$fm" | sed -n 's/^trigger_type:[[:space:]]*//p' | head -1)
   case "$tt" in
     event|time|segment|absence) ;;

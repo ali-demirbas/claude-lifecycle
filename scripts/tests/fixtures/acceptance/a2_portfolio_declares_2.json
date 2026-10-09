@@ -1,0 +1,27 @@
+{
+  "brand": "demo",
+  "schema_version": "2.0",
+  "frequency_policy": {
+    "window": "P7D",
+    "on_breach": "priority"
+  },
+  "external_journeys_status": "none_reported",
+  "journeys": [
+    {
+      "id": "ecom-abandoned-cart-01",
+      "file": "a2_cart_4_emails.json",
+      "pattern": "abandoned-cart",
+      "stage": "revenue",
+      "priority": "P0",
+      "channels": [
+        "email",
+        "push"
+      ],
+      "audience_group": "active_cart",
+      "est_msgs_per_week": {
+        "email": 2,
+        "push": 1
+      }
+    }
+  ]
+}

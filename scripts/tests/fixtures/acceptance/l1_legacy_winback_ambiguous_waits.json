@@ -1,0 +1,104 @@
+{
+  "id": "ecom-winback-01",
+  "version": "1.0.0",
+  "constraints": {
+    "max_discount_pct": 15,
+    "allowed_channels": [
+      "email",
+      "sms"
+    ]
+  },
+  "name": "Legacy repro",
+  "pattern": "winback",
+  "stage": "winback",
+  "priority": "P0",
+  "data_tier": "T2",
+  "dqs": 81,
+  "depth_class": "standard",
+  "objective": "Legacy repro (structure only).",
+  "trigger": {
+    "type": "segment_entry",
+    "value": "no session_start for 45+ days after ≥1 purchase",
+    "entry_conditions": [
+      "consent active",
+      "not in churn-prevention watch buffer"
+    ],
+    "reentry_policy": "once per lapse"
+  },
+  "audience": {
+    "include": "anonymized",
+    "exclude": []
+  },
+  "exit": {
+    "success_event": "purchase",
+    "success_window_days": 30,
+    "other_exits": [
+      "unsubscribe",
+      "subscription_cancel"
+    ]
+  },
+  "steps": [
+    {
+      "index": 1,
+      "wait": "P0D",
+      "channel": "email",
+      "intent": "step 1",
+      "branch_condition": null,
+      "copy_ref": "step-1"
+    },
+    {
+      "index": 2,
+      "wait": "P4D",
+      "channel": "sms",
+      "intent": "step 2",
+      "branch_condition": "step 1 açılmadıysa",
+      "copy_ref": "step-2"
+    },
+    {
+      "index": 3,
+      "wait": "P9D",
+      "channel": "email",
+      "intent": "step 3",
+      "branch_condition": "ltv_tier'a göre değer-ekle vs indirim",
+      "copy_ref": "step-3"
+    },
+    {
+      "index": 4,
+      "wait": "P16D",
+      "channel": "email",
+      "intent": "step 4",
+      "branch_condition": null,
+      "copy_ref": "step-4"
+    },
+    {
+      "index": 5,
+      "wait": "P23D",
+      "channel": "sms",
+      "intent": "step 5",
+      "branch_condition": "önceki adımlar tıklanmadıysa",
+      "copy_ref": "step-5"
+    },
+    {
+      "index": 6,
+      "wait": "P30D",
+      "channel": "email",
+      "intent": "step 6",
+      "branch_condition": null,
+      "copy_ref": "step-6"
+    }
+  ],
+  "kpis": [
+    {
+      "name": "Geri kazanım oranı",
+      "type": "primary",
+      "definition": "pencere içinde satın alma / girenler",
+      "target": "baseline after 4 weeks"
+    },
+    {
+      "name": "Abonelikten çıkma oranı",
+      "type": "guardrail",
+      "definition": "gönderim başına",
+      "target": "< 0.3%"
+    }
+  ]
+}

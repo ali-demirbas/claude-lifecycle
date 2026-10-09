@@ -22,6 +22,9 @@ pattern_priorities:
   channel-opt-in: P2
   lead-nurture: P2
   care-alert: P2
+  renewal-reminder: P0
+  cancellation-winddown: P2
+  unengaged-sunset: P2
 typical_channels: [email, sms, push, whatsapp]
 ---
 

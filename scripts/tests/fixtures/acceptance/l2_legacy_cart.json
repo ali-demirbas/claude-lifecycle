@@ -1,0 +1,147 @@
+{
+  "id": "ecom-abandoned-cart-01",
+  "version": "1.0.0",
+  "constraints": {
+    "max_discount_pct": 15,
+    "allowed_channels": [
+      "email",
+      "push",
+      "in_app"
+    ]
+  },
+  "name": "Legacy repro",
+  "pattern": "abandoned-cart",
+  "stage": "revenue",
+  "priority": "P0",
+  "data_tier": "T1",
+  "dqs": 80,
+  "depth_class": "branched",
+  "objective": "Legacy repro (structure only).",
+  "trigger": {
+    "type": "event",
+    "value": "add_to_cart",
+    "entry_conditions": [
+      "no purchase within 1h arming window after add_to_cart",
+      "cart non-empty after the 1h arming window",
+      "messageable on >= 1 channel (consent checked per channel per step)",
+      "device-scoped identity only (user_pseudo_id; no cross-device stitching)"
+    ],
+    "reentry_policy": "once per 7 days"
+  },
+  "audience": {
+    "include": "anonymized",
+    "exclude": []
+  },
+  "exit": {
+    "success_event": "purchase",
+    "success_window_days": 7,
+    "other_exits": [
+      "unsubscribe (exits that channel's steps; whole journey if it was the only consented channel)",
+      "journey completed",
+      "cart emptied (remove_from_cart to empty)",
+      "entered higher-priority transactional flow"
+    ]
+  },
+  "steps": [
+    {
+      "index": 1,
+      "wait": "PT1H",
+      "channel": "email",
+      "intent": "step 1",
+      "branch_condition": null,
+      "copy_ref": "step-1"
+    },
+    {
+      "index": 2,
+      "wait": "PT4H",
+      "channel": "push",
+      "intent": "step 2",
+      "branch_condition": "begin_checkout or add_payment_info fired since add_to_cart, no purchase",
+      "copy_ref": "step-2"
+    },
+    {
+      "index": 3,
+      "wait": "PT16H",
+      "channel": "in_app",
+      "intent": "step 3",
+      "branch_condition": "no begin_checkout since add_to_cart, and login or session_start fired since abandonment",
+      "copy_ref": "step-3"
+    },
+    {
+      "index": 4,
+      "wait": "P1D",
+      "channel": "email",
+      "intent": "step 4",
+      "branch_condition": null,
+      "copy_ref": "step-4"
+    },
+    {
+      "index": 5,
+      "wait": "P2D",
+      "channel": "email",
+      "intent": "step 5",
+      "branch_condition": null,
+      "copy_ref": "step-5"
+    },
+    {
+      "index": 6,
+      "wait": "P2D",
+      "channel": "push",
+      "intent": "step 6",
+      "branch_condition": null,
+      "copy_ref": "step-6"
+    },
+    {
+      "index": 7,
+      "wait": "P1D",
+      "channel": "email",
+      "intent": "step 7",
+      "branch_condition": "plan_type = standard AND incentive approved",
+      "copy_ref": "step-7"
+    },
+    {
+      "index": 8,
+      "wait": "P1D",
+      "channel": "email",
+      "intent": "step 8",
+      "branch_condition": "plan_type = vip",
+      "copy_ref": "step-8"
+    }
+  ],
+  "kpis": [
+    {
+      "name": "Sepet kurtarma oranı",
+      "type": "primary",
+      "definition": "7 günlük pencere içinde purchase / girenler; holdout'a karşı artımsal lift olarak ölçülür",
+      "target": "baseline after 4 weeks"
+    },
+    {
+      "name": "Giren başına gelir",
+      "type": "secondary",
+      "definition": "kurtarılan purchase.value (TRY) / girenler",
+      "target": "baseline after 4 weeks"
+    },
+    {
+      "name": "Gönderim başına abonelikten çıkma",
+      "type": "guardrail",
+      "definition": "unsubscribe / teslim edilen, e-posta adımı başına",
+      "target": "< 0.3% per send"
+    },
+    {
+      "name": "Push izin iptal oranı",
+      "type": "guardrail",
+      "definition": "push izin iptali / teslim edilen push",
+      "target": "< 0.5% per send"
+    }
+  ],
+  "experiment": {
+    "holdout_pct": 10,
+    "ab_test": "step-1 konu satırı: Varyant A ('Sepetin seni bekliyor') vs Varyant B ('{{product_name}} hâlâ sepetinde') — hipotez: ürün adı geçen konu daha yüksek açılma getirir"
+  },
+  "data_gaps": [
+    "No true user_id — identity is device-scoped user_pseudo_id only. Cross-device purchase cannot fire the success exit and cross-device purchasers cannot be excluded; a completed purchase on another device may still receive a 'sepetin duruyor' send. Identity stitching would close this and is the top tracking-plan item.",
+    "cart_value is not a mapped attribute — no low-cart-value exclusion floor and no value-tiered messaging; incentive is gated on plan_type instead. Could be computed CRM-side from add_to_cart/remove_from_cart with drift risk.",
+    "inventory_level is not mapped — honest low-stock urgency (per the pattern's honest-scarcity rule) cannot fire; step 6 uses real cart-expiry framing only.",
+    "email/push open+click are CRM-native engagement signals, not GA4 mapped events — branch tiers are keyed on mapped funnel events (begin_checkout / add_payment_info / login) rather than opens, keeping every branch condition inside the mapped list."
+  ]
+}

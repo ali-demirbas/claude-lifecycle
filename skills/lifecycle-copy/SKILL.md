@@ -5,7 +5,7 @@ description: Write CRM channel copy (email, push, SMS, in-app, WhatsApp) for jou
 metadata:
   version: 0.2.0
   category: copy
-  updated: 2026-08-14
+  updated: 2026-10-09
 ---
 
 # Lifecycle Copy — Channel Copywriting
@@ -38,7 +38,11 @@ For every channel used, load `${CLAUDE_PLUGIN_ROOT}/knowledge/channels/<channel>
 
 ### 2. Write
 
-When multiple journeys need copy, spawn one `copy-writer` per journey **concurrently in a single message** (the agent is designed for exactly this parallelization). **Pre-bundle the shared rule files** (the sector lexicon, each channel file's limits + hard rules, the locale overlay, and the brand config's tone/banned/vocabulary) into each writer's prompt verbatim, read once here rather than re-read by every writer — the same cost saving the journey stage applies, and it matters more here because copy fans out to two agents per journey (writer + reviewer). Each writer then only needs its own journey doc, not a fresh read of the identical rulebook. For each journey step (its **intent line is the brief** — don't drift from it):
+**Two modes, chosen explicitly, never swapped silently:**
+- **Full** (default): copy for every journey in the portfolio, one writer + one reviewer per journey, the full fix loop.
+- **Quick draft** (only when the user picks it): copy for the P0 journeys only, one reviewer pass across all of them together. Same variant/fallback/limit rules; the delivered canvas and the dossier say "quick draft: P0 only" so nobody mistakes it for the full set. The other journeys can get copy later.
+
+Spawn one `copy-writer` per journey **concurrently in a single message**. Give each writer a file path, not pasted rules: its journey doc path, the lexicon, the channel files it needs, the locale overlay and brand config paths, and the output paths. Each writer writes its own `output/<project>/_copy/<id>.md` (the copy-output structure) and `output/<project>/_copy/<id>.canvas.json` (that journey's object for the copy canvas), runs `validate_output.py copy` on its doc, and returns a short receipt (paths, validator line, open issues), not the copy itself. Don't retype a returned doc. For each journey step (its **intent line is the brief**, don't drift from it):
 - A **target tone** per step, drawn from the lexicon's stage-calibration table and adjusted by the locale overlay's emotion calibration — goes in the template's Target tone field and binds the writer.
 - Variant A and Variant B with genuinely different angles (e.g. utility vs social proof) — not synonym swaps. Each variant carries the template's `strategy` + `hypothesis` JSON metadata (one falsifiable sentence — `lifecycle-results` scores these later).
 - One short Fallback with no personalization variables.
@@ -46,19 +50,19 @@ When multiple journeys need copy, spawn one `copy-writer` per journey **concurre
 
 ### 3. Review (adversarial)
 
-Delegate to the `copy-reviewer` agent (or, if subagents are unavailable, perform the same checklist yourself in a separate explicit pass):
+Mechanical checks first, in code: `validate_output.py copy <doc> --sector <sector> --max-discount <n>` recounts characters, checks ceilings, banned/spam words, discount caps, fallbacks and dashes. The reviewer gets the validator's output with the doc paths and spends its judgment on what code can't check (tone, angle, claims, cohesion). Delegate to the `copy-reviewer` agent (or, if subagents are unavailable, perform the same checklist yourself in a separate explicit pass):
 - limits per field · banned/spam words (channel + lexicon) · single-CTA rule · urgency claims backed by real data variables · variable fallbacks exist · consent/opt-out text where required · tone matches lexicon calibration for the journey stage.
 - Verdict per block: PASS / FIX (with the exact violation).
 
 ### 4. Fix and re-check
 
-FIX blocks are rewritten and re-checked. Nothing labeled FIX may reach the user. If a rule cannot be satisfied (e.g. intent impossible in 120 push chars), change the step's channel recommendation and tell the user why.
+FIX blocks are rewritten by the writer and re-checked, at most two rounds per block. A block still failing after that is reported as unresolved with the reviewer's diagnosis, never shipped as ✅. Nothing labeled FIX may reach the user. If a rule cannot be satisfied (e.g. intent impossible in 120 push chars), change the step's channel recommendation and tell the user why.
 
 **Legal-review path:** when the sector lexicon has `regulated: true` and a block carries a borderline money/health/outcome claim that is not outright banned, the block ships stamped `⚖️ legal review required` (with the exact claim quoted) instead of ✅ — it goes to manual sign-off, not into the send queue.
 
 ### 5. Deliver
 
-**Mandatory format: `${CLAUDE_PLUGIN_ROOT}/templates/copy-canvas.html`, reproduced verbatim via `python3 scripts/build_canvas.py --template ${CLAUDE_PLUGIN_ROOT}/templates/copy-canvas.html --journeys <journeys.json> --meta <meta.json> --out output/<project>/<name>.html`** — the same deterministic copy-and-swap the journey canvas uses (it substitutes only the `JOURNEYS` data array, `<title>`, and eyebrow/h1/lede, self-verifies no boilerplate drifted, and handles copy-canvas's absence of `HOLDOUT_TIP`/`DATA_NOTE`). Hand-editing the template is only a fallback if the script is unavailable; never retype the boilerplate. The artifact's user-facing name and header follow the **user's language**, and never use the word "copy" toward Turkish users (it reads as "kopya/duplicate"): TR → "İletişim Metinleri", EN → "Message Copy". **This covers the generated FILE NAME too:** write the output to `output/<project>/iletisim-metinleri.html` (TR) / `message-copy.html` (EN) — and the markdown source-of-truth alongside it with the same base name — never `copy-canvas.html`/`copy-*.md`; only the repo template keeps its English name. One journey per tab, one card per step, review-status badge per card (✅ / ⚠️ with note / ⚖️ legal). The plain `templates/copy-output.md` structure is still the underlying content model each step's fields/variants/fallback follow — the HTML canvas is how it reaches the user, per this repo's output-authoring rule (CLAUDE.md rule 2). Multi-language requests: write each language natively per the lexicon's TR/EN notes — never translate literally.
+**Mandatory format: `${CLAUDE_PLUGIN_ROOT}/templates/copy-canvas.html`, reproduced verbatim via `python3 scripts/build_canvas.py --template ${CLAUDE_PLUGIN_ROOT}/templates/copy-canvas.html --journeys <journeys.json> --meta <meta.json> --out output/<project>/<name>.html`**, where `<journeys.json>` is the writers' `_copy/*.canvas.json` objects merged into one array by a one-line script (`python3 -c "import json,glob,sys; json.dump([json.load(open(f)) for f in sorted(glob.glob('output/<project>/_copy/*.canvas.json'))], sys.stdout, ensure_ascii=False)" > <journeys.json>`), not retyped. The markdown source of truth is the writers' docs concatenated the same way. If the canvas build fails, deliver the validated markdown and say the canvas failed — the same deterministic copy-and-swap the journey canvas uses (it substitutes only the `JOURNEYS` data array, `<title>`, and eyebrow/h1/lede, self-verifies no boilerplate drifted, and handles copy-canvas's absence of `HOLDOUT_TIP`/`DATA_NOTE`). Hand-editing the template is only a fallback if the script is unavailable; never retype the boilerplate. The artifact's user-facing name and header follow the **user's language**, and never use the word "copy" toward Turkish users (it reads as "kopya/duplicate"): TR → "İletişim Metinleri", EN → "Message Copy". **This covers the generated FILE NAME too:** write the output to `output/<project>/iletisim-metinleri.html` (TR) / `message-copy.html` (EN) — and the markdown source-of-truth alongside it with the same base name — never `copy-canvas.html`/`copy-*.md`; only the repo template keeps its English name. One journey per tab, one card per step, review-status badge per card (✅ / ⚠️ with note / ⚖️ legal). The plain `templates/copy-output.md` structure is still the underlying content model each step's fields/variants/fallback follow — the HTML canvas is how it reaches the user, per this repo's output-authoring rule (CLAUDE.md rule 2). Multi-language requests: write each language natively per the lexicon's TR/EN notes — never translate literally.
 
 ## Word choice discipline
 

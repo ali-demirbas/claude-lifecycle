@@ -1,0 +1,46 @@
+{
+  "brand": "demo",
+  "journeys": [
+    {
+      "id": "ecom-abandoned-cart-01",
+      "pattern": "abandoned-cart",
+      "stage": "revenue",
+      "priority": "P0",
+      "channels": [
+        "email",
+        "push",
+        "in_app"
+      ],
+      "audience_group": "active_cart",
+      "est_msgs_per_week": {
+        "email": 2,
+        "push": 1,
+        "in_app": 1
+      },
+      "file": "l2_legacy_cart.json"
+    },
+    {
+      "id": "ecom-welcome-onboarding-01",
+      "pattern": "welcome-onboarding",
+      "stage": "activation",
+      "priority": "P1",
+      "channels": [
+        "email",
+        "push",
+        "in_app"
+      ],
+      "audience_group": "new_users",
+      "est_msgs_per_week": {
+        "email": 2,
+        "push": 1,
+        "in_app": 1
+      }
+    }
+  ],
+  "audience_overlaps": [
+    [
+      "new_users",
+      "active_cart"
+    ]
+  ]
+}
