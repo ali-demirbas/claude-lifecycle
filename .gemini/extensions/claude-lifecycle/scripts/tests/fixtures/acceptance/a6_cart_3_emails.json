@@ -167,5 +167,6 @@
       "type": "guardrail",
       "definition": "unsubscribes / delivered"
     }
-  ]
+  ],
+  "readiness": "ready"
 }

@@ -3,7 +3,7 @@ company: Rotalize
 sector: saas
 tier: T2
 rule_refs:
-  - knowledge/measurement.md (sample-size honesty - ~200 control conversions minimum; below that say "unmeasured", not "doesn't work")
+  - knowledge/measurement.md (sample-size honesty - power depends on baseline, effect, arm sizes and allocation; an underpowered result is "unmeasured", not "doesn't work")
   - skills/lifecycle-results/SKILL.md (Step 2 gate rule 1 - sample size caps the verdict regardless of how the lift looks)
 run:
   copy: false

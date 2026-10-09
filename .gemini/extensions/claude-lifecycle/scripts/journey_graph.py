@@ -194,8 +194,16 @@ def resolve(anchor, times_on_path, doc, F, where):
         F.error(f"{where}: offset '{off}' is not a supported duration (ISO 8601, no months/years)")
         return None
     cal = anchor.get("calendar")
-    if cal is not None and not str(cal.get("timezone", "")).strip():
-        F.error(f"{where}: calendar time '{cal.get('time_of_day')}' has no timezone (use 'user_local' or an IANA zone)")
+    if cal is not None:
+        tz = str(cal.get("timezone", "")).strip()
+        if not tz:
+            F.error(f"{where}: calendar time '{cal.get('time_of_day')}' has no timezone (use 'user_local' or an IANA zone)")
+        elif tz != "user_local":
+            try:
+                from zoneinfo import ZoneInfo  # noqa: PLC0415
+                ZoneInfo(tz)
+            except Exception:  # noqa: BLE001
+                F.error(f"{where}: timezone '{tz}' is not a valid IANA zone (or 'user_local')")
     src = anchor.get("from")
     if src == "entry":
         base = 0
@@ -210,6 +218,8 @@ def resolve(anchor, times_on_path, doc, F, where):
     elif src in ("event", "attribute"):
         name = anchor.get(src)
         rel = (doc.get("time_anchors") or {}).get(name)
+        if rel and "relative_to_entry" not in rel and rel.get("range"):
+            rel = {"relative_to_entry": rel["range"][0]}  # analyze() substitutes each end; this is a fallback
         if not rel:
             F.unverifiable(f"{where}: anchored to {src} '{name}' with no declared relation to entry (time_anchors); "
                            f"its place on the timeline can't be computed")
@@ -241,7 +251,7 @@ def timeline(doc, by_id, path, F):
             t = resolve(w.get("to"), times, doc, F, f"node '{nid}' window.to")
             if t is not None and t_from is not None and t < t_from:
                 F.error(f"node '{nid}': decision window ends ({fmt(t)}) before it starts ({fmt(t_from)})")
-            lat = dur_seconds((n.get("signal") or {}).get("latency"))
+            lat = max([dur_seconds(m.get("latency")) or 0 for m in signal_members(n.get("signal") or {})] or [0])
             if lat and t is not None and t_from is not None and (t - t_from) < lat:
                 F.warn(f"node '{nid}': decision window ({fmt(t - t_from)}) is shorter than the signal's "
                        f"latency ({fmt(lat)}); late data will read as 'not occurred'")
@@ -290,8 +300,62 @@ def path_frequency(by_id, tl, window):
 
 # ---------------------------------------------------------------- analysis
 def analyze(doc, inventory=None, window=7 * DAY):
-    """Full analysis of a 2.0 journey. Returns a dict (see module docstring)."""
+    """Full analysis of a 2.0 journey. Returns a dict (see module docstring).
+
+    When a time anchor is a range (a date whose distance from entry varies per
+    user), the journey is analyzed at both ends; findings are merged and the
+    worse frequency is kept."""
+    ranged = {k: v for k, v in (doc.get("time_anchors") or {}).items()
+              if isinstance(v, dict) and v.get("range") and "relative_to_entry" not in v}
+    if not ranged:
+        return _analyze_once(doc, inventory, window)
+    import copy as _copy  # noqa: PLC0415
+    results = []
+    for end in (0, 1):
+        d = _copy.deepcopy(doc)
+        for k, v in ranged.items():
+            d["time_anchors"][k] = {"relative_to_entry": v["range"][end]}
+        results.append(_analyze_once(d, inventory, window))
+    short, long_ = results
+    merged = Findings()
+    # At the shortest runway, a send landing before entry or out of order is what the
+    # pattern's short-runway compression rule must handle (skip/merge); the graph
+    # can't express "this node exists only at long runways", so it is reported as
+    # unverifiable, not passed. At the longest runway the same findings are errors.
+    chrono = ("before the user entered", "which precedes it on this path")
+    for level, msg, crit in short["findings"].items:
+        if level == "error" and any(c in msg for c in chrono):
+            merged.unverifiable(msg + " [at the shortest end of the date range: the short-runway compression rule "
+                                      "must drop or merge this step]")
+        else:
+            merged.add(level, msg, crit)
+    for level, msg, crit in long_["findings"].items:
+        if (level, msg) not in merged._seen:
+            merged.add(level, msg + " [at the longest end of the date range]", crit)
+    short["findings"] = merged
+    for ch, v in long_["freq"].items():
+        short["freq"][ch] = max(short["freq"].get(ch, 0), v)
+    short["freq_has_unknown"] |= long_["freq_has_unknown"]
+    return short
+
+
+def _analyze_once(doc, inventory=None, window=7 * DAY):
     F = Findings()
+    for legacy_key in ("steps", "flow", "experiment"):
+        if legacy_key in doc:
+            F.error(f"schema 2.0 file also carries legacy '{legacy_key}': one file, one authority; migrate it into "
+                    f"nodes/measurement or keep the file as legacy 1.x")
+    if doc.get("readiness") == "ready" and doc.get("open_items"):
+        F.error(f"readiness is 'ready' but open_items lists {len(doc['open_items'])} unconfirmed fact(s)")
+    if doc.get("readiness") == "draft":
+        F.unverifiable(f"draft: {len(doc.get('open_items') or [])} open item(s) must be confirmed before this journey "
+                       f"is ready to implement: {doc.get('open_items')}")
+    for n in doc.get("nodes") or []:
+        if n.get("kind") == "message" and n.get("channel") == "in_app":
+            dv = n.get("delivery") or {}
+            if dv.get("mode") != "next_session" or not dv.get("expires_after"):
+                F.error(f"node '{n.get('id')}': in-app content is shown at a session, so it needs delivery "
+                        f"{{mode: next_session, expires_after}}; later anchors use its scheduled time")
     by_id, ok = build(doc, F)
     res = {"findings": F, "paths": [], "timelines": [], "freq": {}, "freq_has_unknown": False,
            "max_msgs_on_path": 0, "by_id": by_id, "structure_ok": ok}
@@ -336,6 +400,12 @@ def analyze(doc, inventory=None, window=7 * DAY):
                     F.error(f"node '{nid}': sends on '{ch}', which the user withdrew; a journey never reopens a "
                             f"closed channel on its own (route through an authoritative consent_granted decision)")
                 t = next((t for i2, _, t in tl if i2 == nid), None)
+                dl = (n.get("delivery") or {}).get("deadline")
+                if dl and t is not None:
+                    times_here = {i2: t2 for i2, _, t2 in tl}
+                    dl_t = resolve(dl, times_here, doc, F, f"node '{nid}' delivery.deadline")
+                    if dl_t is not None and t > dl_t:
+                        F.error(f"node '{nid}' is scheduled at {fmt(t)}, after its own deadline {fmt(dl_t)}")
                 if sw is not None and t is not None and t > sw:
                     F.error(f"node '{nid}' is sent at {fmt(t)}, outside the success window ({fmt(sw)})")
     res["freq"] = worst
@@ -349,18 +419,35 @@ def analyze(doc, inventory=None, window=7 * DAY):
     return res
 
 
+def signal_members(sig):
+    """A simple signal -> [sig]; a composite any_of/all_of -> its members."""
+    if not isinstance(sig, dict):
+        return []
+    for k in ("any_of", "all_of"):
+        if isinstance(sig.get(k), list):
+            return [m for m in sig[k] if isinstance(m, dict)]
+    return [sig]
+
+
 def check_decisions(doc, by_id, F):
     for nid, n in by_id.items():
         if n.get("kind") != "decision":
             continue
         sig = n.get("signal") or {}
-        st = sig.get("type")
-        if st == "open":
+        members = signal_members(sig)
+        types = {m.get("type") for m in members}
+        st = next(iter(types)) if len(types) == 1 else ("event" if types & {"event", "click"} else "attribute")
+        if "open" in types:
             F.error(f"node '{nid}': branches on an email open. Opens are inflated by mail privacy protection and "
-                    f"image proxies and are not a reliable signal on their own; branch on a click or a product event")
-        if st == "click" and not sig.get("bot_filtered"):
-            F.warn(f"node '{nid}': click signal without bot_filtered: security scanners click links; state whether "
-                   f"bot clicks are filtered before this decision reads them")
+                    f"image proxies and are not a reliable signal, alone or inside a composite; branch on a click "
+                    f"or a product event")
+        for m in members:
+            if m.get("type") == "click" and not m.get("bot_filtered"):
+                F.warn(f"node '{nid}': click signal without bot_filtered: security scanners click links; state "
+                       f"whether bot clicks are filtered before this decision reads them")
+            lat = dur_seconds(m.get("latency"))
+            if lat is not None and lat < 0:
+                F.error(f"node '{nid}': signal latency {m.get('latency')} is negative")
         if not n.get("unmeasurable"):
             F.error(f"node '{nid}': no 'unmeasurable' route. 'Not measured' must never be treated as 'did not happen'")
         else:
@@ -382,9 +469,23 @@ def check_exits_and_reentry(doc, by_id, F):
     if ex.get("success_event") and ex["success_event"] not in pre:
         F.error(f"success event '{ex['success_event']}' is not re-checked before each send "
                 f"(exit_conditions check: before_each_send); a user who converts keeps getting queued messages")
-    if doc.get("journey_class") == "marketing" and not any(CONSENT_EXIT.search(str(e)) for e in pre):
-        F.error("no consent-withdrawal / unsubscribe exit checked before each send; a pending marketing message "
-                "must stop when permission changes")
+    mkt_channels = {n.get("channel") for n in by_id.values()
+                    if n.get("kind") == "message" and n.get("purpose") in MARKETING_PURPOSES}
+    consent_conds = [c for c in conds if CONSENT_EXIT.search(str(c.get("event")))
+                     and "before_each_send" in (c.get("check") or [])]
+    journey_wide = any(c.get("scope", "instance") != "channel" for c in consent_conds)
+    covered = {c.get("channel") for c in consent_conds if c.get("scope") == "channel"}
+    if mkt_channels and not journey_wide and not mkt_channels <= covered:
+        missing = sorted(ch for ch in mkt_channels - covered if ch)
+        F.error(f"marketing sends on {missing or sorted(c for c in mkt_channels if c)} have no consent-withdrawal / "
+                f"unsubscribe exit checked before each send (journey-wide, or channel-scoped per channel); this "
+                f"applies to every marketing-purpose send, whatever the journey's class")
+    for c in conds:
+        if c.get("same_instance") and not doc.get("instance_key"):
+            F.error(f"exit condition '{c.get('event')}' is limited to the same instance, but the journey declares no "
+                    f"instance_key")
+        if c.get("scope") == "channel" and not c.get("channel"):
+            F.error(f"exit condition '{c.get('event')}' is channel-scoped but names no channel")
     for nid, n in by_id.items():
         if n.get("kind") == "exit" and n.get("reason") == "handoff":
             h = n.get("handoff")
@@ -395,8 +496,11 @@ def check_exits_and_reentry(doc, by_id, F):
                         f"journey would still go out alongside the next one")
     re_ = doc.get("reentry") or {}
     pol, dup, cd = re_.get("policy"), re_.get("on_duplicate_trigger"), re_.get("cooldown")
-    if pol == "after_cooldown" and dur_seconds(cd) in (None, 0):
+    cds = dur_seconds(cd)
+    if pol == "after_cooldown" and (cds is None or cds <= 0):
         F.error("reentry policy 'after_cooldown' needs a positive cooldown duration")
+    elif cds is not None and cds < 0:
+        F.error(f"reentry cooldown {cd} is negative")
     if dup == "new_instance" and pol != "after_cooldown":
         F.error("a repeated trigger starts a new instance with no cooldown: one user can receive the same "
                 "sequence again and again (set a cooldown, or ignore/restart the active instance)")
@@ -407,9 +511,12 @@ def check_exits_and_reentry(doc, by_id, F):
 def check_measurement(doc, F):
     cls = doc.get("journey_class")
     m = doc.get("measurement")
+    has_mkt = any(n.get("kind") == "message" and n.get("purpose") in MARKETING_PURPOSES
+                  for n in doc.get("nodes") or [])
     if not m:
-        if cls == "marketing":
-            F.error("marketing journey has no measurement plan (design + primary outcome + window)")
+        if cls == "marketing" or has_mkt:
+            F.error("journey has marketing-purpose sends but no measurement plan (design + primary outcome + "
+                    "window); a service/transactional class doesn't exempt its marketing steps")
         return
     d = m.get("design")
     if d == "holdout":
@@ -448,9 +555,9 @@ def referenced_events(doc, by_id):
     if po:
         refs.add(po)
     for n in by_id.values():
-        sig = n.get("signal") or {}
-        if sig.get("type") in ("event", "attribute") and sig.get("name"):
-            refs.add(sig["name"])
+        for sig in signal_members(n.get("signal") or {}):
+            if sig.get("type") in ("event", "attribute") and sig.get("name"):
+                refs.add(sig["name"])
         for key in ("send",):
             a = n.get(key) or {}
             if a.get("from") in ("event", "attribute"):

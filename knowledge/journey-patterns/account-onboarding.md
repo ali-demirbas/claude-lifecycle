@@ -6,7 +6,7 @@ required_events: [sign_up]
 optional_events: [invite_sent, invite_accepted, feature_used, tutorial_complete, subscription_start, integration_completed]
 required_attributes: [account_id, user_role]
 optional_attributes: [seats_total, seats_active, plan_name, champion_changed, csm_owner]
-default_channels: [email, in-app]
+default_channels: [email, in_app]
 base_steps: 6
 depth_range: [4, 10]
 applicable_industries: [saas, insurance]
@@ -18,7 +18,8 @@ insufficient_alone:
   - invite_sent without invite_accepted
   - an inferred role with no confirmation
 exit_before_each_send: [account_activated, consent_withdrawn, csm_owner_assigned]
-reentry: {policy: once, cooldown: null, on_duplicate_trigger: ignore}
+reentry: {policy: once, on_duplicate_trigger: ignore}
+instance_key: account_id
 measurement_default: holdout
 ---
 
@@ -53,7 +54,7 @@ Onboard a **B2B account**, not a person. The unit of success is the account reac
 - **Exclude:** accounts under negative-signal suppression; single-seat accounts (→ `welcome-onboarding`).
 - **Supersede rule:** for multi-seat accounts this pattern supersedes `welcome-onboarding` whenever both are active in a portfolio; `welcome-onboarding` remains the fallback only when this pattern is not active.
 - **Success exit:** `account_activated` · **Window:** 30–45 days from entry (configurable; match it to the time-to-activation of accounts that renewed).
-- **Checked before every send:** `account_activated`, `consent_withdrawn` for that recipient and channel, `csm_owner_assigned`.
+- **Checked before every send:** `account_activated` and `csm_owner_assigned` **for this account** (`instance_key: account_id`; another account the same person belongs to doesn't count), and `consent_withdrawn` scoped to that recipient and channel (one admin's email unsubscribe stops that admin's emails, not the account's other recipients or the in-app tier).
 - **Re-entry:** never. A new seat's `sign_up` with the same `account_id` while the instance is active does not open a second instance; it adds that person to their role track.
 - **Hand-offs:** failures go to [activation](activation.md) (rescue) or CSM escalation; a CSM taking ownership suppresses every queued send of this journey. Champion identification happens here: the inviter or most active admin gets tagged, which later feeds `churn-prevention`'s `champion_changed` watch.
 
@@ -81,9 +82,9 @@ Invited people are messaged by this journey only after they accept. Before that,
 |---|---|---|---|---|
 | s1 | entry +1h | email → admin | Welcome plus the one setup action that best predicts account success | → d1 |
 | d1 | s1 +1d | — | Decision on `invite_sent` (behavioral) between entry and s1 +1d | occurred → s3 · not_occurred → s2 · unmeasurable → s2 |
-| s2 | s1 +1d | in-app → admin | Invite-your-team nudge with visible seat value, shown at the admin's next session | → s3 |
+| s2 | s1 +1d (shown at next session, expires after 5d) | in_app → admin | Invite-your-team nudge with visible seat value, shown at the admin's next session; skipped if none comes within 5 days | → s3 |
 | s3 | s1 +3d | email → technical | Integration and setup path, docs plus support fast lane; goes to the admin when no technical role is mapped | → s4 |
-| s4 | s1 +6d | in-app → end-users | First core workflow, contextual; each accepted invitee sees it at their first session on or after this time | → s5 |
+| s4 | s1 +6d (shown at next session, expires after 7d) | in_app → end-users | First core workflow, contextual; each accepted invitee sees it at their first session on or after this time (or after accepting, if later), for at most 7 days | → s5 |
 | s5 | s1 +7d | email → admin | Adoption digest: who is active, what is stuck, one action to unblock | → s6 |
 | s6 | s1 +14d | email → admin | Activation checkpoint with an offer of human help (only accounts below the bar reach it, because `account_activated` exits first) | end |
 
@@ -91,7 +92,7 @@ The sends above are per role, so no one person receives all six: the admin's lon
 
 ## Timing and channel fit
 
-- Business clock: admin and technical emails go on the account's working days within business hours in the recipient's timezone (account timezone when the person's is unknown). In-app touches wait for the recipient's session.
+- Business clock: admin and technical emails go on the account's working days within business hours in the recipient's timezone (account timezone when the person's is unknown). In-app touches wait for the recipient's next session up to their stated expiry, then are skipped; later sends keep their scheduled anchors, and no email waits on an in-app view.
 - Email suits the admin and technical tracks because setup instructions and digests must survive until someone acts on them. End-users get in-app only by default: they did not choose the tool and are the first to tune out email.
 - Push and SMS are not default channels here. A recipient without email consent gets in-app only; when the admin has neither, the account falls back to the product's own transactional setup emails, and the gap goes to the CSM.
 

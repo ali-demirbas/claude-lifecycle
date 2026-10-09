@@ -1,7 +1,7 @@
 ---
 name: insurance
 display_name: Insurance (motor, health, home, travel, SME lines)
-funnel: [quote_started, policy_purchased, app_activated, claim_filed, policy_renewed]
+funnel: [quote_started, policy_purchased, app_activated]  # acquisition + digital activation; claims and renewal are cohort funnels (body)
 conversion_events: [policy_purchased, policy_renewed]
 activation_definition: app_activated or portal_registered within 14 days of policy_purchased (a policyholder who never opens the app/portal has no claims-readiness and no cross-sell surface).
 churn_signal: no re-engagement (app/portal login, email open) inside the 45 days before policy expiry, or a claim closed without a satisfaction follow-up.
@@ -34,14 +34,34 @@ A relationship built on two moments that matter far more than any other touchpoi
 
 ## Canonical funnel
 
+Insurance is not one chain. A healthy policyholder who never files a claim has not "dropped out" of anything, so claims are never a step the whole base must pass. The sector has four funnels, each scored on its own cohort (see `docs/data-quality-score.md`, Funnel completeness):
+
+**1. Acquisition** — everyone who starts a quote.
+
 | Step | Expected event | Notes |
 |---|---|---|
 | Quote started | `quote_started` | Comparison-shopping is the norm; price is compared across 3+ insurers in one sitting |
 | Policy purchased | `policy_purchased` | True conversion event; should carry `value` (premium), `product_line`, `payment_plan` (peşin/taksit) |
-| App/portal activated | `app_activated` or `portal_registered` | The claims-readiness and cross-sell gate; a policyholder who never registers is invisible to every journey after this one |
+
+**2. Digital activation** — new policyholders.
+
+| Step | Expected event | Notes |
+|---|---|---|
+| Policy purchased | `policy_purchased` | Cohort entry |
+| App/portal activated | `app_activated` or `portal_registered` | The claims-readiness and cross-sell gate; a policyholder who never registers is invisible to every later digital journey |
+
+**3. Claims service** — scored **only on policyholders who file a claim**; a service funnel measured by operational outcomes (time to resolution, outcome, complaints), not a conversion step.
+
+| Step | Expected event | Notes |
+|---|---|---|
 | Claim filed | `claim_filed` | The moment of truth; should carry `product_line`, `channel` (app/WhatsApp/call center) |
 | Claim resolved | `claim_resolved` | Should carry `outcome` (paid/partial/rejected) — outcome drives the entire post-claim tone |
-| Renewal due | `policy_renewal_due` (attribute: `renewal_date`) | Time-based, not behavioral; the funnel step every other sector lacks an equivalent of |
+
+**4. Renewal** — policyholders whose renewal date falls in the window.
+
+| Step | Expected event | Notes |
+|---|---|---|
+| Renewal due | `policy_renewal_due` (attribute: `renewal_date`) | Time-based, not behavioral; the cohort entry every other sector lacks an equivalent of |
 | Renewed / lapsed | `policy_renewed` / `policy_lapsed` | The annual conversion event; `policy_lapsed` without a new purchase elsewhere is the sector's core churn definition |
 
 ## Event expectations

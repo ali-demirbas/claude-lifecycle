@@ -6,10 +6,11 @@ required_events: [purchase, session_start]
 optional_events: [subscription_start, plan_upgraded, order_delivered, feature_used, view_item, add_to_wishlist, trial_end, login, refund, support_ticket_opened, payment_failed]
 required_attributes: []
 optional_attributes: [plan_type, ltv_tier, category_history, engagement_score, seat_utilization, usage_vs_limit, limit_reset_date, renewal_date, time_to_first_use]
-default_channels: [email, in-app]
+default_channels: [email, in_app]
 base_steps: 3
 depth_range: [3, 6]
 applicable_industries: [ecommerce, saas, fintech, marketplace, subscription-media, edtech, insurance, mobile-app, travel]
+mutually_exclusive_with: []
 journey_class: marketing
 signal_sources: {purchase: authoritative, plan_upgraded: authoritative, subscription_start: authoritative, order_delivered: authoritative, session_start: behavioral, feature_used: behavioral, view_item: behavioral, add_to_wishlist: behavioral, seat_utilization: authoritative, usage_vs_limit: authoritative, limit_reset_date: authoritative, renewal_date: authoritative, engagement_score: inferred, refund: authoritative, support_ticket_opened: authoritative, payment_failed: authoritative, consent_withdrawn: authoritative}
 insufficient_alone:
@@ -20,6 +21,7 @@ insufficient_alone:
 exit_before_each_send: [purchase, plan_upgraded, refund, support_ticket_opened, payment_failed, consent_withdrawn]
 reentry: {policy: after_cooldown, cooldown: P90D, on_duplicate_trigger: ignore}
 measurement_default: holdout
+instance_key: candidate_id
 ---
 
 # Upsell / Cross-Sell
@@ -50,10 +52,11 @@ Three honesty rules sit next to the health gate. **Wait for use**: a complement 
 
 ## Entry / exit
 
-- **Entry:** active revenue relationship, engagement health at or above the user's own baseline, and a **concrete expansion candidate**: usage near a plan limit (metered), high seat utilization, or a complement to something already bought. For complements, the first product's `order_delivered` plus its use period (`time_to_first_use` per category, default 7 days, configurable) must have elapsed. No candidate → no entry; generic "upgrade!" sends are excluded by design.
+- **Entry:** active revenue relationship, engagement health at or above the user's own baseline, and a **concrete expansion candidate**, read as any_of(`usage_vs_limit` near the plan limit (authoritative, metering system), `seat_utilization` high (authoritative), a complement to something already bought after `order_delivered` (authoritative) plus its use period). Unmeasurable is no candidate. For complements, the first product's `order_delivered` plus its use period (`time_to_first_use` per category, default 7 days, configurable) must have elapsed. No candidate → no entry; generic "upgrade!" sends are excluded by design.
 - **Exclude:** declining usage (churn-prevention owns), open support ticket or refund on the first product, `payment_failed` unresolved, upsell message received in the last 30 days, negative-signal suppression per [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md) rule 4.
 - **Success exit:** expansion `purchase` / `plan_upgraded` · **Window:** 21 days.
-- **Checked before each send:** the success events, `refund`, `support_ticket_opened`, `payment_failed`, `consent_withdrawn`. Any of the last four ends the instance: the account is no longer healthy enough to sell to.
+- **Instance key:** `candidate_id`, the expansion candidate (the plan being outgrown, or the anchor order a complement is paired with).
+- **Checked before each send:** the success events for this candidate (`same_instance`; buying an unrelated item does not end a plan-upgrade instance), `refund` of the anchor order (`same_instance`), `support_ticket_opened` and `payment_failed` on the account (journey scope: any open ticket or failed payment stops every upsell instance), `consent_withdrawn` (channel-scoped: an email opt-out stops s2 and s3; the in-app step still renders unless in-product messages were turned off). A refund, ticket or payment failure ends the instance: the account is no longer healthy enough to sell to.
 - **Re-entry:** once per 90 days, and only with a new expansion candidate. A repeated trigger for the same candidate while an instance is active is ignored.
 - **Handoffs:** declining health mid-journey → [churn-prevention](churn-prevention.md), queued upsell sends cancelled; high-`ltv_tier` accounts → a human/sales touch instead of automated sends.
 
@@ -84,7 +87,7 @@ Three honesty rules sit next to the health gate. **Wait for use**: a complement 
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
-| s1 | entry +0h | in-app | Contextual, at the next session after the candidate qualifies: "you're at N% of your plan's X" or "completes what you bought", shown where the limit or the first product is used. If a free path exists, it is named next to the paid one | → s2 |
+| s1 | entry +0h | in_app | Contextual: "you're at N% of your plan's X" or "completes what you bought", shown where the limit or the first product is used. If a free path exists, it is named next to the paid one. Shown at the next session after the candidate qualifies, expires after 3d; s2 is anchored to s1's scheduled time and is never gated on the view | → s2 |
 | s2 | s1 +3d | email | The value case for that specific expansion, framed in the user's own usage numbers from the metering system. A reset or renewal date appears only if the system supplies it | → s3 |
 | s3 | s2 +7d | email | Proof: case study, reviews of the target product/plan, plus a trial or sample of the upgrade if one exists | → exit (completed) |
 

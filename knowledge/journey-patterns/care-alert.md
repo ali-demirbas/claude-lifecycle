@@ -4,7 +4,7 @@ stage: retention
 trigger_type: event
 journey_class: service
 required_events: [external_alert]
-optional_events: [session_start, claim_filed, purchase, alert_cancelled]
+optional_events: [session_start, claim_filed, purchase, alert_cancelled, coverage_ended]
 required_attributes: [alert_type, affected_region]
 optional_attributes: [product_line, travel_date, severity, alert_end]
 default_channels: [push, sms]
@@ -12,7 +12,7 @@ base_steps: 1
 depth_range: [1, 2]
 applicable_industries: [insurance, travel]
 mutually_exclusive_with: []
-signal_sources: {external_alert: authoritative, alert_type: authoritative, affected_region: authoritative, severity: authoritative, alert_end: authoritative, alert_cancelled: authoritative, claim_filed: authoritative, product_line: authoritative, travel_date: authoritative, session_start: behavioral, purchase: authoritative}
+signal_sources: {external_alert: authoritative, alert_type: authoritative, affected_region: authoritative, severity: authoritative, alert_end: authoritative, alert_cancelled: authoritative, claim_filed: authoritative, coverage_ended: authoritative, product_line: authoritative, travel_date: authoritative, session_start: behavioral, purchase: authoritative}
 insufficient_alone:
   - a forecast or model output that is not the official feed
   - a region match without a held product or booking exposed to the peril
@@ -20,6 +20,7 @@ insufficient_alone:
 exit_before_each_send: [alert_cancelled, claim_filed, coverage_ended, consent_withdrawn]
 reentry: {policy: each_trigger, on_duplicate_trigger: ignore}
 measurement_default: none_service
+instance_key: alert_event_id
 ---
 
 # Care Alert
@@ -56,8 +57,9 @@ A protective heads-up triggered by the **outside world**, not by user behavior: 
 - **Entry:** `external_alert` fired from the official feed, user's region/booking matches, relevant product held (motor cover for hail, the disrupted flight for travel), consent per the care contract.
 - **Exclude:** users already in an open claim for the same peril (they need claim comms, not warnings); negative-signal suppressed users **only if** the message is classified marketing: a genuinely protective service notice goes to everyone affected.
 - **Success exit:** none (protective touch); the instance completes when the window closes · **Window:** the event's own duration plus the check-in day.
-- **Checked before each send:** `alert_cancelled` (the source withdrew it), `claim_filed` (claims communications own the person now), `coverage_ended` (no longer a policyholder or booking holder), `consent_withdrawn` (while the default marketing-consent classification applies).
-- **Re-entry:** per distinct alert event, deduped per region+peril: three severity updates of one storm = one journey, not three. A duplicate trigger while an instance is open is ignored.
+- **Checked before each send:** `alert_cancelled` for this alert (`same_instance`: the source withdrew it), `claim_filed` for this event's peril and the exposed policy or booking (claims communications own the person now; a claim about something else does not stop the warning), `coverage_ended` for the exposed product (no longer a policyholder or booking holder), `consent_withdrawn` (while the default marketing-consent classification applies; channel-scoped: a withdrawn SMS consent stops SMS, not push).
+- **Time anchor:** `alert_end` comes from the feed and its distance from entry varies by peril (a hailstorm closes in hours, a flood warning can run for days), so a generated journey declares it as a range relative to entry (`alert_end: entry +1h … +7d`, widened for perils the feed issues for longer) and re-reads it from the feed before d1. A moved end time moves d1 and s2 with it.
+- **Re-entry:** per distinct alert event (`alert_event_id`), deduped per region+peril: three severity updates of one storm = one journey, not three. A duplicate trigger while an instance is open is ignored.
 - **Handoffs:** `claim_filed` → claims communications (outside this repo's patterns), with queued care-alert sends suppressed.
 
 ## Depth scaling
@@ -72,7 +74,7 @@ A protective heads-up triggered by the **outside world**, not by user behavior: 
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
-| s1 | entry +0m (deliver within 30 min of the feed event) | push (sms where push is unconsented) | The warning + one concrete protective action (e.g. "move the car under cover") + the official source of the alert | → d1 |
+| s1 | entry +0m (deliver within 30 min of the feed event) | push (sms where push is unconsented) | The warning + one concrete protective action (e.g. "move the car under cover") + the official source of the alert. Deadline: the peril's onset time from the feed; a warning that would only arrive after onset is not sent as a warning | → d1 |
 | d1 | alert_end +24h | — | Decision on `claim_filed` (authoritative) between entry and alert_end +24h | occurred → exit (completed; claims own it) · not_occurred → s2 · unmeasurable → s2 |
 | s2 | d1 +0h at 10:00 user_local | push | Check-in: "was there any damage? report it in one tap", claim path with a zero-paperwork framing | → exit (completed) |
 

@@ -1,0 +1,174 @@
+{
+  "schema_version": "2.0",
+  "id": "ins-renewal-reminder-01",
+  "version": "1.0.0",
+  "journey_class": "marketing",
+  "name": "Winback",
+  "pattern": "renewal-reminder",
+  "stage": "retention",
+  "priority": "P0",
+  "data_tier": "T2",
+  "dqs": 55,
+  "depth_class": "standard",
+  "objective": "Bring lapsed buyers back to a second purchase.",
+  "constraints": {
+    "allowed_channels": [
+      "email",
+      "sms",
+      "push"
+    ],
+    "max_discount_pct": 15
+  },
+  "trigger": {
+    "type": "segment_entry",
+    "value": "lapsed_buyers"
+  },
+  "audience": {
+    "include": "bought before, no purchase in 2x median gap",
+    "exclude": [
+      "open refund"
+    ]
+  },
+  "events_available": [
+    "purchase",
+    "email_unsubscribe",
+    "consent_withdrawn",
+    "link_click",
+    "add_to_cart",
+    "trial_end",
+    "feature_used",
+    "subscription_start",
+    "renewal_date",
+    "policy_renewed"
+  ],
+  "exit": {
+    "success_event": "policy_renewed",
+    "success_window": "P60D",
+    "exit_conditions": [
+      {
+        "event": "policy_renewed",
+        "source": "authoritative",
+        "check": [
+          "entry",
+          "before_each_send"
+        ]
+      },
+      {
+        "event": "consent_withdrawn",
+        "source": "authoritative",
+        "check": [
+          "entry",
+          "before_each_send"
+        ]
+      }
+    ]
+  },
+  "reentry": {
+    "policy": "after_cooldown",
+    "cooldown": "P90D",
+    "on_duplicate_trigger": "ignore"
+  },
+  "measurement": {
+    "design": "holdout",
+    "primary_outcome": {
+      "event": "policy_renewed",
+      "window": "P60D"
+    },
+    "holdout": {
+      "pct": 10,
+      "assignment": {
+        "unit": "user",
+        "consistent": true,
+        "method": "hash(user_id)"
+      },
+      "control_excludes": [
+        "all sends in this journey"
+      ]
+    },
+    "routine_comms": [
+      {
+        "name": "transactional order emails",
+        "both_groups": true
+      }
+    ],
+    "contamination_risks": [
+      "users also in browse-abandonment"
+    ],
+    "volume_note": "~400 entrants/month: detects only large lifts in one month"
+  },
+  "start": "entry",
+  "nodes": [
+    {
+      "id": "entry",
+      "kind": "entry",
+      "next": "r1"
+    },
+    {
+      "id": "r1",
+      "kind": "message",
+      "channel": "email",
+      "purpose": "marketing",
+      "intent": "email r1",
+      "send": {
+        "from": "attribute",
+        "attribute": "renewal_date",
+        "offset": "-P30D"
+      },
+      "next": "r2"
+    },
+    {
+      "id": "r2",
+      "kind": "message",
+      "channel": "email",
+      "purpose": "marketing",
+      "intent": "email r2",
+      "send": {
+        "from": "attribute",
+        "attribute": "renewal_date",
+        "offset": "-P7D"
+      },
+      "next": "r3"
+    },
+    {
+      "id": "r3",
+      "kind": "message",
+      "channel": "sms",
+      "purpose": "marketing",
+      "intent": "sms r3",
+      "send": {
+        "from": "attribute",
+        "attribute": "renewal_date",
+        "offset": "-P1D"
+      },
+      "next": "done"
+    },
+    {
+      "id": "done",
+      "kind": "exit",
+      "reason": "completed",
+      "outcome": "neutral"
+    }
+  ],
+  "kpis": [
+    {
+      "name": "Incremental repurchase",
+      "type": "primary",
+      "definition": "purchase rate exposed minus control"
+    },
+    {
+      "name": "Unsubscribe rate",
+      "type": "guardrail",
+      "definition": "unsubscribes / delivered"
+    }
+  ],
+  "readiness": "ready",
+  "time_anchors": {
+    "renewal_date": {
+      "range": [
+        "P2D",
+        "P45D"
+      ],
+      "note": "users enter 2 to 45 days before renewal"
+    }
+  }
+}

@@ -6,7 +6,7 @@ required_events: [sign_up]
 optional_events: [login, tutorial_begin, tutorial_complete, feature_used, purchase, subscription_start, link_click]
 required_attributes: []
 optional_attributes: [signup_source, plan_type, onboarding_goal, account_id, user_role, last_completed_step]
-default_channels: [email, in-app]
+default_channels: [email, in_app]
 base_steps: 5
 depth_range: [4, 10]
 applicable_industries: [ecommerce, saas, mobile-app, fintech, marketplace, subscription-media, travel, edtech, insurance]
@@ -18,7 +18,7 @@ insufficient_alone:
   - tutorial_begin without tutorial_complete
   - a click on an onboarding message
 exit_before_each_send: [activation_event, consent_withdrawn]
-reentry: {policy: once, cooldown: null, on_duplicate_trigger: ignore}
+reentry: {policy: once, on_duplicate_trigger: ignore}
 measurement_default: holdout
 ---
 
@@ -52,7 +52,7 @@ Guide brand-new users from `sign_up` to their first value moment. The first 7 da
 - **Entry:** `sign_up` fired, consent on ≥ 1 messaging channel. In-app steps need no marketing consent but only reach users who return.
 - **Exclude:** migrated or imported accounts (no real signup moment); users who reached `activation_event` within the first session (send s1 only); multi-seat B2B accounts with `account_id` + `user_role` set **when [account-onboarding](account-onboarding.md) is active in this portfolio**. That pattern supersedes this one for those accounts. When it is not active, this pattern stays the correct fallback regardless of seat count.
 - **Success exit:** `activation_event` · **Window:** 14 days from entry.
-- **Checked before every send:** `activation_event` (activated users leave immediately; do not keep sending "how to get started"), `consent_withdrawn` for that channel.
+- **Checked before every send:** `activation_event` (activated users leave immediately; do not keep sending "how to get started"), `consent_withdrawn` scoped to that channel (an email unsubscribe stops the emails; the in-app pointer, which needs no marketing consent, still shows).
 - **Re-entry:** once ever. A repeated `sign_up` for the same identity while an instance is active is ignored (no restart).
 - **Hand-offs:** activated users go to the engagement patterns (`feature-adoption`, `milestone`); users who time out unactivated go to [activation](activation.md), which only starts after this window closes. Any queued sends of this journey are dropped at hand-off.
 
@@ -75,7 +75,7 @@ Pace is a segmentation axis in its own right: fast progressors get a lighter tra
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
 | s1 | entry +5m | email | Welcome: confirm what they signed up for, one CTA to the single first-value action | → s2 |
-| s2 | s1 +1d | in-app | Contextual pointer to the core action, shown at the next session on or after this time | → s3 |
+| s2 | s1 +1d (shown at next session, expires after 5d) | in_app | Contextual pointer to the core action, shown at the next session on or after this time; skipped if no session comes within 5 days. s3 keeps its own anchor (`s1 +3d`) whether or not s2 was seen | → s3 |
 | s3 | s1 +3d | email | How-to aimed at the most common activation blocker, with proof the result is worth it | → d1 |
 | d1 | s1 +6d | — | Decision on `login` (behavioral) between entry and s1 +6d | occurred → s4a · not_occurred → s4b · unmeasurable → s4b |
 | s4a | s1 +6d | email | Returned but stuck: deep link back to the exact unfinished step (`last_completed_step`), not to the start of onboarding | → s5 |
@@ -89,7 +89,7 @@ For app products adding push: the OS push-permission prompt is never fired cold.
 ## Timing and channel fit
 
 - s1 goes immediately, including overnight: the welcome is the one send users actively wait for. Later emails avoid 00:00–06:00 user local; push (when added) respects 22:00–09:00 (see [consent-and-quiet-hours](../compliance/consent-and-quiet-hours.md)). Unknown timezone → market timezone from intake.
-- Email carries the welcome and durable how-tos; in-app carries contextual pointers because the user is already where the action happens. In-app is session-bound, so s2 simply waits for the next session.
+- Email carries the welcome and durable how-tos; in-app carries contextual pointers because the user is already where the action happens. In-app is session-bound: s2 waits for the next session for at most 5 days, then is skipped; no email waits on it being seen.
 - No email consent → s2 in-app only, plus the product's own transactional account confirmation (which must stay free of promotion). No consent and no return visit → nothing to send; the instance times out and is counted in the measurement as unreached, not as failed.
 
 ## Frequency and overlap

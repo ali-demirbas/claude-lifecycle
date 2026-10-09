@@ -1,0 +1,25 @@
+{
+  "brand": "demo",
+  "schema_version": "2.0",
+  "frequency_policy": {
+    "window": "P7D",
+    "on_breach": "defer"
+  },
+  "external_journeys_status": "none_reported",
+  "journeys": [
+    {
+      "id": "ins-renewal-reminder-01",
+      "file": "t09_service_journey_marketing_load.json",
+      "pattern": "renewal-reminder",
+      "stage": "retention",
+      "priority": "P0",
+      "channels": [
+        "email"
+      ],
+      "audience_group": "renewals",
+      "est_msgs_per_week": {
+        "email": 5
+      }
+    }
+  ]
+}

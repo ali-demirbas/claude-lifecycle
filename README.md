@@ -7,7 +7,7 @@
 ![validate](https://github.com/ali-demirbas/claude-lifecycle/actions/workflows/validate.yml/badge.svg)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![claude-code](https://img.shields.io/badge/Claude_Code-plugin-d97706)
-![patterns](https://img.shields.io/badge/journey_patterns-26-8b5cf6)
+![patterns](https://img.shields.io/badge/journey_patterns-29-8b5cf6)
 ![industries](https://img.shields.io/badge/industries-9-10b981)
 
 ![claude-lifecycle journey canvas: a channel-colored customer journey tree, generated from a real data quality score with entry rules, branching decisions, and per-step detail](docs/hero-screenshot.png)

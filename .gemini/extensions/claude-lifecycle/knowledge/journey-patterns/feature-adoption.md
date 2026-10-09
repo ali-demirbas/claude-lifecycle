@@ -6,10 +6,11 @@ required_events: [feature_used]
 optional_events: [login, session_start, search, tutorial_complete, subscription_start, feature_opened, cancellation_intent]
 required_attributes: [target_feature]
 optional_attributes: [plan_name, engagement_score, feature_eligibility, usage_rhythm_days, risk_case_open]
-default_channels: [in-app, email, push]
+default_channels: [in_app, email, push]
 base_steps: 3
 depth_range: [2, 5]
 applicable_industries: [saas, mobile-app, fintech, edtech, subscription-media, insurance]
+mutually_exclusive_with: []
 journey_class: marketing
 signal_sources: {feature_used: behavioral, feature_opened: behavioral, session_start: behavioral, search: behavioral, feature_eligibility: authoritative, risk_case_open: authoritative, cancellation_intent: behavioral, engagement_score: inferred, consent_withdrawn: authoritative}
 insufficient_alone:
@@ -18,6 +19,7 @@ insufficient_alone:
   - opening the feature without using it
 exit_before_each_send: [feature_used, consent_withdrawn]
 reentry: {policy: after_cooldown, cooldown: P90D, on_duplicate_trigger: ignore}
+instance_key: target_feature
 measurement_default: holdout
 ---
 
@@ -50,7 +52,7 @@ Drive usage of one specific undiscovered feature among users whose behavior indi
 - **Exclude:** users who tried the feature and stopped (a re-adoption problem with different copy); users in trial-conversion (it owns the onboarding narrative); users in dunning; users in an active onboarding journey.
 - **Success exit:** `feature_used` with `feature = target_feature`. First use exits; sustained adoption is measured, not messaged.
 - **Observation window:** configurable, scaled to the product's usage rhythm. Default: the longer of 21 days or three typical usage intervals (`usage_rhythm_days`, from the median gap between sessions of active users in the segment). A weekly product and a twice-a-year product cannot share one window; a fixed one reports every slow-cycle user as a failure. Evidence to change it: the median time from first exposure to first use among users who adopted on their own. Engagement inside the window does not extend it.
-- **Checked before every send:** `feature_used` (target), `consent_withdrawn` for that channel.
+- **Checked before every send:** `feature_used` for this instance's feature only (`instance_key: target_feature`; using another feature never ends it), `consent_withdrawn` scoped to that channel (an email unsubscribe skips s2; in-app steps continue).
 - **Re-entry:** once per feature per 90 days (configurable); at most one concurrent adoption journey per user. A repeated qualification while an instance is active is ignored.
 - **Hand-offs:** none; adopters return to the normal engagement program.
 
@@ -66,11 +68,11 @@ Drive usage of one specific undiscovered feature among users whose behavior indi
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
-| s1 | entry +0h | in-app | Contextual pointer at the workflow moment the feature improves, shown at the first such moment on or after this time: show, don't announce | → s2 |
+| s1 | entry +0h (shown at next session, expires after 7d) | in_app | Contextual pointer at the workflow moment the feature improves, shown at the first such moment on or after this time: show, don't announce. Skipped if no such session comes within 7 days; s2 keeps its anchor either way | → s2 |
 | s2 | s1 +3d | email | The benefit in the user's own terms: what their current behavior costs, what the feature saves; deep link into the feature | → d1 |
 | d1 | s2 +5d | — | Decision on `feature_opened` (behavioral) between entry and s2 +5d | occurred → s3a · not_occurred → s3b · unmeasurable → s3b |
-| s3a | s2 +5d | in-app | Opened but abandoned: a short how-to for the step where they stopped, shown at the next session | end |
-| s3b | s2 +5d | push | One short reminder with the single-sentence value claim; last touch | end |
+| s3a | s2 +5d (shown at next session, expires after 7d) | in_app | Opened but abandoned: a short how-to for the step where they stopped, shown at the next session | end |
+| s3b | s2 +5d (in-app: shown at next session, expires after 7d) | in_app or push | One short reminder with the single-sentence value claim; last touch. In-app by default; push only for a user who opted in to product-tip notifications | end |
 
 After the last send the instance waits out the observation window silently; no further nudge is sent.
 
@@ -80,11 +82,11 @@ Copy rule: name the user's observed behavior, not the feature's marketing name. 
 
 - In-app is the primary channel because the pointer must land at the moment the feature would help. Email carries the explanation with a deep link; push carries only the one-line reminder and respects 22:00–09:00 user local. Email avoids 00:00–06:00 (see [consent-and-quiet-hours](../compliance/consent-and-quiet-hours.md)).
 - Send s2 at a time the user is typically active in the product (their own usage hours), not at a fixed broadcast hour.
-- No push consent → s3b moves to in-app at the next session. No email consent → s2 is skipped and d1 still runs on schedule.
+- s3b is not an escalation for a feature left unopened: a user who didn't open it may not have been reached. In-app is the channel [in-app.md](../channels/in-app.md) names for feature adoption, so s3b goes there by default; push carries it only where the user opted in to product tips, which is the reason [push.md](../channels/push.md)'s relevance test accepts. No push consent or no such opt-in → in-app at the next session. No email consent → s2 is skipped and d1 still runs on schedule.
 
 ## Frequency and overlap
 
-- Worst path in a rolling 7 days: 1 email + 1 in-app + 1 push.
+- Worst path in a rolling 7 days: 1 email + 2 in-app, or 1 email + 1 in-app + 1 push for a user with a product-tips opt-in.
 - **Usual overlaps:** other feature-adoption instances (capped at one concurrent per user), `upsell-cross-sell`, `milestone`, `churn-prevention`, `trial-conversion`.
 - **Precedence and defer:** a live churn-risk case, an open issue under human ownership, or a declared cancellation intent on the same user or account means adoption is not the subject. Queued sends defer and are re-evaluated against the current state at their next scheduled time; if the condition is still open when the observation window closes, the instance ends without sending. `trial-conversion` and onboarding journeys exclude entry outright. When the weekly cap would be breached, this journey's send is the one deferred.
 

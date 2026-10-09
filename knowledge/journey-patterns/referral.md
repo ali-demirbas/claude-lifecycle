@@ -6,10 +6,11 @@ required_events: [invite_sent]
 optional_events: [invite_accepted, referral_reward_credited, share, survey_response, purchase, login]
 required_attributes: []
 optional_attributes: [nps_score, engagement_score, referral_reward]
-default_channels: [in-app, email]
+default_channels: [in_app, email]
 base_steps: 2
 depth_range: [1, 2]
 applicable_industries: [saas, mobile-app, fintech, ecommerce, marketplace, edtech, subscription-media, insurance, travel]
+mutually_exclusive_with: []
 journey_class: marketing
 signal_sources: {invite_sent: authoritative, invite_accepted: authoritative, referral_reward_credited: authoritative, share: behavioral, survey_response: authoritative, engagement_score: inferred, purchase: authoritative, login: behavioral, consent_withdrawn: authoritative}
 insufficient_alone:
@@ -20,6 +21,7 @@ insufficient_alone:
 exit_before_each_send: [invite_sent, consent_withdrawn]
 reentry: {policy: after_cooldown, cooldown: P60D, on_duplicate_trigger: ignore}
 measurement_default: holdout
+instance_key: referral_code
 ---
 
 # Referral
@@ -49,12 +51,13 @@ The loop has a second half that is easy to get wrong: **a code issued is not a c
 ## Entry / exit
 
 - **Entry (by moment):**
-  - *Ask*: user qualifies as satisfied (NPS promoter, organic `share` in the last 30 days, or engagement score above the healthy threshold for a sustained period) and has been active long enough to have an opinion (default ≥ 30 days tenure, configurable).
+  - *Ask*: user qualifies as satisfied, read as any_of(a 9–10 `survey_response` (authoritative), an organic `share` in the last 30 days (behavioral), all_of(`engagement_score` above the healthy threshold for a sustained period (inferred), a `login` in the last 14 days (behavioral))), and has been active long enough to have an opinion (default ≥ 30 days tenure, configurable). Unmeasurable is not qualified: no ask on missing data.
   - *Code follow-up*: an `invite_sent` from this journey's ask or from the product's own referral screen.
   - *Reward confirmation*: `referral_reward_credited` for the referrer (and, separately, the invitee where they're also rewarded).
 - **Exclude:** detractors and anyone in a service-recovery cooldown (see [feedback-nps](feedback-nps.md); also [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md) rule 4), users in dunning, users who received a referral ask in the last 60 days.
 - **Success exit:** `invite_sent` for the ask · **Window:** 14 days.
-- **Checked before each send:** `invite_sent` (ends the ask), `consent_withdrawn`. Before the code nudge, `invite_accepted` is re-checked so a code used minutes earlier isn't nudged.
+- **Instance key:** `referral_code` for the code follow-up (one nudge per code), the reward record for confirmations; the ask is per user.
+- **Checked before each send:** `invite_sent` (ends the ask), `consent_withdrawn` (channel-scoped: an email opt-out stops a2 and c1; the in-app ask still renders unless in-product messages were turned off). Before the code nudge, `invite_accepted` for this code (`same_instance`) is re-checked so a code used minutes earlier isn't nudged.
 - **Re-entry:** the ask once per 60–90 days, and stop permanently after repeated ignored asks (2–3 cycles). The code nudge happens once per code, ever. Reward confirmations are keyed on the reward record: one per credited reward, and a replayed credit event is ignored.
 - **Handoffs:** invitees enter the brand's welcome/onboarding journey, never this one. A promoter path arriving from feedback-nps enters the ask directly.
 
@@ -72,11 +75,11 @@ Depth stays modest at every tier: a referral is a favor, and favors aren't extra
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
-| a1 | entry +0h | in-app | The ask, shown at the next session after qualifying, in a success moment (never on error screens): one line on why they might share, prefilled invite flow, reward terms if any | → a2 |
+| a1 | entry +0h | in_app | The ask, in a success moment (never on error screens): one line on why they might share, prefilled invite flow, reward terms if any. Shown at the next session after qualifying, expires after 7d; a2 is anchored to a1's scheduled time, not to the view | → a2 |
 | a2 | a1 +3d | email | Referral link for forwarding; restate the mutual reward plainly | → exit (completed) |
 | d1 | entry +7d | — | Code follow-up path starts on `invite_sent`: decision on `invite_accepted` (authoritative, referral system) between entry and entry +7d | occurred → exit (completed; the credit, once granted, starts r1) · not_occurred → c1 · unmeasurable → exit (completed) |
 | c1 | d1 +0h at 10:00 user_local | email | One nudge: the invite hasn't been used yet, here is the link again to share with someone who'd want it. Then the path stops for this code | → exit (completed) |
-| r1 | referral_reward_credited +0h | email (in-app mirror) | Reward confirmation, transactional: exactly what was credited, to whom, and where to see it; zero promotional content. One per credited reward record | → exit (completed) |
+| r1 | referral_reward_credited +0h | email (in_app mirror at the next session, expires after 14d) | Reward confirmation, transactional: exactly what was credited, to whom, and where to see it; zero promotional content. One per credited reward record | → exit (completed) |
 
 `invite_sent` is re-checked before a2, so the email only reaches people who haven't sent an invite yet. When the used/unused signal can't be read, there is no nudge: telling someone their code is unused when it may have been used is worse than silence.
 

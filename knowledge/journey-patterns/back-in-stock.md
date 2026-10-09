@@ -30,6 +30,7 @@ insufficient_alone:
   - interest in a category rather than one specific item
 exit_before_each_send: [purchase, consent_withdrawn, remove_from_wishlist, stock_alert_unsubscribe, item_discontinued]
 reentry: {policy: each_trigger, on_duplicate_trigger: ignore}
+instance_key: item_id
 measurement_default: holdout
 ---
 
@@ -61,7 +62,7 @@ Tell people the moment an item they wanted becomes available again. This is an i
 - **Entry:** `item_back_in_stock` fired for an item the person wishlisted or asked to be notified about (or viewed repeatedly, if the fallback is enabled) while it was unavailable, no `purchase` of that item since, the person is messageable on ≥ 1 channel.
 - **Exclude:** item already purchased (identity-stitched), wishlist interest older than 90 days (configurable; lengthen only for slow-moving catalogs where old wishlists still convert), item withdrawn from the catalogue rather than temporarily out of stock (it never comes back, so no instance opens, and a pending alert request is closed rather than left waiting), person currently in a P0 transactional flow, portfolio-wide negative-signal override, item concurrently entering [price-drop](price-drop.md) for the same person (combine into one "back and cheaper" message rather than sending both).
 - **Success exit:** `purchase` containing the restocked item · **Window:** 72h (stock may not last longer).
-- **Checked before each send:** `purchase` of the item, `consent_withdrawn` for that send's channel, `remove_from_wishlist` or `stock_alert_unsubscribe` for the item, `item_discontinued`, and live availability. A withdrawn interest ends the instance; it is never treated as a quiet one. An item that sold out again in the gap means the send is skipped and the instance ends.
+- **Checked before each send:** for this instance's item only (`instance_key: item_id`; buying or unwishlisting another item never stops this alert): `purchase` of the item, `remove_from_wishlist` or `stock_alert_unsubscribe` for the item, `item_discontinued` for the item, and live availability. `consent_withdrawn` is scoped to that send's channel: a push opt-out skips the push step and leaves a consented email in place. A withdrawn interest ends the instance; it is never treated as a quiet one. An item that sold out again in the gap means the send is skipped and the instance ends.
 - **Re-entry:** per item, once per restock event. An item that sells out again after the alert doesn't reopen this instance; interest recorded during the next out-of-stock period is a new instance on its own clock.
 - **Repeated trigger while active:** a second restock event or a second interest signal for the same item while an instance is open is ignored.
 - **Handoffs:** received from [abandoned-cart](abandoned-cart.md) when every item in a cart became unavailable (one instance per item). An `add_to_cart` of the restocked item → [abandoned-cart](abandoned-cart.md), queued sends here suppressed.
@@ -81,7 +82,7 @@ Depth does **not** scale with DQS here. The message carries one fact; adding ste
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
 | s1 | entry +15m | push | "{{product_name}} is back" + deeplink to the product page; nothing about how long it will last | → d1 |
-| d1 | s1 +24h | — | Decision on a bot-filtered click on s1 (engagement) or a `view_item` of the restocked item (behavioral) between s1 and s1 +24h | occurred → end · not_occurred → s2 · unmeasurable → s2 |
+| d1 | s1 +24h | — | Decision on any_of(link_click on s1 (engagement, bot-filtered), `view_item` of this item (behavioral)) between s1 and s1 +24h | occurred → end · not_occurred → s2 · unmeasurable → s2 |
 | s2 | s1 +24h | email | Same fact with product image and current price; availability re-checked at send | → end |
 
 The occurred route ends the sequence because the person has seen the fact; the purchase window keeps running for measurement. The unmeasurable route sends the email once, since repeating a fact the person asked for on a second channel costs little.

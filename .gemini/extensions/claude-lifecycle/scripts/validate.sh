@@ -88,7 +88,7 @@ done
 ok "$(count_files skills/*/SKILL.md) skills checked"
 
 echo "== 2. Journey patterns: required frontmatter keys =="
-PATTERN_KEYS="name stage trigger_type required_events optional_events required_attributes optional_attributes default_channels base_steps depth_range applicable_industries journey_class signal_sources insufficient_alone exit_before_each_send reentry measurement_default"
+PATTERN_KEYS="name stage trigger_type required_events optional_events required_attributes optional_attributes default_channels base_steps depth_range applicable_industries mutually_exclusive_with journey_class signal_sources insufficient_alone exit_before_each_send reentry measurement_default"
 # docs/pattern-contract.md: schema-2.0 section headings every pattern carries, in order
 PATTERN_SECTIONS="## Required-event signature|### Not enough on its own|## Entry / exit|## Depth scaling|## Step blueprint|## Timing and channel fit|## Frequency and overlap|## Measurement|## When data is missing|## KPIs|## Common mistakes"
 for f in knowledge/journey-patterns/*.md; do

@@ -77,7 +77,7 @@
       "id": "m1",
       "kind": "message",
       "channel": "email",
-      "purpose": "marketing",
+      "purpose": "service",
       "intent": "email touch m1",
       "send": {
         "from": "entry",
@@ -89,7 +89,7 @@
       "id": "m2",
       "kind": "message",
       "channel": "sms",
-      "purpose": "marketing",
+      "purpose": "service",
       "intent": "sms touch m2",
       "send": {
         "from": "entry",
@@ -101,7 +101,7 @@
       "id": "m3",
       "kind": "message",
       "channel": "email",
-      "purpose": "marketing",
+      "purpose": "service",
       "intent": "email touch m3",
       "send": {
         "from": "entry",
@@ -113,7 +113,7 @@
       "id": "m4",
       "kind": "message",
       "channel": "email",
-      "purpose": "marketing",
+      "purpose": "service",
       "intent": "email touch m4",
       "send": {
         "from": "entry",
@@ -125,7 +125,7 @@
       "id": "m5",
       "kind": "message",
       "channel": "sms",
-      "purpose": "marketing",
+      "purpose": "service",
       "intent": "sms touch m5",
       "send": {
         "from": "entry",
@@ -137,7 +137,7 @@
       "id": "m6",
       "kind": "message",
       "channel": "email",
-      "purpose": "marketing",
+      "purpose": "service",
       "intent": "email touch m6",
       "send": {
         "from": "entry",
@@ -163,5 +163,6 @@
       "type": "guardrail",
       "definition": "unsubscribes / delivered"
     }
-  ]
+  ],
+  "readiness": "ready"
 }

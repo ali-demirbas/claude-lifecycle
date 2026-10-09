@@ -16,8 +16,8 @@ A conversational channel with platform-enforced quality policing: Meta scores ev
 ## Hard rules (copy fails review if violated)
 
 1. Every business-initiated message uses a **pre-approved template** in one of three categories — `marketing`, `utility`, `authentication` — and the copy must match its declared category. Miscategorizing marketing as utility gets the template rejected or reclassified by Meta, and repeat offenses damage account standing.
-2. Category choice matters twice: **pricing** (per-conversation rates differ by category; marketing is the most expensive) and **approval** (utility/authentication templates face stricter content review — any promotional wording forces marketing category).
-3. **24-hour customer-service window:** after a user messages you, you may reply free-form (and cheaper) for 24 hours. Outside that window, only approved templates may initiate. Journeys must state which mode each step uses — a "reply within the window" step and a "template send" step are different animals in cost, content freedom, and compliance.
+2. Category choice matters twice: **pricing** (charged per delivered template message, at a rate set by category and recipient country; marketing is typically the most expensive) and **approval** (utility/authentication templates face stricter content review — any promotional wording forces marketing category). Rates change: never hardcode them in a journey or estimate; check the current rates and record the date checked next to any cost figure.
+3. **24-hour customer-service window:** after a user messages you, free-form (non-template) replies are allowed for 24 hours; how they are priced is part of the current rate check in rule 2. Outside that window, only approved templates may initiate. Journeys must state which mode each step uses — a "reply within the window" step and a "template send" step are different animals in cost, content freedom, and compliance.
 4. Opt-in is explicit and channel-specific: the user must have agreed to receive WhatsApp messages from this brand (İYS-registered in TR). Email consent does not transfer. No cold template blasts to imported phone lists — Meta bans for this independently of the regulator.
 5. Structure limits, counted: header ≤ 60 chars (text), body ≤ 1024 chars, button labels ≤ 25 chars. For marketing templates, keep body ≤ 300 chars — WhatsApp is a chat surface; a wall of text reads as spam and invites blocks.
 6. Buttons over links: use quick-reply or CTA buttons instead of raw URLs where possible. Max 1 URL button, on a branded domain.
@@ -40,7 +40,7 @@ Meta continuously rates each sending number from user feedback — blocks and "r
 | Situation | Verdict |
 |---|---|
 | TR/LATAM consumer audience with WhatsApp opt-in | ✅ often the highest-attention channel available |
-| Conversational follow-up inside the 24h service window | ✅ free-form, cheap, natural |
+| Conversational follow-up inside the 24h service window | ✅ free-form, natural (cost per the current rate check) |
 | Rich but urgent commerce trigger (order issue, booking change, back-in-stock with image) | ✅ template with media header |
 | Long-form content, education, multi-product digests | ❌ email |
 | Low-relevance batch promo | ❌ nowhere, but especially not here — quality rating pays the bill |

@@ -17,6 +17,7 @@ Usage:
                                                       branch-presence/KPI-count+types agree
                                                       (never diffs intent text or wait-duration
                                                       equivalence — those stay a human read)
+  validate_output.py copy-canvas <copy.md> <copy.canvas.json>  canvas object carries exactly the reviewed texts
   validate_output.py timeline <journey.json>           per-path send times + worst 7-day load
   validate_output.py dossier <dossier.md>             DQS line carries a reliability tag
   validate_output.py audience <audiences.sql|audiences-traits.json>
@@ -345,7 +346,7 @@ def check_journey_v2(path, doc, pattern_fm, inventory=None, report=True):
             lo, hi = int(range_m.group(1)), int(range_m.group(2))
             if not (lo <= n <= hi):
                 F.error(f"longest path has {n} sends, outside {doc.get('pattern')}.md's depth_range [{lo}, {hi}]")
-    if res["structure_ok"] and doc.get("journey_class") == "marketing":
+    if res["structure_ok"]:  # counts only marketing-purpose sends, whatever the journey class
         caps = load_default_caps()
         for ch, v in res["freq"].items():
             cap = caps.get(ch)
@@ -358,7 +359,7 @@ def check_journey_v2(path, doc, pattern_fm, inventory=None, report=True):
     if report:
         _report(path, F)
         if res["structure_ok"] and not any(l == "error" for l, _, _ in F.items):
-            ok(f"schema 2.0: {len(res['paths'])} path(s), max {res['max_msgs_on_path']} sends on a path, "
+            ok(f"schema 2.0 · {doc.get('readiness', '?')}: {len(res['paths'])} path(s), max {res['max_msgs_on_path']} sends on a path, "
                f"worst 7-day load {dict(sorted(res['freq'].items()))}")
     return res
 
@@ -487,10 +488,22 @@ FIELD_ALIASES = {
     "ikincil buton": "secondary cta", "gövde (banner)": "body (banner)",
     "gövde (modal)": "body (modal)",
 }
-# knowledge/channels/sms.md rule 2: ş/ğ/ı/İ are NOT in the GSM-7 default
-# alphabet and force UCS-2 (160 -> 70 chars/segment); ç/ö/ü alone survive
-# GSM-7 and do not — don't over-match the whole Turkish diacritic set.
-SMS_TR_CHARS = re.compile(r"[şğıİŞĞ]")
+# knowledge/channels/sms.md rule 2: the GSM 03.38 default alphabet decides the
+# encoding. It has capital Ç but NOT lowercase ç; ö/ü/Ö/Ü are in it; ş/ğ/ı/İ
+# are not. Any character outside the default + extension tables forces UCS-2
+# (70 per segment, counted in UTF-16 code units, so an emoji costs 2).
+# Extension characters stay GSM-7 but cost two septets each.
+GSM7_DEFAULT = set(
+    "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?"
+    "¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà")
+GSM7_EXTENSION = set("^{}\\[~]|€\f")
+
+
+def sms_units(text):
+    """(encoding, units) for one SMS body: GSM-7 septets or UCS-2 code units."""
+    if all(c in GSM7_DEFAULT or c in GSM7_EXTENSION for c in text):
+        return "gsm7", sum(2 if c in GSM7_EXTENSION else 1 for c in text)
+    return "ucs2", len(text.encode("utf-16-le")) // 2
 
 
 def canonical_limit(field, channel=None, content=""):
@@ -502,7 +515,8 @@ def canonical_limit(field, channel=None, content=""):
         # UCS-2); the choice between them is the one genuinely dynamic bit
         # (depends on the content itself), so it stays code, not frontmatter.
         sms = limits.get("sms", {})
-        return sms.get("body_unicode", 70) if SMS_TR_CHARS.search(content) else sms.get("body", 160)
+        enc, _ = sms_units(content)
+        return sms.get("body_unicode", 70) if enc == "ucs2" else sms.get("body", 160)
     if ch and ch in limits:
         chan_limits = limits[ch]
         if f in chan_limits:
@@ -746,6 +760,12 @@ def check_copy(path, max_discount=None, sector=None):
                 fail(f"{path}:{i}: '{field}' is {actual} chars, limit {limit} — Limit Violation",
                      src=channel_rule_src(channel))
             canon = canonical_limit(field, channel, content)
+            if canon is not None and channel == "sms" and tr_fold(field).strip() in ("body", "metin", "gövde", "govde"):
+                enc, units = sms_units(content)
+                if units != actual and units > canon:
+                    fail(f"{path}:{i}: SMS body is {units} {enc} units (extension characters count 2, "
+                         f"UCS-2 counts UTF-16 units), over the single-segment ceiling {canon}",
+                         src=channel_rule_src(channel))
             if canon is not None:
                 if limit > canon:
                     fail(
@@ -1026,8 +1046,8 @@ def check_portfolio(path):
                                  f"can be computed (unconditioned steps, both readings of its waits)")
         elif v2p:
             fail(f"{path}: journey '{jid}' has no 'file': frequency must be computed from the journey's sends")
-        if cls in ("service", "transactional"):
-            continue
+        # service/transactional journeys still contribute their marketing-purpose sends
+        # (journey_graph counts only those), so an upsell inside a renewal notice is capped
         if computed is not None:
             if isinstance(declared, dict):
                 for ch, v in sorted(computed.items()):
@@ -1203,10 +1223,47 @@ def check_canvas(path, template):
     )
 
 
+# ------------------------------------------------------- copy vs copy canvas
+def _strings(obj):
+    if isinstance(obj, str):
+        yield obj
+    elif isinstance(obj, dict):
+        for v in obj.values():
+            yield from _strings(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _strings(v)
+
+
+def check_copy_canvas(md_path, canvas_json_path):
+    """The reviewed markdown is the source of truth; the copy-canvas object must
+    carry exactly its customer-facing texts, so a reviewer FIX can't leave the
+    canvas showing the pre-fix wording (and vice versa)."""
+    print(f"== copy canvas: {canvas_json_path} vs {md_path}")
+    md = open(md_path, encoding="utf-8").read()
+    md_texts = {m.group(2).strip() for m in (ROW.match(ln) for ln in md.splitlines()) if m
+                and m.group(1).strip().lower() not in ("field", "alan")}
+    try:
+        data = json.load(open(canvas_json_path, encoding="utf-8"))
+    except Exception as e:  # noqa: BLE001
+        fail(f"{canvas_json_path}: invalid JSON ({e})")
+        return
+    js = {s.strip() for s in _strings(data)}
+    missing = sorted(t for t in md_texts if t not in js)
+    for t in missing[:5]:
+        fail(f"{canvas_json_path}: reviewed text missing from the canvas object: '{t[:80]}'")
+    # canvas texts that look like copy (sentence-length) but aren't in the reviewed doc
+    extra = sorted(s for s in js if len(s) > 25 and " " in s and s not in md_texts and not s.startswith("{"))
+    for t in extra[:5]:
+        fail(f"{canvas_json_path}: canvas shows text that isn't in the reviewed doc: '{t[:80]}'")
+    if not missing and not extra:
+        ok(f"{len(md_texts)} reviewed texts match the canvas object")
+
+
 # --------------------------------------------------------- dossier / audience
 DQS_LINE_RE = re.compile(r"\*\*DQS:\*\*[^\n]*", re.I)
 TIER_T3_RE = re.compile(r"\*\*Tier:\*\*\s*T3\b", re.I)
-RELIABILITY_RE = re.compile(r"reliability:\s*(healthy|degraded|unreliable|n/a)\b", re.I)
+RELIABILITY_RE = re.compile(r"reliability:\s*(healthy|partial|degraded|unreliable|n/a)\b", re.I)
 ACTIVATION_RE = re.compile(r"--\s*activation_status:\s*(ready|conditional)\b[ \t]*(.*)$", re.I | re.M)
 AUDIENCE_HEAD_RE = re.compile(r"^--\s*journey:\s*(\S+)", re.M)
 
@@ -1309,6 +1366,11 @@ def main(argv):
             print("usage: validate_output.py consistency <journey.md> <journey.json>")
             return 2
         check_consistency(rest[0], rest[1])
+    elif mode == "copy-canvas":
+        if len(rest) != 2:
+            print("usage: validate_output.py copy-canvas <copy.md> <copy.canvas.json>")
+            return 2
+        check_copy_canvas(rest[0], rest[1])
     elif mode == "timeline":
         for p in rest:
             print_timeline(p)

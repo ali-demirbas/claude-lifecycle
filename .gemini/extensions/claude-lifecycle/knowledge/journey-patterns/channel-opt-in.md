@@ -6,10 +6,11 @@ required_events: [consent_updated]
 optional_events: [add_to_wishlist, purchase, session_start, notification_open, consent_ask_dismissed, consent_withdrawn]
 required_attributes: [channel_consent_status]
 optional_attributes: [push_permission_status, consent_ask_history, engagement_score]
-default_channels: [in-app, email]
+default_channels: [in_app, email]
 base_steps: 2
 depth_range: [1, 3]
 applicable_industries: [ecommerce, saas, mobile-app, fintech, marketplace, subscription-media, travel, edtech, insurance]
+mutually_exclusive_with: []
 journey_class: marketing
 signal_sources: {consent_updated: authoritative, channel_consent_status: authoritative, consent_withdrawn: authoritative, push_permission_status: authoritative, consent_ask_history: authoritative, consent_ask_dismissed: behavioral, add_to_wishlist: behavioral, purchase: authoritative, session_start: behavioral, notification_open: engagement, engagement_score: inferred}
 insufficient_alone:
@@ -20,6 +21,7 @@ insufficient_alone:
 exit_before_each_send: [consent_updated, consent_withdrawn]
 reentry: {policy: after_cooldown, cooldown: P60D, on_duplicate_trigger: ignore}
 measurement_default: holdout
+instance_key: target_channel
 ---
 
 # Channel Opt-In
@@ -38,7 +40,7 @@ Two boundaries frame everything below. **An open channel carries this one reques
 | `channel_consent_status` (required attr) | authoritative (consent system) | The per-channel reachability map that defines entry: open on ≥ 1 channel, never-granted on the target channel. It must distinguish never-granted from withdrawn. |
 | `consent_withdrawn` *(optional)* | authoritative (consent system) | A withdrawal on the asking channel ends the journey; a withdrawal on the target channel excludes the user from this pattern for that channel. |
 | `add_to_wishlist` / `purchase` *(optional)* | behavioral / authoritative | The value moments that arm a contextual ask: a wishlist add is the natural push-permission moment, an order is the natural SMS moment. |
-| `push_permission_status` *(optional attr)* | authoritative (OS permission state) | Splits never-asked from denied on push; the two need entirely different treatment (see push mechanics below). |
+| `push_permission_status` *(optional attr)* | authoritative (OS permission state, read on device each session) | The platform's own permission state (see push mechanics below for the iOS and Android states). Device-level permission to display notifications; it is not marketing consent. |
 | `consent_ask_dismissed` *(optional)* | behavioral | An explicit "no thanks" on the soft ask; ends this instance and counts toward the permanent stop. |
 | `notification_open` *(optional)* | engagement | Post-grant health signal only: consent that is never engaged is the leading indicator of a future opt-out. Never a branch. |
 
@@ -47,24 +49,35 @@ Two boundaries frame everything below. **An open channel carries this one reques
 - **An open asking channel:** reachability on one channel is permission to send what that channel was granted for, plus this single, promotion-free request. It is not permission for anything else on that channel.
 - **A tapped yes with no record in the consent system:** a button tap that isn't evidenced in the consent system is a journey "success" a regulator reads as unconsented sending. Only `consent_updated` from the consent system counts.
 - **Time passed since an opt-out or a withdrawal:** consents don't come back by aging. A user who turned a channel off two years ago is as closed today as the day they did it.
-- **An OS push permission with no stated purpose behind it:** the OS dialog says nothing about what will be sent. The purpose stated in the soft ask is what the grant covers.
+- **An OS push permission with no stated purpose behind it:** the OS dialog says nothing about what will be sent, and an OS permission is not marketing consent. The purpose stated in the soft ask, recorded as `consent_updated` with that purpose where the market's regime requires consent for marketing push, is what the grant covers.
 
 ## Entry / exit
 
 - **Entry (segment):** user messageable on ≥ 1 consented channel, target channel **never granted** (not withdrawn), no opt-in ask for that channel in the last 60 days, and, where a contextual trigger is configured, the value moment just fired.
 - **Exclude:** users who opted *out* of, withdrew, or turned off the target channel (a past opt-out is a decision, not a gap; there is no automatic route back, see the boundary above), push users whose OS permission is denied, detractors and anyone under negative-signal suppression ([consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md) rule 4), users in dunning.
 - **Success exit:** `consent_updated` grant for the target channel · **Window:** 14 days.
-- **Checked before each send:** `consent_updated` (a grant ends the journey; so does a grant the user made on their own elsewhere), `consent_withdrawn` on the asking channel (the ask channel is gone; nothing switches to another channel to continue asking).
+- **Instance key:** `target_channel`, one instance per channel being asked for.
+- **Checked before each send:** `consent_updated` for the target channel (`same_instance`; a grant ends the journey, including one the user made on their own elsewhere; a grant on a different channel does not), `consent_withdrawn` on the asking channel (channel-scoped: it stops the asks sent on that channel; nothing switches to another channel to continue asking). A withdrawal on the target channel excludes the user from this pattern for that channel.
 - **Re-entry:** per target channel, once per 60–90 days, and stop permanently after 2–3 ignored asks or one explicit "no": the same restraint rule as [referral](referral.md). Reachability is a favor the user grants, not a metric to be extracted. A repeated value moment while an instance is active is ignored.
 - **Handoffs:** a grant unlocks journeys and depth upgrades in the tracking plan; the newly opened channel is used only for the purpose stated in the ask.
 
 ## Push mechanics (platform constraint, not a style choice)
 
-On iOS (and Android 13+), the OS permission dialog is a one-shot resource: once a user declines the native prompt, it cannot be programmatically re-triggered; the only remaining path is the device Settings. So the pattern never spends the native prompt cold:
+The two platforms behave differently, so the journey reads `push_permission_status` per platform instead of assuming one rule. Behavior also shifts between OS versions; confirm against the current platform documentation for the app's target versions before launch.
 
-1. **Soft ask first** (in-app, skippable): state the concrete value, then ask "enable?". A "not now" here costs nothing and preserves the native prompt for a later, better moment.
-2. **Native prompt only on soft-ask yes**, fired immediately while intent is hot.
-3. **Already denied natively** (`push_permission_status` = denied): the journey does not ask again. If the user later starts something that only works with push (taps "notify me when it's back"), the product itself explains that notifications are off and how to turn them on in Settings. That is the user's own action in the moment, not a scheduled re-ask, and it is never pretended to be a re-prompt.
+**iOS.** States: *not determined* (the app has never shown the system prompt), *authorized*, *provisional* (quiet delivery granted without a prompt, where the app requested it), *denied*. The system prompt can be shown once, while the state is not determined; after the user answers, the app cannot show it again, and only the device Settings can change the state. Provisional is permission to deliver quietly, not a yes to prominent alerts.
+
+**Android.** The state depends on the OS version and the app's target SDK:
+- *Below Android 13:* notifications are allowed at install with no runtime dialog; the user can turn them off in Settings, per app or per notification channel. Read the state (enabled, or blocked in Settings); there is nothing to ask for.
+- *Android 13+ with an app targeting 13+:* notification permission is a runtime permission and the app decides when the dialog appears, so the soft-ask sequencing below applies. States: *not requested*, *granted*, *denied (can ask again)*, *denied and blocked*: after repeated denials (two, on current versions) the system stops showing the dialog and only Settings can grant it.
+- *Android 13+ with an app targeting 12L or lower:* the system shows the dialog itself when the app creates its first notification channel, so the app does not control the timing and cannot place a soft ask before it. Raising the target SDK is the fix; until then this journey does not sequence the Android prompt.
+- Devices upgraded to 13 may carry a granted state for apps that already had notifications enabled. Read the state; never infer it from the OS version.
+
+**Common to both.** The OS permission is not marketing consent. It lets the app display notifications; whether a marketing push may be sent is decided by the consent record and the purpose stated in the soft ask. So the pattern never spends the system prompt cold:
+
+1. **Soft ask first** (in-app, skippable): state the concrete value, then ask "enable?". A "not now" here costs nothing and preserves the system prompt for a later, better moment.
+2. **System prompt only on soft-ask yes**, fired immediately while intent is hot, and only where the app controls its timing (iOS not determined; Android 13+ targeting 13+, not requested or denied-but-askable).
+3. **Denied with no prompt left** (iOS denied; Android denied and blocked, or turned off in Settings): the journey does not ask again. If the user later starts something that only works with push (taps "notify me when it's back"), the product itself explains that notifications are off and how to turn them on in Settings. That is the user's own action in the moment, not a scheduled re-ask, and it is never pretended to be a re-prompt.
 
 ## Depth scaling
 
@@ -80,7 +93,7 @@ Depth stays shallow at every tier by design: an opt-in ask is one question. Extr
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
-| a1 | entry +0h | in-app (fallback: best consented channel) | The value-first ask at the value moment (or the next session if none is configured): one concrete benefit tied to what the user just did, then the opt-in action (soft ask for push). No promotion bundled in | → d1 |
+| a1 | entry +0h | in_app (fallback: best consented channel) | The value-first ask at the value moment: one concrete benefit tied to what the user just did, then the opt-in action (soft ask for push). No promotion bundled in. In-app: shown in the value-moment session or the next one, expires after 5d; d1 and a2 use a1's scheduled time, never the view | → d1 |
 | d1 | a1 +5d | — | Decision on `consent_ask_dismissed` (behavioral) between a1 and a1 +5d | occurred → exit (completed; a no is respected) · not_occurred → a2 · unmeasurable → a2 |
 | a2 | d1 +0h at 10:00 user_local | email (only with marketing consent on email) | One restatement of the same benefit with the opt-in link; nothing new, no pressure, no other content | → exit (completed) |
 
@@ -113,7 +126,7 @@ The payoff is downstream: every grant unlocks blocked journeys and depth upgrade
 ## When data is missing
 
 - **`channel_consent_status` can't distinguish never-granted from withdrawn:** the journey does not run for that channel. Asking a withdrawn user because the data can't tell is exactly the reactivation this pattern forbids.
-- **No `push_permission_status`:** treat as never-asked only on fresh installs; for everyone else, the soft ask runs but the native prompt fires only on its yes.
+- **No `push_permission_status`:** treat as not determined only on fresh installs; for everyone else, the soft ask runs but the system prompt fires only on its yes, and only on a platform and target SDK where the app controls the prompt's timing.
 - **No `consent_ask_dismissed`:** d1 is unmeasurable and a2 goes once; the ignored-ask cap still stops repeats.
 - **No `consent_ask_history`:** default to the strictest reading: assume an ask happened within the cooldown and wait.
 
@@ -127,7 +140,8 @@ The payoff is downstream: every grant unlocks blocked journeys and depth upgrade
 
 ## Common mistakes
 
-- Firing the native push prompt cold at first open: the single most common way apps permanently lose their highest-reach channel; always soft-ask first.
+- Firing the system push prompt cold at first open: the most common way apps lose their highest-reach channel; always soft-ask first where the app controls the prompt's timing.
+- Treating an OS push permission as marketing consent, or describing both platforms as one-shot: iOS and Android keep different states, and neither state says what the user agreed to receive.
 - A bare "turn on notifications" with no concrete value: the user is being asked to pay attention forward; the ask must say what they get.
 - Asking for every closed channel at once: one target channel per journey instance; a consent wall reads as a shakedown.
 - Re-asking on a timer regardless of declines: 2–3 ignored asks or one explicit no is the permanent stop; a declined ask is data, not a retry queue.

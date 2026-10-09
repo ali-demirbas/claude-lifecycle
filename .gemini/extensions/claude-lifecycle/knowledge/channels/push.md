@@ -1,6 +1,6 @@
 ---
 name: push
-consent_required: OS-level opt-in (iOS explicit, Android 13+ explicit)
+consent_required: OS-level permission that differs by platform — iOS asks via an explicit prompt (provisional quiet delivery is a separate, limited mode); Android 13+ asks via a runtime permission, older Android allows by default until the user turns it off; OS permission is not marketing consent, which is tracked separately
 frequency_cap: 1 marketing push / user / day, 5 / week (default; user-adjustable)
 quiet_hours: "22:00–09:00 user local time (default, mandatory unless user overrides); within the allowed window, see knowledge/send-time.md for optimization"
 limits:

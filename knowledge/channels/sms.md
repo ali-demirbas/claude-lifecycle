@@ -17,14 +17,14 @@ The most expensive and most intrusive channel: it interrupts, it costs per segme
 ## Hard rules (copy fails review if violated)
 
 1. Single segment by default: **160 chars GSM-7** or **70 chars UCS-2** — counted against the correct encoding, not estimated. Multi-segment SMS requires explicit user approval per journey step (concatenated segments count 153 GSM-7 / 67 UCS-2 each).
-2. **Turkish encoding trap, called out explicitly:** `ş`, `ğ`, `ı`, `İ` are not in the GSM-7 default alphabet; national shift tables exist but carrier support is unreliable. `ç`/`ö`/`ü` alone survive GSM-7, but real Turkish copy almost always contains at least one of the former — so **any TR-language SMS must be counted at the 70-char UCS-2 limit** unless it is verified ASCII-only ("Sepetin seni bekliyor" is safe; "yaşadığınız şehir" is not).
+2. **Turkish encoding trap, called out explicitly:** the GSM-7 default alphabet contains `ö`, `ü`, `Ö`, `Ü` and capital `Ç`, but **not lowercase `ç`**, and not `ş`, `ğ`, `ı`, `İ` (or `Ş`, `Ğ`); national shift tables exist but carrier support is unreliable. Real Turkish copy almost always contains at least one character outside the default alphabet — so **any TR-language SMS must be counted at the 70-char UCS-2 limit** unless every character is verified against the default alphabet ("Sepetin seni bekliyor" is safe; "yaşadığınız şehir" and "seçtiğin" are not). The GSM-7 extension characters `{ } [ ] ~ \ | ^ €` stay in GSM-7 but take **two septets each**, so they count double against 160/153.
 3. The opt-out instruction ("Çıkış: IPTAL yaz" / "Reply STOP to opt out") is part of the message and **counts inside the character limit**. Budget it before writing the body.
 4. Sender ID must be the registered alphanumeric brand sender (TR: İYS-registered başlık). Never a raw long number for marketing; never a sender the user won't recognize instantly.
 5. Consent is the strictest tier: TCPA prior express *written* consent (US), İYS-registered opt-in (TR), GDPR opt-in (EU). Transactional exemption applies only to genuinely transactional content — one promotional word converts the message to marketing and voids the exemption.
 6. Exactly one link, if any — **shortened on a branded domain** (e.g. `brnd.co/x1`), never a generic shortener (`bit.ly` links get carrier-filtered and erode trust).
 7. **No emoji.** Beyond tone, a single emoji forces UCS-2 and halves the character budget.
 8. Quiet hours 20:00–10:00 user local + no Sundays are mandatory (compliance baseline). Journeys must schedule around them, not queue into a 10:00 burst.
-9. No personalization variable without a fallback; a broken `{{first_name}}` in 70 chars is a third of the message wasted.
+9. No personalization variable without a fallback; a broken `{{first_name}}` in 70 chars is a third of the message wasted. Count the **rendered** length (the longest realistic value of each variable, and its characters' encoding — a name with `ş` switches the whole message to UCS-2) plus the opt-out text, never the template placeholder length.
 
 ## Message anatomy (single segment)
 

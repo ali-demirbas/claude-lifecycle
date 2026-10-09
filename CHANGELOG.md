@@ -43,6 +43,46 @@ Planned as 0.3.0. Not released yet: the acceptance tests pass, and the before/af
   - Journeys built while a correctness fact is still missing are delivered as drafts, separate from journeys ready to implement.
 - **Copy has two named modes:** full, and quick draft (P0 only, one review pass, labelled as a draft). The mode is never switched silently.
 
+### Changed — after an external review of this release
+
+All 32 findings were reproduced against the real validator, then fixed or classified; see [docs/audit/0.3.0-findings.md](docs/audit/0.3.0-findings.md) for each one and its test.
+
+- **Contract:**
+  - closed channels (`withdrawn_channels`), opened only by an authoritative re-grant on the same path;
+  - consent exits, caps and measurement follow each send's purpose, so a marketing upsell inside a service journey no longer escapes them;
+  - `instance_key` with same-instance and channel-scoped exits (paying invoice A doesn't stop invoice B's dunning; an email unsubscribe doesn't end consented push);
+  - `readiness` + `open_items` stored in the journey file;
+  - in-app delivery at the next session with an expiry, and deadlines on hard-date notices;
+  - date ranges for dates whose distance from entry varies;
+  - composite `any_of`/`all_of` signals that never read missing data as false;
+  - non-negative elapsed durations and real IANA time zones;
+  - schema-2.0 files can't also carry legacy `steps`/`flow`.
+- **Patterns:**
+  - no review gating anywhere;
+  - save offers react to cancel intent only;
+  - a sunset choice is the recorded preference, not a click;
+  - winback is email by default;
+  - short trials, short grace periods and late renewals have explicit runway rules;
+  - abandoned-cart drops its late push (push only for intent under 24h);
+  - all 29 patterns instantiate into a valid journey.
+- **Measurement:**
+  - no "~200 control conversions" rule and no "reduce the holdout" remedy;
+  - iROI per population with contribution margin;
+  - results and audit choose the evaluator by measurement design;
+  - zero-control lift is undefined, never infinite.
+- **Data:**
+  - reliability checks report checked/failed/unavailable (`reliability: partial`);
+  - aggregate input makes activation unverified, not blocked;
+  - BigQuery export, User-ID and CRM addressability are separate questions;
+  - insurance scores claims only on claimants.
+- **Channels:** real GSM 03.38 tables for SMS (lowercase ç forces UCS-2; extension characters count 2); WhatsApp per-message pricing; iOS and Android push permission described separately.
+- **Outputs:**
+  - the copy canvas must carry exactly the reviewed text;
+  - merges read the run manifest;
+  - run ids are unique to the second;
+  - export reads the JSON;
+  - the shipped copy example passes today's rules.
+
 ### Added
 
 - **3 patterns:**

@@ -41,5 +41,6 @@
       "new_users",
       "active_cart"
     ]
-  ]
+  ],
+  "readiness": "ready"
 }

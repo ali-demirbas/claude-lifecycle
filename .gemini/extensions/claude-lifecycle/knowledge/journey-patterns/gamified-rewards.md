@@ -6,10 +6,11 @@ required_events: [game_played, reward_claimed]
 optional_events: [purchase, game_impression, coupon_redeemed]
 required_attributes: []
 optional_attributes: [prize_id, reward_expiry_date, age_verified]
-default_channels: [email, in-app, push]
+default_channels: [email, in_app, push]
 base_steps: 2
 depth_range: [1, 2]
 applicable_industries: [ecommerce, marketplace, mobile-app, subscription-media, travel, edtech]
+mutually_exclusive_with: []
 journey_class: marketing
 signal_sources: {game_played: behavioral, reward_claimed: authoritative, coupon_redeemed: authoritative, purchase: authoritative, reward_expiry_date: authoritative, age_verified: authoritative, game_impression: behavioral, consent_withdrawn: authoritative}
 insufficient_alone:
@@ -19,6 +20,7 @@ insufficient_alone:
 exit_before_each_send: [coupon_redeemed, purchase, consent_withdrawn]
 reentry: {policy: once, on_duplicate_trigger: ignore}
 measurement_default: holdout
+instance_key: reward_id
 ---
 
 # Gamified Rewards
@@ -59,7 +61,8 @@ A chance-based reward moment (spin-to-win, scratch card, pick-a-gift, mystery di
   - *Claim nudge* (branched): `game_played` that produced a winnable prize with no `reward_claimed` within 24h.
 - **Exclude:** minors and unverified-age users in gated markets, detractors and negative-signal-suppressed users ([consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md) rule 4), users in dunning (a prize wheel next to a failed payment reads as mockery), sectors whose lexicon sets `regulated: true`.
 - **Success exit:** `purchase`/`coupon_redeemed` containing the won reward · **Window:** the reward's real validity period from its record (default 14 days for measurement when the record has none).
-- **Checked before each send:** `coupon_redeemed`, `purchase` containing the reward, `consent_withdrawn`. The won-reward message itself still goes out after a consent withdrawal only if the reward system treats it as the transactional delivery of the prize, with no promotional content.
+- **Instance key:** `reward_id` on the reward path (the claim-nudge path uses the play's prize record). Redeeming another reward or another campaign's code does not stop this instance.
+- **Checked before each send:** for this reward (`same_instance`): `coupon_redeemed`, `purchase` containing the reward; `consent_withdrawn` is channel-scoped (a push opt-out stops push steps, an email opt-out stops email steps). The won-reward message itself still goes out after a consent withdrawal only if the reward system treats it as the transactional delivery of the prize, with no promotional content.
 - **Re-entry:** once per user per campaign, campaigns bounded (a few per year as a default posture, set in brand config), never a daily-spin cadence in CRM sends. A daily reward loop is a product-gamification decision with its own ethics review, not a lifecycle journey. A repeated trigger (second play, replayed claim event for the same reward) is ignored.
 - **Handoffs:** a won reward that is a loyalty credit is confirmed by [loyalty](loyalty.md)'s reward confirmation, not twice; this pattern's won-reward send is then skipped.
 
@@ -79,10 +82,10 @@ The step count is per path. Across one campaign a single user can receive at mos
 |---|---|---|---|---|
 | i1 | campaign_start +0d at 10:00 user_local | email or push | The invite: what the occasion is, what can be won, one deeplink to play. Odds and terms linked where law requires | → exit (completed); a play starts a later path |
 | w1 | entry +1h | email | Reward path starts on `reward_claimed`: exactly what was won, how to use it, and its expiry only as stated in the reward record | → d1 |
-| d1 | w1 +0h | — | Decision on `reward_expiry_date` (authoritative, reward record) between entry and w1 +0h | a recorded date at least 3 days ahead → w2 · default → exit (completed) · unmeasurable → exit (completed) |
-| w2 | reward_expiry_date -2d at 10:00 user_local | push or email | One expiry reminder: the recorded deadline, stated once. If that moment has already passed, the reminder is dropped, not sent late | → exit (completed) |
+| d1 | w1 +0h | — | Decision on `reward_expiry_date` (authoritative, reward record), evaluated at the decision moment (from = to = w1 +0h): is a recorded date at least 3 days ahead? It reads the date; it never waits for it | occurred → w2 · not_occurred → exit (completed) · unmeasurable → exit (completed) |
+| w2 | reward_expiry_date -2d at 10:00 user_local | push or email | One expiry reminder: the recorded deadline, stated once. Deadline: reward_expiry_date -1d; quiet hours delay it at most to the last allowed time before that, and if the moment has already passed the reminder is dropped, not sent late | → exit (completed) |
 | c0 | entry +24h | — | Claim-nudge path starts on `game_played`: decision on `reward_claimed` (authoritative) between entry and entry +24h | occurred → exit (completed; the reward path owns it) · not_occurred → c1 · unmeasurable → exit (completed) |
-| c1 | c0 +0h | in-app (push if no session in 3 days) | One nudge that a won prize is waiting to be claimed, with the claim deeplink | → exit (completed) |
+| c1 | c0 +0h | in_app (push where the product has no in-app surface) | One nudge that a won prize is waiting to be claimed, with the claim deeplink. In-app: shown at the next session, expires after 3d, then skipped. The channel is chosen at design time; no push is sent because the in-app view didn't happen | → exit (completed) |
 
 Redemption is re-checked before w2, so "only if claimed but not redeemed" needs no separate decision.
 
@@ -106,7 +109,7 @@ Redemption is re-checked before w2, so "only if claimed but not redeemed" needs 
 - **Routine communications both groups keep:** order and account service messages; regular newsletters continue for both.
 - **Contamination risks:** the game promoted on-site or in social posts reaches the control; prizes shared between users.
 - **Prize cost belongs in the iROI:** the prize pool is journey cost, and a campaign whose lift doesn't cover its prizes is a `kill` verdict in lifecycle-results regardless of how good the play rate looked.
-- **Low volume:** a small campaign can show play rate and claim rate reliably; redemption lift needs the doctrine's ~200 control conversions, which bounded campaigns often don't reach. Report "unmeasured" rather than reading a small difference as success.
+- **Low volume:** a small campaign can show play rate and claim rate reliably; redemption lift needs enough control-arm volume for the expected effect (compute the power; see measurement.md), which bounded campaigns often don't reach. Report "unmeasured" rather than reading a small difference as success.
 
 ## When data is missing
 

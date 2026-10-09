@@ -24,5 +24,6 @@
       }
     }
   ],
-  "audience_overlaps": []
+  "audience_overlaps": [],
+  "readiness": "ready"
 }

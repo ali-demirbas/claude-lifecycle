@@ -10,6 +10,7 @@ default_channels: [email, push]
 base_steps: 3
 depth_range: [2, 5]
 applicable_industries: [ecommerce, marketplace]
+mutually_exclusive_with: []
 journey_class: marketing
 signal_sources:
   purchase: authoritative
@@ -27,6 +28,7 @@ insufficient_alone:
   - a click on a reminder
 exit_before_each_send: [purchase, subscription_start, refund, consent_withdrawn]
 reentry: {policy: each_trigger, on_duplicate_trigger: restart}
+instance_key: item_id
 measurement_default: holdout
 ---
 
@@ -56,7 +58,7 @@ Remind buyers of consumables to reorder just before the product runs out. Timing
 - **Entry:** `purchase` containing a replenishable item (catalog-flagged, or inferred from a tight repeat-interval distribution), a cycle reliable enough to act on, no repurchase yet. The instance opens at purchase and waits for the anchors below.
 - **Exclude:** item on an auto-delivery subscription, item refunded or returned, person already in a replenishment instance for the same item, an item whose cycle estimate is too loose to time (no instance opens rather than a mistimed one), portfolio-wide negative-signal override.
 - **Success exit:** `purchase` containing the same `item_id` (or its category) · **Window:** through 1.5× the cycle (configurable).
-- **Checked before each send:** `purchase` of the item or its category, `subscription_start` for it, `refund` of it, `consent_withdrawn` for that send's channel.
+- **Checked before each send:** for this instance only (`instance_key: item_id`, anchored to one purchase): a `purchase` of the item or its category **placed after the anchoring purchase** (an older order arriving late from a batch import never ends a newer replenishment), `subscription_start` for the item, `refund` of the anchoring order's item (a refund of an earlier order does not). `consent_withdrawn` is scoped to that send's channel: an email unsubscribe stops s1/s3, a consented push continues.
 - **Re-entry:** every cycle, per item; portfolio caps decide whether several items' reminders can coexist.
 - **Repeated trigger while active:** a new purchase of the same item closes the open instance as replenished and restarts the clock from the new purchase.
 - **Handoffs:** `subscription_start` → the subscription's own service messages; queued reminders suppressed.
@@ -76,17 +78,17 @@ Anchors (declared in the journey's `time_anchors`): `predicted_runout` = purchas
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
 | s1 | reorder_point +0d | email | "You may be running low": exact item, the estimated run-out stated as an estimate, one-click reorder, last order recap | → d1 |
-| d1 | predicted_runout +0d | — | Decision on a bot-filtered click on s1 (engagement) or an `add_to_cart`/`view_item` of the item (behavioral) between s1 and predicted_runout | occurred → s3 · not_occurred → s2 · unmeasurable → s2 |
+| d1 | predicted_runout +0d | — | Decision on any_of(link_click on s1 (engagement, bot-filtered), `add_to_cart` of this item (behavioral), `view_item` of this item (behavioral)) between s1 and predicted_runout | occurred → s3 · not_occurred → s2 · unmeasurable → s2 |
 | s2 | predicted_runout +0d at 10:00 user_local | push | Short reorder nudge, deeplink to a prefilled cart | → s3 |
 | s3 | predicted_runout +5d | email | Reorder + subscribe-and-save option: turn the habit into a subscription | → end |
 
-Someone who came back to the item after s1 but didn't buy skips the push and gets the subscription close; the push is for the person who hasn't reacted.
+Someone who came back to the item after s1 but didn't buy skips the push and gets the subscription close. The push is not sent *because* s1 got no reaction (not reached is not not-engaged): its reason has to pass [push.md](../channels/push.md)'s relevance test, which here means the person opted in to reorder or order-update notifications (or set the reminder themselves). Without that topic opt-in, s2 is skipped exactly as in the no-push fallback.
 
 ## Timing and channel fit
 
 - **Clock:** user local time. The push is pinned to 10:00 local on the due date to stay inside push and SMS-safe hours; email avoids 00:00–06:00.
 - **Channel fit:** email carries the item, the estimate and the reorder link; push is a one-tap reorder on the due date. SMS only for a reorder flow the person has used by SMS before, with SMS consent.
-- **Fallback:** no push consent → s2 is skipped and s3 moves to `predicted_runout +3d`, keeping two sends.
+- **Fallback:** no push consent, or no opt-in to reorder/order notifications → s2 is skipped and s3 moves to `predicted_runout +3d`, keeping two sends.
 - **Delivery lead time:** the reorder point must leave enough time to deliver before the run-out estimate; if delivery takes longer than the default lead time, move the reorder point earlier rather than promising arrival dates.
 
 ## Frequency and overlap

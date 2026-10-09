@@ -10,6 +10,7 @@ default_channels: [email]
 base_steps: 4
 depth_range: [3, 6]
 applicable_industries: [saas, edtech, travel, fintech, insurance]
+mutually_exclusive_with: []
 journey_class: marketing
 signal_sources: {generate_lead: authoritative, sign_up: authoritative, marketing_consent: authoritative, lead_status: authoritative, lead_qualified: authoritative, lead_score: inferred, file_download: behavioral, session_start: behavioral, link_click: engagement, consent_withdrawn: authoritative}
 insufficient_alone:
@@ -51,7 +52,7 @@ The window is bounded at entry and closes on time whether or not nurture worked.
 - **Entry:** `generate_lead` fired, no active account (`sign_up` never fired for this identity), lead not already sales-ready. A lead whose recorded status is already sales-ready skips nurture and is handed straight to sales: nurturing someone ready to talk only delays them.
 - **Exclude:** existing customers and trial users (onboarding and trial patterns own them); leads from purchased or rented lists (no first-party consent, never enter); anyone under negative-signal suppression or a standing sender-side marketing suppression.
 - **Success exit:** the destination event (`sign_up` or sector equivalent), handed to [welcome-onboarding](welcome-onboarding.md) immediately. · **Window:** configurable, default 60–90 days matched to the sector's research cycle (evidence to change it: the median lead-to-destination time of converted leads). Engagement inside the window never extends it.
-- **Checked before every send:** `sign_up`, `consent_withdrawn`, `lead_qualified`. The lead's state is re-read from the system of record before each send; a recorded progression ends the window instead of spending the next touch on it.
+- **Checked before every send:** `sign_up`, `consent_withdrawn` (email marketing consent; since the journey is email-only it stops every marketing send, while the s1 delivery of a requested asset is transactional), `lead_qualified` as recorded in the CRM (a click on a pricing link is not a qualification). The lead's state is re-read from the system of record before each send; a recorded progression ends the window instead of spending the next touch on it.
 - **Re-entry:** a new `generate_lead` with a new reason may open a new instance after the cooldown (configurable, default 90 days). A second download inside an active window is ignored: it neither restarts nor extends the window.
 - **Sunset:** a lead that reaches the window's end without converting moves to the low-frequency newsletter list (if they opted in to it), not to a re-entry loop. Nurture pressure on a cold lead produces complaints, not conversions.
 - **Hand-offs:** `sign_up` → welcome-onboarding; `lead_qualified` → sales owner. Both suppress every queued send of this journey.
@@ -74,7 +75,7 @@ A filled form is **not** marketing consent by itself. TR (İYS) and EU (GDPR) re
 |---|---|---|---|---|
 | s1 | entry +15m | email | Deliver exactly what was promised (the asset or confirmation), nothing else; this send is the trust foundation | → s2 (only with marketing consent) |
 | s2 | s1 +3d | email | One useful insight adjacent to the reason they entered: education, zero product pitch | → d1 |
-| d1 | s1 +10d | — | Decision on content engagement: `link_click` from s2 (engagement, bot-filtered) or `file_download` / `session_start` (behavioral) between s1 and s1 +10d | occurred → s3a · not_occurred → s3b · unmeasurable → s3a |
+| d1 | s1 +10d | — | Decision on content engagement: any_of(`link_click` on s2 (engagement, bot-filtered), `file_download` (behavioral), `session_start` (behavioral)) between s1 and s1 +10d | occurred → s3a · not_occurred → s3b · unmeasurable → s3a |
 | s3a | s1 +10d | email | Next-depth proof: a case study or named-source finding on their problem (real source, per persuasion-principles) | → s4 |
 | s3b | s1 +10d | email | Re-angle: the same question from a different entry point (cost of the problem, a short checklist), still no pitch | → s4 |
 | s4 | s1 +24d | email | The soft destination ask: trial, demo or quote framed as the natural next step of what they have been reading | end |

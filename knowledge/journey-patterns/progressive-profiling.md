@@ -6,10 +6,11 @@ required_events: []
 optional_events: [purchase, session_start, feature_used, in_app_shown, profile_question_dismissed]
 required_attributes: [profile_gap]
 optional_attributes: [last_updated_at]
-default_channels: [in-app, email]
+default_channels: [in_app, email]
 base_steps: 2
 depth_range: [1, 3]
 applicable_industries: [ecommerce, saas, mobile-app, fintech, marketplace, subscription-media, travel, edtech, insurance]
+mutually_exclusive_with: []
 journey_class: marketing
 signal_sources: {profile_gap: authoritative, profile_attribute_written: authoritative, last_updated_at: authoritative, session_start: behavioral, feature_used: behavioral, purchase: authoritative, in_app_shown: behavioral, profile_question_dismissed: behavioral, consent_withdrawn: authoritative}
 insufficient_alone:
@@ -18,6 +19,7 @@ insufficient_alone:
   - a session_start in the first session
 exit_before_each_send: [profile_attribute_written, consent_withdrawn, profile_question_dismissed]
 reentry: {policy: after_cooldown, cooldown: P14D, on_duplicate_trigger: ignore}
+instance_key: profile_gap
 measurement_default: pre_post
 ---
 
@@ -48,7 +50,7 @@ Collect zero-party data, one lightweight question at a time, to close a **named 
 - **Ask because the task needs it:** the best moment is when the user's current task depends on the field (a delivery preference while ordering, a role while setting up a workspace). The question says why the field is needed and what changes once it is answered. Never request personal data unrelated to the named gap, and never ask to raise a profile-completion percentage.
 - **Exclude:** users in their first session, users in an active recovery or dunning journey, users under negative-signal suppression.
 - **Success exit:** `profile_attribute_written`. · **Window:** 7 days from entry.
-- **Checked before every send:** `profile_attribute_written`, `profile_question_dismissed`, `consent_withdrawn` (email fallback only; the in-app ask needs no marketing consent).
+- **Checked before every send:** `profile_attribute_written` and `profile_question_dismissed` for this instance's attribute (`instance_key: profile_gap`; answering a different question doesn't end this one), `consent_withdrawn` scoped to email (it stops the email fallback only; the in-app ask needs no marketing consent). The answer is read from the profile store that records it, never inferred from a click on the email.
 - **Re-entry:** next gap or next TTL expiry, after the cooldown (configurable, default 14 days between any two profiling asks). A repeated qualification while an instance is active is ignored.
 - **Hand-offs:** the written attribute is handed to the consuming journey named in `profile_gap`.
 
@@ -64,11 +66,11 @@ Depth does **not** scale with DQS. One question per interaction is the point of 
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
-| s1 | entry +0h | in-app | One question, one tap to answer, shown at the engaged moment, with the reason and the immediate benefit visible ("answer and recommendations change now") | → d1 |
-| d1 | s1 +7d | — | Decision on `in_app_shown` (behavioral) between s1 and s1 +7d | occurred → exit · not_occurred → s2 · unmeasurable → s2 |
+| s1 | entry +0h (shown at next session, expires after 7d) | in_app | One question, one tap to answer, shown at the engaged moment, with the reason and the immediate benefit visible ("answer and recommendations change now") | → d1 |
+| d1 | s1 +7d | — | Decision on `in_app_shown` for this question (behavioral) between s1 and s1 +7d | occurred → exit · not_occurred → s2 · unmeasurable → s2 |
 | s2 | s1 +7d | email | Same single question with the same reason, only for users the in-app ask never reached | end |
 
-A user who saw the question and left it unanswered has answered; the occurred route ends the instance without chasing over another channel.
+A user who saw the question and left it unanswered has answered; the occurred route ends the instance without chasing over another channel. s2 never waits on the in-app ask: it is scheduled at `s1 +7d` whether or not s1 was shown, and the view can only cancel it. A click on s2's link is not an answer; only `profile_attribute_written` is.
 
 Rules: never gate product access behind answering; the answer must visibly change something for the user (recommendations, defaults, content), or the next ask earns silence.
 

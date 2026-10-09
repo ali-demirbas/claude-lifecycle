@@ -175,5 +175,6 @@
       "relative_to_entry": "P7D",
       "note": "7-day trial, entry = trial_start"
     }
-  }
+  },
+  "readiness": "ready"
 }

@@ -20,8 +20,9 @@ insufficient_alone:
   - a pending or authorized charge without a confirmed renewal
   - a reminder from this journey having been sent
 exit_before_each_send: [subscription_renewed, subscription_cancel, plan_changed, payment_failed, subscription_expired]
-reentry: {policy: each_trigger, cooldown: P0D, on_duplicate_trigger: ignore}
+reentry: {policy: each_trigger, on_duplicate_trigger: ignore}
 measurement_default: none_service
+instance_key: subscription_id
 ---
 
 # Renewal Reminder
@@ -55,10 +56,11 @@ Count down to the date a term actually ends and make sure the customer knows, in
 
 ## Entry / exit
 
-- **Entry:** a continuing subscription, policy or contract whose `renewal_date` is inside the lead window. Default lead 30 days, configurable; raised to the contractual or regulatory notice period when that is longer, and to the insurance playbook's 45-day pre-renewal start for insurance lines. Instance key: account + subscription/policy + `renewal_date`. In a generated journey, declare `renewal_date` in `time_anchors` as `entry + P30D` (or the configured lead) so the timeline can be checked.
+- **Entry:** a continuing subscription, policy or contract whose `renewal_date` is inside the lead window. Default lead 30 days, configurable; raised to the contractual or regulatory notice period when that is longer, and to the insurance playbook's 45-day pre-renewal start for insurance lines. Instance key: `subscription_id` (the policy or contract id where that is the entity), one instance per renewal cycle.
+- **Time anchor:** most customers enter at the start of the lead window, but not all: a subscription bought or changed inside the window, a reopened cycle after payment recovery, or a lead raised to a longer notice period all shift the distance. A generated journey therefore declares `renewal_date` as a range relative to entry, `renewal_date: entry +1d … +45d` (upper end = the longest configured lead), and reads the real date from the system of record at every send. A runway under 24 hours gets no journey; the billing system's own renewal notice is all that lands in time.
 - **Exclude:** an open payment-recovery instance on the same subscription (payment recovery owns the relationship until it resolves; a routine renewal note to someone whose current term is already in question reads as careless); a cancellation already recorded (cancellation-winddown owns it); terms that don't define the renewal model, the price or the notice period (route to a data/ops owner; nothing is sent on undefined terms); an open claim or escalated complaint for the marketing node only (the service notice still goes).
 - **Success exit:** `subscription_renewed` for this cycle · **Window:** entry to `renewal_date` + grace (default 2 days for billing lag; the product's real grace period where one exists).
-- **Exit checks before each send:** `subscription_renewed`, `subscription_cancel`, `plan_changed`, `payment_failed`, `subscription_expired`, plus a fresh read of `renewal_date` and `auto_renew`. A changed date is restated in the next message, never silently moved; a flipped `auto_renew` re-routes at the next decision rather than sending the wrong branch's copy. The marketing node additionally re-checks marketing consent for its channel.
+- **Exit checks before each send:** for this subscription only (`same_instance`): `subscription_renewed`, `subscription_cancel` (a confirmed cancellation or auto-renew turned off in billing, not a visit to the cancel page), `plan_changed`, `payment_failed`, `subscription_expired`, plus a fresh read of `renewal_date` and `auto_renew`. A changed date is restated in the next message, never silently moved; a flipped `auto_renew` re-routes at the next decision rather than sending the wrong branch's copy. The marketing node additionally re-checks marketing consent for its own channel (channel-scoped: an email marketing opt-out stops m1, never the service notices).
 - **Re-entry:** one instance per renewal cycle (`each_trigger`, keyed on the cycle). A repeated trigger for the same cycle while an instance is active is ignored. A cycle closed by a payment-recovery handoff may open once more if `payment_succeeded` lands with at least the minimum runway left before `renewal_date` (default 7 days, configurable).
 - **Handoffs:**
   - `payment_failed` at any point, including the renewal charge itself → [payment-failure](payment-failure.md), `suppress_queued: true`. This journey stops talking about money the moment a payment actually failed.
@@ -79,27 +81,35 @@ Depth is bounded by the lead window, not by DQS: a monthly plan with a 7-day not
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
-| d1 | renewal_date -30d | — | Decision on `auto_renew` (authoritative) between renewal_date -30d and renewal_date -30d | `true` → s1 · `false` → s3 · default → s6 · unmeasurable → s6 |
-| s1 | renewal_date -30d at 10:00 user_local | email | Auto-renewal notice (service): renewal date, next-term price, plan, payment method on file, and how to change or turn off renewal. No offer. | → s2 |
+| d1 | entry +0h | — | Decision on `auto_renew` (authoritative), evaluated at the decision moment (from = to = entry +0h) and re-read before every send | `true` → s1 · `false` → s3 · default → s6 · unmeasurable → s6 |
+| s1 | renewal_date -30d at 10:00 user_local (entry +0h when that has passed) | email | Auto-renewal notice (service): renewal date, next-term price, plan, payment method on file, and how to change or turn off renewal. No offer. Deadline: renewal_date minus the notice period. | → s2 |
 | s2 | renewal_date -7d at 10:00 user_local | push (email if push not permitted) | Approaching notice (service): date and amount, link to renewal settings. | → d2 |
-| s3 | renewal_date -30d at 10:00 user_local | email | Renewal notice (service): the date access or cover ends, what ends with it, the renewing price and terms (insurance: the renewal quote and the date it is valid until), one link to renew. | → s4 |
+| s3 | renewal_date -30d at 10:00 user_local (entry +0h when that has passed) | email | Renewal notice (service): the date access or cover ends, what ends with it, the renewing price and terms (insurance: the renewal quote and the date it is valid until), one link to renew. Deadline: renewal_date minus the notice period. | → s4 |
 | s4 | renewal_date -7d at 10:00 user_local | push (email if push not permitted) | Reminder (service): days left until the real end date, link to renew. | → s5 |
-| s5 | renewal_date -1d at 11:00 user_local | sms (push, then email if SMS not permitted) | Final reminder (service): the date, plainly; what lapses (insurance: cover stops at the policy end time). | → d2 |
-| s6 | renewal_date -30d at 10:00 user_local | email | Neutral term-end notice (service): the date and where to see whether this plan renews automatically. No claim either way. | → s7 |
-| s7 | renewal_date -3d at 10:00 user_local | email | Neutral reminder (service): the date restated, same link. | → d2 |
-| d2 | renewal_date +2d | — | Decision on `subscription_renewed` (authoritative) between renewal_date -30d and renewal_date +2d | occurred → x1 · not_occurred → d3 · unmeasurable → x4 |
+| s5 | renewal_date -1d at 11:00 user_local | sms (push, then email if SMS not permitted) | Final reminder (service): the date, plainly; what lapses (insurance: cover stops at the policy end time). Deadline: renewal_date; quiet hours move it earlier, at most to the last allowed time before the deadline. | → d2 |
+| s6 | renewal_date -30d at 10:00 user_local (entry +0h when that has passed) | email | Neutral term-end notice (service): the date and where to see whether this plan renews automatically. No claim either way. | → s7 |
+| s7 | renewal_date -3d at 10:00 user_local | email | Neutral reminder (service): the date restated, same link. Deadline: renewal_date. | → d2 |
+| d2 | renewal_date +2d | — | Decision on `subscription_renewed` (authoritative) between entry and renewal_date +2d | occurred → x1 · not_occurred → d3 · unmeasurable → x4 |
 | d3 | renewal_date +2d | — | Decision on `payment_failed` (authoritative) between renewal_date -3d and renewal_date +2d | occurred → x2 · not_occurred → x3 · unmeasurable → x4 |
 | x1 | renewal_date +2d | — | Exit `converted` (good). The billing system's renewal receipt is the only follow-up; this journey adds nothing. | — |
 | x2 | renewal_date +2d | — | Exit `handoff` → payment-failure, `suppress_queued: true`. | — |
 | x3 | renewal_date +2d | — | Exit `handoff` → winback, `suppress_queued: true`, carrying lapse date, renewal model, product line and consent state. | — |
 | x4 | renewal_date +2d | — | Exit `completed` (neutral): outcome unknown, reconcile with billing before anyone is told they lapsed. No win-back handoff on an unknown outcome. | — |
 
+**Short-runway compression.** The first notice of each branch (s1, s3, s6) goes at the lead point or at entry, whichever is later. A step whose anchor has already passed at entry is dropped, never sent late, and no step moves past the next one or past `renewal_date`. When two sends would land less than 48 hours apart, the earlier discretionary one is dropped; the owed first notice is never dropped.
+
+| Runway at entry | Sends (auto · manual · neutral) | Dropped or merged |
+|---|---|---|
+| 30 days | s1 -30d, s2 -7d · s3 -30d, s4 -7d, s5 -1d · s6 -30d, s7 -3d | nothing |
+| 11 days | s1 at entry, s2 -7d · s3 at entry, s4 -7d, s5 -1d · s6 at entry, s7 -3d | first notices move to entry |
+| 2 days | s1 at entry · s3 at entry · s6 at entry | s2, s4, s7 dropped (anchors passed); s5 would land within 48 hours of s3, so s3 carries the final-reminder wording and s5 is dropped |
+
 Every `-30d` above stands for the configured lead window (default 30 days; the notice period where that is longer; 45 days for insurance per the playbook). The `+2d` outcome point stands for the grace period (default 2 days of billing lag; the product's real grace window where one exists). Both are read per instance, never hard-coded.
 
 Branched additions, each with its own anchor in a generated journey:
 - **m1** at `renewal_date -21d at 10:00 user_local`, email, `purpose: marketing`: delivered-value recap computed from the account's own records (claims paid, assistance used, content consumed). Skipped without marketing consent, without the data, or for an account with an open claim or complaint. Never estimated.
 - **q1** for insurance quote-based renewals at `quote_valid_until -3d at 10:00 user_local`, email, service: the renewal price holds until this date; after it the premium may be re-quoted. Sent only when the quote expires before the policy does. The two dates are never merged into one deadline.
-- **d4** after s3: Decision on `renewal_page_click` (engagement, bot-filtered) between s3 +0h and renewal_date -7d: occurred → in-app step at `d4 +0h` offering the saved quote and a help route, then s4 · not_occurred → s4 · unmeasurable → s4. A click never exits the journey.
+- **d4** after s3: Decision on `renewal_page_click` (engagement, bot-filtered) between s3 +0h and renewal_date -7d: occurred → in-app step at `d4 +0h` offering the saved quote and a help route (shown at the next session, expires after 5d or at renewal_date, whichever is first), then s4 · not_occurred → s4 · unmeasurable → s4. s4 keeps its own anchor and is never gated on the in-app view. A click never exits the journey and never counts as a renewal.
 
 ## Timing and channel fit
 

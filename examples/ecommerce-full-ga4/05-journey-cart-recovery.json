@@ -361,5 +361,6 @@
   "data_gaps": [
     "cart_value computed CRM-side from synced add_to_cart/remove_from_cart events; native cart-state attribute would remove drift risk",
     "RFM attributes would allow suppressing the step-8 incentive for discount-affine users"
-  ]
+  ],
+  "readiness": "ready"
 }

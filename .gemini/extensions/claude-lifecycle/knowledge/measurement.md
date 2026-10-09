@@ -5,7 +5,7 @@ purpose: Incrementality doctrine every journey's KPI section and the audit skill
 
 # Measurement — Incrementality Doctrine
 
-Attribution and incrementality are different things: a winback email to a user who was going to return anyway still shows an attributed conversion. Every journey's **primary KPI is incremental lift against a holdout**; attributed numbers are diagnostics.
+Attribution and incrementality are different things: a winback email to a user who was going to return anyway still shows an attributed conversion. For marketing journeys measured with a holdout, the **primary KPI is incremental lift against that holdout**; attributed numbers are diagnostics. Not every journey is measured that way: the journey's `measurement.design` (holdout, none_service, pre_post, none_low_volume, other) decides how it is read — see "Evaluate by measurement design" below.
 
 ## Holdout mechanics
 
@@ -21,17 +21,43 @@ Attribution and incrementality are different things: a winback email to a user w
 ## Lift and the go/no-go number
 
 ```
-Lift % = ((exposed conversion − control conversion) ÷ control conversion) × 100
-iROI   = (absolute lift × LTV − journey cost) ÷ journey cost
+p_T, p_C                 = conversion rate in treatment and in control (same outcome, same window)
+absolute lift            = p_T − p_C
+relative lift %          = (p_T − p_C) ÷ p_C × 100        (undefined when p_C = 0; never "infinite")
+incremental_conversions  = N_treatment × (p_T − p_C)
+incremental_contribution = incremental_conversions × contribution_per_conversion
+iROI                     = (incremental_contribution − incremental_cost) ÷ incremental_cost
 ```
 
-Report both relative and absolute lift; **decide on absolute** (a huge relative lift on a tiny base can still be worthless). iROI is the only go/no-go number.
+- `contribution_per_conversion` is **contribution margin**, not revenue or revenue LTV, over the **same time horizon** as the outcome window (or a stated longer horizon applied consistently), and net of the incentive, channel and operational costs a conversion carries.
+- `incremental_cost` is what the journey added (sends, incentives redeemed, ops time); when it is 0, iROI is **undefined** — report incremental contribution instead.
+- Worked check: N_treatment = 10,000, p_T − p_C = 0.01, contribution 500 per conversion, incremental cost 10,000 → 100 incremental conversions, 50,000 incremental contribution, iROI = (50,000 − 10,000) ÷ 10,000 = 4.
+- A rollout estimate ("if we send to everyone") uses its own N (the population it would reach) and is labelled a **projection**, never reported as the measured result.
+
+Report both relative and absolute lift; **decide on absolute** (a huge relative lift on a tiny base can still be worthless). For a holdout-measured marketing journey, iROI is the go/no-go number.
 
 ## Sample-size honesty
 
-Rule of thumb: aim for **at least ~200 conversions in the control group** before trusting a lift number (roughly the p < 0.05 territory for typical effect sizes). Below that: extend the window, reduce the holdout %, or accept the journey can't be measured precisely yet — which means "unmeasured", **not** "doesn't work". Say which one applies.
+There is no universal conversion count that makes a lift "significant". Power and the minimum detectable effect (MDE) depend on the baseline rate, the expected effect, the sample size of **both** arms, the allocation between them, and the analysis method. Compute it before launch (or use the experiment platform's calculation) and record what the planned volume can detect in the journey's `volume_note`. When it can't be computed, report the uncertainty (a confidence interval or the plain statement that the difference is within noise) instead of a verdict.
 
-The ~200-conversion rule guards against false positives (Type I error). It doesn't guard against false negatives (Type II error): reading "no lift" as proof a journey doesn't work, when the test simply lacked power to detect a real but smaller effect. A borderline "no difference" on a small control group is closer to *inconclusive* than *kill* (see lifecycle-results Step 3).
+- Report **participants and conversions separately** for each arm; a rate without its denominator can't be judged.
+- **Low volume remedies:** a longer window, pooling comparable cohorts or periods, a more balanced allocation, or a different design (pre/post read as directional, a program-level control). Shrinking the control arm is **not** a power fix — it raises the uncertainty on the control side. A business may still choose a small holdout to limit the cost of withholding the message; that is a cost decision, and the volume note must say what it can no longer detect.
+- An underpowered result is "unmeasured", **not** "doesn't work". Say which one applies.
+
+Low power produces false negatives (Type II error): reading "no lift" as proof a journey doesn't work, when the test simply lacked power to detect a real but smaller effect. A borderline "no difference" on a small sample is closer to *inconclusive* than *kill* (see lifecycle-results Step 3).
+
+## Evaluate by measurement design
+
+Pick the evaluator from the journey's `measurement.design`, never one rule for all:
+
+| Design | How it is read |
+|---|---|
+| `holdout` | **Intent-to-treat** on the randomized eligible population: everyone assigned to treatment counts in treatment, including people the message never reached (no consent, bounced, capped). Dropping undelivered people from treatment but not from control biases the lift. |
+| `none_service` (service / transactional) | Operational outcomes and SLA (recovery rate, time to resolution, completion) plus harm guardrails (complaints, opt-outs, errors). "No holdout" is the design, not a failure. |
+| `pre_post` | Directional only; name the confounders (season, price, product or traffic changes) that the comparison can't separate from the journey. |
+| `none_low_volume` / `other` | The stated alternative in the journey's `alternative` field, read with its own limits. |
+
+Across all designs: read an outcome only after its window has matured for the whole cohort; zero control conversions make relative lift undefined (report the absolute difference and counts); segment-level reads are exploratory leads for a future test, never declared winners.
 
 ## Why you don't stop early
 
@@ -52,7 +78,7 @@ Round up to whole weeks, not just the trigger-latency minimum above — day-of-w
 ## Two-tier metrics (enforced in journey-doc §6)
 
 - **Per-step diagnostics** — opens, clicks, step conversion: attributed, cheap, good for fixing individual messages.
-- **Per-journey primary** — incremental lift vs holdout: the only tier that justifies the journey's existence.
+- **Per-journey primary** — the outcome its measurement design names: incremental lift vs holdout for a held-out marketing journey, operational outcomes for a service journey, the stated alternative otherwise.
 
 A high open rate on a message that would have converted the same users anyway is a well-performing message inside a worthless journey. Never promote a diagnostic to primary.
 
@@ -60,10 +86,10 @@ A high open rate on a message that would have converted the same users anyway is
 
 - **One variable per test.** A winning variant that differed in angle AND timing AND channel proves nothing attributable — the copy metadata's `strategy` field IS the variable; everything else stays constant. Timing tests and copy tests are separate experiments.
 - **Prioritize the queue, don't run the brainstorm.** When multiple test candidates exist, rank by expected business impact × ease of implementation × confidence, and run from the top — test ideas that don't make the cut go to a backlog, not to production.
-- **Concurrency is bounded by audience power.** Every simultaneous test splits the same users; more concurrent tests than the volume supports means every one of them finishes underpowered (see the sample-size rule). Fewer, conclusive tests beat many inconclusive ones.
+- **Concurrency is bounded by audience power.** Every simultaneous test splits the same users; more concurrent tests than the volume supports means every one of them finishes underpowered (see sample-size honesty). Fewer, conclusive tests beat many inconclusive ones.
 - **Launch variants simultaneously, into stable windows.** Arms starting on different days measure different weeks, not different variants; and a test straddling a declared campaign window or seasonal peak inherits the seasonality caution at design time — delay it or extend it past the window, don't launch into it.
 - **Assignment is sticky.** A user stays in the arm they were randomized into for the whole test — someone who switches arms mid-test contaminates both measurements.
-- **Power the test properly.** The working convention is ~80% statistical power (an 80% chance of detecting a real effect of the planned size); below that, "no difference" results are mostly noise. Variance-reduction techniques that use pre-period behavior exist and can reach significance with smaller samples — they are a capability to ask your experimentation platform about, never something to hand-roll.
+- **Power the test properly.** The working convention is ~80% statistical power (an 80% chance of detecting a real effect of the planned size), computed from the inputs in the sample-size section; below that, "no difference" results are mostly noise. Variance-reduction techniques that use pre-period behavior exist and can reach significance with smaller samples — they are a capability to ask your experimentation platform about, never something to hand-roll.
 
 ## Waits are test subjects too
 
@@ -75,7 +101,8 @@ Seasonal windows inflate attributed numbers because the baseline itself is eleva
 
 ## Common mistakes
 
-- Underpowered test read as a real result (see sample-size rule).
+- Underpowered test read as a real result (see sample-size honesty).
+- Treatment counted per-delivered while control is counted per-assigned (breaks intent-to-treat).
 - Contaminated control (holdout users reached via another journey sharing the audience — the portfolio conflict review must check this).
 - Mismatched cohorts (holdout drawn from a different segment than exposed).
 - Stopping early on a good week; external factors (price change, PR spike) credited to the journey.

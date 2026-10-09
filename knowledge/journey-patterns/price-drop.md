@@ -28,6 +28,7 @@ insufficient_alone:
   - a previous_price that did not come from the price feed
 exit_before_each_send: [purchase, consent_withdrawn, price_increase]
 reentry: {policy: each_trigger, on_duplicate_trigger: ignore}
+instance_key: item_id
 measurement_default: holdout
 ---
 
@@ -57,7 +58,7 @@ Tell people an item they showed interest in got cheaper. Same informational fami
 - **Entry:** `price_drop` fired for an item with recorded interest (view/wishlist/cart) in the last 30 days, item not purchased, drop exceeds the minimum threshold, person messageable on ≥ 1 channel.
 - **Exclude:** person purchased the item at the higher price in the last 14 days (this message reads as an insult; see Common mistakes), trivial drops below threshold, person currently in a P0 flow, portfolio-wide negative-signal override, item concurrently entering [back-in-stock](back-in-stock.md) for the same person (a restock that also reprices is one message, "back and cheaper", never two notifications about the same item in the same window).
 - **Success exit:** `purchase` containing the item · **Window:** 72h or until the price rises again, whichever comes first.
-- **Checked before each send:** `purchase` of the item, `consent_withdrawn` for that send's channel, `price_increase`, and the live price. If the price is above the notified level, the send is suppressed and the instance ends.
+- **Checked before each send:** for this instance's item only (`instance_key: item_id`; a purchase or price change of another item never stops it): `purchase` of the item, `price_increase` on the item, and the live price. `consent_withdrawn` is scoped to that send's channel: a push opt-out skips s1 and leaves a consented email in place. If the price is above the notified level, the send is suppressed and the instance ends.
 - **Re-entry:** per item, once per distinct drop; at most 1 price-drop notification per person per day across items.
 - **Repeated trigger while active:** a further drop on the same item while an instance is open is ignored as a trigger; the next send shows the live price, so the person still sees the lower number.
 - **Handoffs:** an item already in an open cart → the drop is mentioned in [abandoned-cart](abandoned-cart.md)'s next send instead of here (the branched cart-interest step below covers carts with no active cart journey).
@@ -77,7 +78,7 @@ Depth does **not** scale with DQS. A price is a fact with a shelf life; a third 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
 | s1 | entry +1h | push | "{{product_name}} dropped to {{new_price}}" + deeplink | → d1 |
-| d1 | s1 +24h | — | Decision on a bot-filtered click on s1 (engagement) or a `view_item` of the item (behavioral) between s1 and s1 +24h | occurred → end · not_occurred → s2 · unmeasurable → s2 |
+| d1 | s1 +24h | — | Decision on any_of(link_click on s1 (engagement, bot-filtered), `view_item` of this item (behavioral)) between s1 and s1 +24h | occurred → end · not_occurred → s2 · unmeasurable → s2 |
 | s2 | s1 +24h | email | Before/after price, product image, honest note that prices can change back | → end |
 
 Hard rule: verify the price at send time. If it rose back, suppress. Never show a struck-through "was" price unless `previous_price` comes from the feed, not from copywriting. More generally, any message referencing a live price or stock value must either pull live data at send time (the CRM's live-content mechanism) or re-verify the trigger condition at send; a design-time value baked into copy goes stale, and a wrong price claim is a trust-killer.

@@ -20,6 +20,8 @@ Reference for `lifecycle-audience`'s BigQuery mode. Everything here targets the 
 | `user_id` | Person (only where the reporting identity is implemented) | Preferred — cross-device exclusions actually hold |
 | `user_pseudo_id` | Device/browser | Fallback — **always flag in a comment**: a purchase on another device will NOT exclude this pseudo-user, so recovery journeys will occasionally message buyers |
 
+The export provides event-level rows with `user_pseudo_id` even when User-ID isn't set; `user_id` is populated only where the site/app sends it, and adds person-level cross-device stitching. Three questions stay separate: **data access** (does the export exist), **identity scope** (pseudo vs user id), and **CRM addressability** (can the CRM map this identity to a contactable customer). A query result is an audience definition, not a send list — and GA4 analytics consent is not marketing-communication consent (that is enforced downstream, rule 4). Lookback is bounded by the dataset's own table/partition expiration, not the GA4 property's retention setting; confirm both before writing a long window.
+
 ## Core patterns
 
 Date-bounded scan (never a full-table scan):
@@ -60,23 +62,36 @@ WHERE _TABLE_SUFFIX BETWEEN <window>
 -- validates: journey doc §3 "added to cart, no purchase since" · consent filtering happens downstream in the CRM
 ```
 
-**Exclusion-set cost at scale:** a correlated `NOT EXISTS` (above) is the clearest way to write a small include-exclude query, but it's a documented anti-pattern once the excluded-event table is large — restructure to a precomputed exclusion CTE with an anti-join once a query stacks multiple exclusion conditions, or excludes against a high-volume event (`page_view`, not a rarer one like `purchase`):
+**Exclusion at scale:** a correlated `NOT EXISTS` (above) is the clearest way to write a small include-exclude query. Correlated subqueries are not automatically slow — the engine often rewrites them into a join — so when a query stacks several exclusions or excludes against a high-volume event, write the alternative below and **compare the two plans and bytes/slot usage** before choosing; don't assume either is faster. The rewrite must keep the time condition: the purchase has to come **after that cart event, for the same identity** — excluding anyone who purchased anywhere in the window (including before the cart) is a different, wrong audience.
 
 ```sql
-WITH purchasers AS (
-  SELECT DISTINCT user_pseudo_id
+WITH carts AS (
+  SELECT user_pseudo_id, event_timestamp AS cart_ts
+  FROM `project.analytics_XXXX.events_*`
+  WHERE _TABLE_SUFFIX BETWEEN <window> AND event_name = 'add_to_cart'
+),
+purchases AS (
+  SELECT user_pseudo_id, event_timestamp AS purchase_ts
   FROM `project.analytics_XXXX.events_*`
   WHERE _TABLE_SUFFIX BETWEEN <window> AND event_name = 'purchase'
+),
+converted_carts AS (                       -- carts followed by a purchase from the same identity
+  SELECT DISTINCT c.user_pseudo_id, c.cart_ts
+  FROM carts c
+  JOIN purchases p
+    ON p.user_pseudo_id = c.user_pseudo_id
+   AND p.purchase_ts > c.cart_ts
 )
-SELECT DISTINCT e.user_pseudo_id
-FROM `project.analytics_XXXX.events_*` e
-LEFT JOIN purchasers p ON p.user_pseudo_id = e.user_pseudo_id
-WHERE e._TABLE_SUFFIX BETWEEN <window> AND e.event_name = 'add_to_cart'
-  AND p.user_pseudo_id IS NULL
+SELECT DISTINCT c.user_pseudo_id           -- FLAG: pseudo id, device-scoped (no user_id in this property)
+FROM carts c
+LEFT JOIN converted_carts x
+  ON x.user_pseudo_id = c.user_pseudo_id
+ AND x.cart_ts = c.cart_ts
+WHERE x.user_pseudo_id IS NULL
 -- validates: journey doc §3 "added to cart, no purchase since" · consent filtering happens downstream in the CRM
 ```
 
-Same result, computed once instead of re-checked per candidate row. Prefer the CTE form once a query stacks 2+ exclusions or the excluded event is high-volume; the plain correlated form is fine for a single, low-volume exclusion.
+Like the correlated form, this keeps a person whose *latest* cart is unconverted even if an earlier cart was; if the journey means "no purchase since the most recent cart", reduce `carts` to each identity's latest cart first. Check that both forms return the same Validation B count on a sample before switching.
 
 ## Behavioral sequences (ordered-event conditions)
 
@@ -132,4 +147,4 @@ FROM rfm
    - Where an eligible population is knowable (total active users, or the broader group the audience is drawn from), express Validation B's count as **a share of it**, not just an absolute number — 400,000 people reads as plausible in isolation; 400,000 out of an eligible population of 420,000 usually means a filter condition silently failed to apply.
 6. **Personalization fields travel with the identity, not separately.** If the journey's steps use item/product/discount variables (`{{product_name}}`, `{{cart_url}}`, …), the audience query selects those fields too, via the same `items`/`event_params` UNNEST the anchoring event already has — an identity-only list that forces the data team to re-derive "which cart" just moves the "designed but not activatable" gap one step downstream instead of closing it.
 7. **Event params can change type mid-window** (SDK update, schema change) — a param assumed numeric can hold string values earlier in a long window. Extract with a `COALESCE(value.int_value, CAST(value.string_value AS INT64))`-style fallback when the window is long enough to plausibly cross a tracking change, not a single type access.
-8. Prefer a precomputed exclusion CTE / anti-join (see "Exclusion-set cost at scale") over a correlated `NOT EXISTS` once a query stacks 2+ exclusions or excludes against a high-volume event.
+8. When a query stacks 2+ exclusions or excludes against a high-volume event, consider the anti-join form (see "Exclusion at scale"), keep every time condition of the original, and choose by the measured query plan and bytes, not by assumption.

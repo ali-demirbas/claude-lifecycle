@@ -7,9 +7,10 @@ optional_events: [begin_checkout, view_cart, remove_from_cart, payment_failed, c
 required_attributes: []
 optional_attributes: [cart_value, cart_items, cart_id, item_availability]
 default_channels: [email, push]
-base_steps: 5
+base_steps: 4
 depth_range: [3, 8]
 applicable_industries: [ecommerce, marketplace, travel, insurance, edtech]
+mutually_exclusive_with: []
 journey_class: marketing
 signal_sources:
   add_to_cart: behavioral
@@ -27,6 +28,7 @@ insufficient_alone:
   - a client-side cart event that the server-side cart record contradicts
 exit_before_each_send: [purchase, consent_withdrawn, cart_cleared, payment_failed]
 reentry: {policy: after_cooldown, cooldown: P7D, on_duplicate_trigger: restart}
+instance_key: cart_id
 measurement_default: holdout
 ---
 
@@ -43,7 +45,7 @@ Recover people who put items in a cart and did not buy. Consistently the highest
 | `begin_checkout` *(optional)* | behavioral | Enables a higher-intent branch: checkout abandoners get a shorter, more direct sequence. |
 | `view_cart` *(optional)* | behavioral | Return-to-cart signal for branching and better abandonment timing. |
 | `payment_failed` *(optional)* | authoritative | A failed payment during checkout is not abandonment; it hands the instance to [payment-failure](payment-failure.md). |
-| `cart_value` *(optional attr)* | authoritative | Enables value-based branching (a high-value cart may justify an incentive step or a more direct last channel). |
+| `cart_value` *(optional attr)* | authoritative | Enables value-based branching (a high-value cart may justify an incentive step). It never justifies a costlier channel on its own. |
 | `item_availability` *(optional attr)* | authoritative | Read before each send: only items that can still be bought are shown. |
 
 ### Not enough on its own
@@ -57,7 +59,7 @@ Recover people who put items in a cart and did not buy. Consistently the highest
 - **Entry:** `add_to_cart` fired, no `purchase` within the arming window (default 1h, configurable; shorten only with evidence that buyers who return later than that are rare), the person is messageable on ≥ 1 channel, at least one item in the cart can currently be bought.
 - **Exclude:** purchased in the last 24h, currently in a P0 transactional flow, cart value below the minimum (if known), any open complaint or escalated ticket (portfolio-wide negative-signal override in [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md)).
 - **Success exit:** `purchase` (any, identity-stitched across devices where possible) · **Window:** 7 days.
-- **Checked before each send:** `purchase`, `consent_withdrawn` for that send's channel, `cart_cleared`, `payment_failed`, and the live state of the cart's items. Adding or removing items in the same cart is not a new trigger; it changes what the next send shows, because content is read at send time.
+- **Checked before each send:** `purchase` (any order by this person ends the instance), `consent_withdrawn` scoped to that send's channel (an email unsubscribe stops the email steps; push steps continue where push is consented), `cart_cleared` and `payment_failed` **for this cart** (`instance_key: cart_id`), and the live state of the cart's items. Adding or removing items in the same cart is not a new trigger; it changes what the next send shows, because content is read at send time.
 - **Re-entry:** after a 7-day cooldown. A new cart filled inside the cooldown after a finished or suppressed instance is tracked and sends nothing.
 - **Repeated trigger while active:** a newer cart (a new cart id, or a cart refilled after being emptied) supersedes the open instance. The instance restarts on the new cart, and every send still queued against the old one is dropped rather than carried forward.
 - **Handoffs:**
@@ -73,19 +75,18 @@ Recover people who put items in a cart and did not buy. Consistently the highest
 | Standard (4–6) | DQS 40–69 | Adds a second channel and one or two decisions on return-to-cart or a bot-filtered click. |
 | Branched (7–8) | DQS ≥ 70 + `begin_checkout` or `cart_value` | Splits checkout abandoners from cart abandoners; optional incentive branch gated on cart value and margin. |
 
-## Step blueprint (standard, 5 sends)
+## Step blueprint (standard, 4 sends)
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
 | s1 | entry +1h | email | Reminder: cart contents as they stand now, zero pressure | → d1 |
-| d1 | s1 +20h | — | Decision on return to cart (`view_cart`, behavioral) or a bot-filtered click on s1 (engagement) between s1 and s1 +20h | occurred → s3 · not_occurred → s2 · unmeasurable → s2 |
+| d1 | s1 +20h | — | Decision on any_of(`view_cart` for this cart (behavioral), link_click on s1 (engagement, bot-filtered)) between s1 and s1 +20h | occurred → s3 · not_occurred → s2 · unmeasurable → s2 |
 | s2 | s1 +20h | push | Short nudge, deeplink straight into the cart | → s3 |
 | s3 | s1 +44h | email | Objection handling: shipping, returns, payment options, trust | → d2 |
-| d2 | s3 +24h | — | Decision on return to cart (`view_cart`, behavioral) or a bot-filtered click on s3 (engagement) between s1 and s3 +24h | occurred → s4 · not_occurred → s5 · unmeasurable → s5 |
-| s4 | s3 +24h | email | Social proof on the cart's items, for someone who came back and still didn't buy | → s5 |
-| s5 | s3 +48h | push | Last call; no invented urgency, name a real expiry only if the system holds one | → end |
+| d2 | s3 +24h | — | Decision on any_of(`view_cart` for this cart (behavioral), link_click on s3 (engagement, bot-filtered)) between s1 and s3 +24h | occurred → s4 · not_occurred → end · unmeasurable → end |
+| s4 | s3 +24h | email | Social proof on the cart's items, for someone who came back and still didn't buy; name a real cart expiry only if the system holds one, never invented urgency | → end |
 
-Longest path s1 → s2 → s3 → s4 → s5 lands on about day 4 of the 7-day window.
+Longest path s1 → s2 → s3 → s4 lands on about day 3 of the 7-day window. There is no late push: [push.md](../channels/push.md) accepts a cart push only while the intent is recent (under 24h), and someone who hasn't come back by d2 isn't chased further on any channel. any_of reads as occurred when either member occurred, not_occurred only when both were measured and neither occurred, unmeasurable otherwise (for example click tracking off and no `view_cart`).
 
 Incentive rule: never lead with a discount. If an incentive step exists at all, it is the **last** send, gated on cart value and margin, issued once per person and recorded, and flagged for the user to approve. Incentive choice follows the CLV-tied rule: above the account's CLV threshold prefer a value-add over a discount; below it, a capped modest discount (see intake incentive policy).
 
@@ -96,12 +97,12 @@ Honest low-stock urgency: where a live `inventory_level` exists for a cart item,
 ## Timing and channel fit
 
 - **Clock:** user local time; unknown timezone falls back to the market timezone from intake. Push is held through 22:00–09:00 and released at the window's opening, not dropped; email avoids 00:00–06:00. If a send would land in quiet hours, the following sends keep their anchors to the actual send time of the node they reference, so spacing is preserved.
-- **Channel fit:** email carries the cart's contents and survives until the person returns, so it holds the reminder and objection steps. Push is a short re-entry deeplink and only fits once the person has gone quiet. SMS/WhatsApp fit only as a branched-depth last call for a high-value cart (value threshold configurable, never asserted by the pattern) and only with the channel's own consent.
+- **Channel fit:** email carries the cart's contents and survives until the person returns, so it holds the reminder and objection steps. Push is a short re-entry deeplink; its reason is [push.md](../channels/push.md)'s recency test for an abandoned cart, which s2 meets (about 21h after entry), not the missing click on s1. SMS is not used: [sms.md](../channels/sms.md)'s suitability table rejects abandoned cart, and a cart that went unclicked is not a reason to escalate (not reached is not not-engaged). WhatsApp may **replace** push as the carrier of s2 for a person who opted in to WhatsApp in a market where it is the highest-attention channel ([whatsapp.md](../channels/whatsapp.md), first row); it is chosen per person up front, never added after a missing click, and cart value alone does not qualify anyone.
 - **Fallback:** a push step for someone without push consent or a valid token is skipped, not moved to SMS; an email step for someone without email consent moves to push only when push is consented. A channel that fails reachability is skipped and the skip is recorded.
 
 ## Frequency and overlap
 
-- **Worst path, rolling 7 days:** 3 emails + 2 pushes = 5 marketing sends, within the default caps (email 4, push 5, all channels 8) on its own. Combined with an active welcome series it can breach the email cap; the portfolio conflict review must count both.
+- **Worst path, rolling 7 days:** 3 emails + 1 push = 4 marketing sends, within the default caps (email 4, push 5, all channels 8) on its own. Combined with an active welcome series it can breach the email cap; the portfolio conflict review must count both.
 - **Overlaps:** browse-abandonment (cart wins), back-in-stock and price-drop on the same items (cart wins; their send for an item in the cart is folded into the cart's next send or skipped), welcome/onboarding for new sign-ups, payment-failure (payment-failure always wins).
 - **Precedence:** payment-failure and any service/complaint path outrank this journey; this journey outranks browse-abandonment, back-in-stock, price-drop and replenishment for the same items. On a cap breach, cart sends defer (re-evaluated against current cart state when released), they are not queued blindly.
 
@@ -111,7 +112,7 @@ Honest low-stock urgency: where a live `inventory_level` exists for a cart item,
 - **Design:** journey-level holdout, default 10%, randomized at entry and sticky per person for the measurement period. The control receives none of this journey's sends on any channel.
 - **Routine communications both groups keep:** transactional order and payment messages, and any existing cart emails the platform sends outside this journey; list them so they're not mistaken for treatment.
 - **Contamination:** a held-out cart that receives a browse-abandonment, back-in-stock or price-drop send about the same items is contaminated; those journeys must respect the holdout for the cart's items during the window.
-- **Low volume:** under roughly 200 control-group conversions per read, extend the window or accept the result as inconclusive. A small store can confirm the journey isn't harmful (unsubscribes, complaints) long before it can size the lift.
+- **Low volume:** when the power calculation shows a read can't detect a plausible lift, pool a longer window or accept the result as inconclusive. A small store can confirm the journey isn't harmful (unsubscribes, complaints) long before it can size the lift.
 
 ## When data is missing
 

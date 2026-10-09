@@ -12,7 +12,7 @@ depth_range: [3, 7]
 applicable_industries: [ecommerce, travel, marketplace, fintech, insurance, mobile-app]
 mutually_exclusive_with: [milestone]
 journey_class: marketing
-signal_sources: {purchase: authoritative, earn_virtual_currency: authoritative, spend_virtual_currency: authoritative, reward_issued: authoritative, tier_changed: authoritative, loyalty_enrolled: authoritative, points_to_next_tier: authoritative, tier_expiry_date: authoritative, refund: authoritative, consent_withdrawn: authoritative}
+signal_sources: {purchase: authoritative, earn_virtual_currency: authoritative, spend_virtual_currency: authoritative, reward_issued: authoritative, tier_changed: authoritative, loyalty_enrolled: authoritative, points_to_next_tier: authoritative, tier_expiry_date: authoritative, points_expiry_date: authoritative, refund: authoritative, consent_withdrawn: authoritative}
 insufficient_alone:
   - a client-side analytics points hit with no ledger entry behind it
   - a click on a reward link
@@ -21,6 +21,7 @@ insufficient_alone:
 exit_before_each_send: [spend_virtual_currency, purchase, refund, consent_withdrawn]
 reentry: {policy: after_cooldown, cooldown: P7D, on_duplicate_trigger: ignore}
 measurement_default: holdout
+instance_key: ledger_record_id
 ---
 
 # Loyalty
@@ -60,7 +61,8 @@ The pattern carries four kinds of message, and when they collide the order is fi
   - Every moment requires an enrolled member; marketing moments (welcome, nurture) also require marketing consent on the channel used.
 - **Exclude:** a pending refund that would reverse the triggering points; for nurture, a member already messaged by this journey's nurture path in the last 7 days (milestones cluster; collapse them into the latest). This pattern owns every points/tier crossing; [milestone](milestone.md) explicitly excludes them so the same crossing isn't tracked as two event types and celebrated twice. Don't also emit a generic `milestone_reached` for a tier change this pattern already covers. Every negative-signal suppression in [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md) rule 4 applies to the marketing moments.
 - **Success exit:** `spend_virtual_currency` (redemption) or a qualifying `purchase` · **Window:** 30 days.
-- **Checked before each send:** `spend_virtual_currency`, `purchase`, `refund` (if it reverses the triggering points, the send is dropped), `consent_withdrawn` (marketing moments only; reward confirmations and service notices still go out, without promotional content).
+- **Instance key:** `ledger_record_id`, the ledger record the instance is about: the `reward_id` for a confirmation, the ledger's change id for a tier change, the membership id for the welcome, the milestone crossing for nurture.
+- **Checked before each send:** `spend_virtual_currency`, `purchase`, `refund` (only a refund that reverses this instance's triggering points drops the send; a refund on an unrelated order does not), `consent_withdrawn` (marketing moments only, and channel-scoped: an email opt-out stops email nurture, a push opt-out stops push; reward confirmations and service notices still go out, without promotional content).
 - **Re-entry:** nurture re-enters per milestone after a 7-day cooldown. Reward confirmations are keyed on `reward_id` and tier changes on the ledger's change id: each record gets one send, ever. **A repeated trigger while an instance is active, or a replayed event for a record already handled, is ignored.**
 - **Handoffs:** a tier change or reward confirmation arriving mid-nurture runs first; the nurture send it collides with is deferred one day, or dropped if the new message makes it stale (a tier-progress nudge after the upgrade it was nudging toward). A member who stops purchasing entirely leaves for [winback](winback.md); queued nurture sends are cancelled.
 
@@ -82,14 +84,22 @@ Each instance runs one path, chosen by the moment that started it. The nurture p
 | t1 | tier_changed +1h | email | Upgrade: name only the benefits that are new at this tier (the new tier's benefit set minus the previous tier's), when they start, and how long the tier holds if the ledger says | → exit (completed) |
 | t2 | tier_changed +1h | email | Downgrade, sent as a service notice: what changed, the rule that caused it, the effective date, what the member keeps, and the concrete way back. No upsell, no blame | → exit (completed) |
 | w1 | loyalty_enrolled +1h | email | Enrolment welcome: how points are earned here, the current balance, and the first reward actually within reach from the live catalogue | → exit (completed) |
-| n1 | entry +1h | email | Nurture starts on a ledger milestone: balance update and what it concretely unlocks ("your 1.200 points = free shipping ×3") | → n2 |
+| n1 | entry +1h | email | Nurture starts on a ledger milestone: balance update and what it concretely unlocks ("your 1.200 points = free shipping ×3"). If the ledger holds an expiry within the next 30 days, n1 states that date | → n2 |
 | n2 | n1 +3d | push | Nearest attainable reward, deeplinked | → d1 |
-| d1 | n2 +4d | — | Decision on `points_to_next_tier` (authoritative, ledger) between entry and n2 +4d | within one typical order of the next tier → n3 · default → d2 · unmeasurable → d2 |
+| d1 | n2 +4d | — | Decision on `points_to_next_tier` (authoritative, ledger), evaluated at the decision moment (from = to = d1): is the member within one typical order of the next tier? | occurred → n3 · not_occurred → d2 · unmeasurable → d2 |
 | n3 | d1 +0h at 10:00 user_local | email | Tier-progress framing: the concrete gap to the next tier and what that tier adds over the current one | → d2 |
-| d2 | d1 +1d | — | Decision on `tier_expiry_date` or `points_expiry_date` (authoritative, ledger) between d1 and entry +30d | date falls inside the window → n4 · default → exit (completed) · unmeasurable → exit (completed) |
-| n4 | tier_expiry_date -14d at 10:00 user_local | email | Expiry warning with the ledger date and the simplest action that preserves status. Skipped if that moment has already passed | → exit (completed) |
+| d2 | d1 +1d | — | Decision on any_of(`tier_expiry_date` (authoritative, ledger), `points_expiry_date` (authoritative, ledger)), evaluated at the decision moment (from = to = d2): does either date fall within the next 30 days? It reads the dates; it never waits for them. `next_expiry_date` = the earlier qualifying date | occurred → n4 · not_occurred → exit (completed) · unmeasurable → exit (completed) |
+| n4 | next_expiry_date -14d at 10:00 user_local, never before d2 +1d | email | Expiry warning with the ledger date and the simplest action that preserves status. Sent only if the expiry is still at least 7 days after the send moment (configurable); otherwise skipped, and n1 has already named the date | → exit (completed) |
 
-The success exit (redemption or qualifying purchase) is re-checked before n2, n3 and n4, which is how "only if not redeemed yet" works; no node needs its own redemption decision. An expiry that falls outside the nurture window gets its own instance later, entered on the expiry approach and sending n4 alone.
+The success exit (redemption or qualifying purchase) is re-checked before n2, n3 and n4, which is how "only if not redeemed yet" works; no node needs its own redemption decision.
+
+**Expiry timing by distance from entry** (n1 entry +1h, n2 entry +3d, d1/n3 entry +7d, d2 entry +8d; every path stays in this order):
+
+| Expiry at | Path | Why |
+|---|---|---|
+| entry +10d | n1 (names the date) → n2 → n3 if near tier → d2 occurred → n4 skipped | the warning moment (entry -4d, floor entry +9d) would land 1 day before expiry, under the 7-day minimum; n1 already carried the date |
+| entry +20d | n1 → n2 → n3 if near tier → d2 occurred → n4 at entry +9d | expiry -14d (entry +6d) has passed, so n4 moves to its floor, d2 +1d, still 11 days before expiry |
+| entry +40d | n1 → n2 → n3 if near tier → d2 not_occurred → exit | outside d2's 30 days; a separate expiry instance enters at next_expiry_date -21d and sends n4 alone at entry +26d |
 
 ## Timing and channel fit
 
@@ -100,7 +110,7 @@ The success exit (redemption or qualifying purchase) is re-checked before n2, n3
 
 ## Frequency and overlap
 
-- **Worst path:** 4 nurture sends over ~30 days plus up to one confirmation and one tier change in the same week: at most 3 marketing sends in a rolling 7 days, inside the default caps. Confirmations and downgrade notices are service sends and don't count against marketing caps.
+- **Worst path:** 4 nurture sends between entry +1h and entry +9d at the earliest (n4's floor), so at most 3 marketing sends in any rolling 7 days, inside the default caps; a confirmation or tier change landing in the same week is a service send and doesn't count against them. Confirmations and downgrade notices are service sends and don't count against marketing caps.
 - **Overlaps:** post-purchase receipts (which often show points), [milestone](milestone.md) (mutually exclusive on points/tier crossings), [gamified-rewards](gamified-rewards.md) (a won prize can land as a loyalty reward), winback.
 - **Precedence:** reward confirmation > tier change > enrolment welcome > nurture. Same 24h: the higher one sends, the lower one defers a day or drops if it is now stale. One confirmation per reward record, even when the event arrives twice.
 
@@ -110,7 +120,7 @@ The success exit (redemption or qualifying purchase) is re-checked before n2, n3
 - **Design:** member-level holdout (default 10%), assigned once and kept. The control does not receive the enrolment welcome or the nurture sends (n1–n4).
 - **Routine communications both groups keep:** reward confirmations, tier-change notices (both directions), and any expiry notice the program terms require. Withholding what the member is owed is not a test condition.
 - **Contamination risks:** points shown in order receipts and account pages reach both groups; a program-wide promotion (double points week) lifts both groups and must not be credited to the journey.
-- **Low volume:** redemption lags; a small program can usually show whether nurture moves redemption at all, not which nurture step did. Below the measurement doctrine's ~200 control conversions, report "unmeasured", not "no effect".
+- **Low volume:** redemption lags; a small program can usually show whether nurture moves redemption at all, not which nurture step did. When a power calculation for this baseline and the expected effect shows the control arm is too small, report "unmeasured", not "no effect".
 
 ## When data is missing
 

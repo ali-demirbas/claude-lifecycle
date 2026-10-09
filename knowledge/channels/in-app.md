@@ -42,7 +42,7 @@ If an in-app step routes to a native store rating flow, platform quotas apply an
 - **iOS**: `SKStoreReviewController` allows at most **3 prompts per user per 365 days**; the OS decides whether the sheet actually appears, and requesting it does not guarantee display.
 - **Android**: the In-App Review API enforces its own **platform-managed quota** (not publicly specified); over-calling it silently shows nothing.
 
-Because the prompts are scarce, never spend one blind: run a **sentiment pre-check** first — a soft in-app question ("Enjoying the app?" / a thumbs or star quick-poll) — and route only positive responders to the store flow. Negative responders go to a feedback form instead, which both saves the quota and captures the complaint privately.
+Because the prompts are scarce, spend them on timing, not on filtering: request the store flow right after a completed success moment (a finished task, a delivered order, a resolved request), never on first launch, mid-flow, or right after an error. **A store review prompt is never conditioned on a satisfaction answer** — asking "Enjoying the app?" and sending only positive responders to the store is review gating, which store policies prohibit and which biases the public rating. A feedback form or survey can be offered too, but to everyone and independently of whether the store prompt is shown.
 
 ## When to prefer in-app over other channels
 

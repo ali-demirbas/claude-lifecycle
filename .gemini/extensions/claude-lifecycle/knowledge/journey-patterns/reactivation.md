@@ -4,7 +4,7 @@ stage: engagement
 trigger_type: segment
 journey_class: marketing
 required_events: [session_start]
-optional_events: [sign_up, first_open, login, purchase, app_remove, link_click]
+optional_events: [sign_up, first_open, login, purchase, app_remove, link_click, preference_updated]
 required_attributes: []
 optional_attributes: [days_dormant, acquisition_source, last_screen, push_token_valid, reactivation_reason]
 default_channels: [push, email]
@@ -12,7 +12,7 @@ base_steps: 3
 depth_range: [3, 6]
 applicable_industries: [mobile-app, saas, marketplace, subscription-media, edtech, ecommerce, fintech, travel]
 mutually_exclusive_with: []
-signal_sources: {session_start: behavioral, login: behavioral, purchase: authoritative, app_remove: behavioral, link_click: engagement, push_token_valid: authoritative, acquisition_source: behavioral, last_screen: behavioral, days_dormant: behavioral}
+signal_sources: {session_start: behavioral, login: behavioral, purchase: authoritative, app_remove: behavioral, link_click: engagement, preference_updated: authoritative, push_token_valid: authoritative, acquisition_source: behavioral, last_screen: behavioral, days_dormant: behavioral}
 insufficient_alone:
   - no session on one surface while another surface is active
   - another inactive period with nothing new to say
@@ -51,7 +51,7 @@ Bring back dormant **non-customers**: users who signed up or installed, never co
 - **Entry:** last `session_start` (across all joined surfaces) older than the dormancy threshold (default 21–30 days; tune to the product's natural usage cadence), zero lifetime `purchase`, valid consent or push token on ≥ 1 channel, and a recorded `reactivation_reason` for this attempt.
 - **Exclude:** any past purchaser (winback owns them), users currently in activation-rescue (dormancy inside the first weeks is activation's problem), users active on another surface or product, consent silent > 2 years (re-permission first), users under the portfolio negative-signal override.
 - **Success exit:** `session_start` or `login`. Revenue is explicitly *not* this journey's exit; returners hand off to activation/revenue patterns · **Window:** 14 days.
-- **Checked before each send:** `session_start`, `login`, `purchase` (hand off; the person is now a customer), `consent_withdrawn`.
+- **Checked before each send:** `session_start`, `login`, `purchase` (hand off; the person is now a customer), `consent_withdrawn` (channel-scoped: an email unsubscribe stops the email steps, a revoked push permission or invalid token stops push; neither moves the message to another channel on its own).
 - **Re-entry:** after a 60-day cooldown, max 3 lifetime cycles, and only with a new `reactivation_reason` each time; a repeated trigger while an instance is open is ignored. Without a new reason, or after the third cycle, the person goes to [unengaged-sunset](unengaged-sunset.md) instead of another campaign.
 - **Handoffs:** return session → [activation](activation.md) or [welcome-onboarding](welcome-onboarding.md) (whichever the person never finished); `purchase` → [post-purchase](post-purchase.md). Queued reactivation sends are suppressed in both cases.
 
@@ -69,7 +69,7 @@ Bring back dormant **non-customers**: users who signed up or installed, never co
 |---|---|---|---|---|
 | s1 | entry +0h at 18:00 user_local | push (email if `app_remove` or invalid token) | What's genuinely new since their last visit, deeplinked to the freshest relevant content | → s2 |
 | s2 | s1 +3d | email | The concrete value they never tried, matched to `acquisition_source` when known | → s3 |
-| s3 | s1 +10d | email | Honest last touch: "should we stop?" with a preference center, snooze or fewer-messages choice | → exit (expired) at entry +14d |
+| s3 | s1 +10d | email | Honest last touch: "should we stop?" with a link to the preference center for snooze, fewer messages or stop. The choice applies only once the preference system records it as `preference_updated` with its value; a click on the link is not a choice | → exit (expired) at entry +14d |
 
 No decision rows: the only branch the old blueprint had ("if no return session") is enforced by the before-each-send exit check, and channel routing is a fallback on token state, not a behavioral branch. One reachable channel per step, not every channel at once.
 
@@ -92,7 +92,7 @@ No decision rows: the only branch the old blueprint had ("if no return session")
 - **Design:** holdout (default 10%), user-level. The control does not receive s1–s3.
 - **Routine communications both groups keep:** transactional/account messages and any product announcement sent to the whole user base.
 - **Contamination risks:** paid re-engagement campaigns targeting the same dormant audience; app-store or OS-level re-engagement prompts; notifications from a sibling product.
-- **Low volume:** returns happen without messages too, so a raw return rate overstates the journey. Below roughly 200 control returns, report the lift as unmeasured; downstream activation of returners can still be described per arm.
+- **Low volume:** returns happen without messages too, so a raw return rate overstates the journey. When the power calculation shows the control arm can't detect a plausible lift, report it as unmeasured; downstream activation of returners can still be described per arm.
 
 ## When data is missing
 

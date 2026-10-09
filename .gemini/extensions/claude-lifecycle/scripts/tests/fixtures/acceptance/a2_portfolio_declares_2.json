@@ -23,5 +23,6 @@
         "push": 1
       }
     }
-  ]
+  ],
+  "readiness": "ready"
 }

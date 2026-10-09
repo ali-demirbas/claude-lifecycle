@@ -227,48 +227,157 @@
       ]
     },
     "signal": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "type",
-        "name",
-        "source"
-      ],
-      "description": "What a decision reads. 'open' is accepted by the schema only so the validator can reject it with a clear message: an email open is never a branching signal on its own.",
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "event",
-            "click",
-            "attribute",
-            "open"
-          ]
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Event name, link id, or attribute name"
-        },
-        "source": {
-          "type": "string",
-          "enum": [
-            "authoritative",
-            "behavioral",
-            "inferred",
-            "engagement"
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "name",
+            "source"
           ],
-          "description": "authoritative = system of record (billing, order, consent); behavioral = product/web analytics event; inferred = model/score; engagement = message interaction (clicks)"
+          "description": "What a decision reads. 'open' is accepted by the schema only so the validator can reject it with a clear message: an email open is never a branching signal on its own.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "event",
+                "click",
+                "attribute",
+                "open"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Event name, link id, or attribute name"
+            },
+            "source": {
+              "type": "string",
+              "enum": [
+                "authoritative",
+                "behavioral",
+                "inferred",
+                "engagement"
+              ],
+              "description": "authoritative = system of record (billing, order, consent); behavioral = product/web analytics event; inferred = model/score; engagement = message interaction (clicks)"
+            },
+            "latency": {
+              "$ref": "#/$defs/elapsed",
+              "description": "How late this signal can arrive after the behavior"
+            },
+            "bot_filtered": {
+              "type": "boolean",
+              "description": "Clicks only: whether security-scanner/bot clicks are filtered before this decision reads them"
+            }
+          }
         },
-        "latency": {
-          "$ref": "#/$defs/duration",
-          "description": "How late this signal can arrive after the behavior"
-        },
-        "bot_filtered": {
-          "type": "boolean",
-          "description": "Clicks only: whether security-scanner/bot clicks are filtered before this decision reads them"
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "description": "Composite signal. any_of: occurred if any member occurred; not_occurred only if every member was measured and none occurred; unmeasurable if none occurred and at least one member could not be measured. all_of: occurred only if every member occurred; not_occurred if any measured member did not occur; otherwise unmeasurable. Missing data is never read as false.",
+          "properties": {
+            "any_of": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "name",
+                  "source"
+                ],
+                "description": "What a decision reads. 'open' is accepted by the schema only so the validator can reject it with a clear message: an email open is never a branching signal on its own.",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "event",
+                      "click",
+                      "attribute",
+                      "open"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Event name, link id, or attribute name"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "authoritative",
+                      "behavioral",
+                      "inferred",
+                      "engagement"
+                    ],
+                    "description": "authoritative = system of record (billing, order, consent); behavioral = product/web analytics event; inferred = model/score; engagement = message interaction (clicks)"
+                  },
+                  "latency": {
+                    "$ref": "#/$defs/elapsed",
+                    "description": "How late this signal can arrive after the behavior"
+                  },
+                  "bot_filtered": {
+                    "type": "boolean",
+                    "description": "Clicks only: whether security-scanner/bot clicks are filtered before this decision reads them"
+                  }
+                }
+              }
+            },
+            "all_of": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "type",
+                  "name",
+                  "source"
+                ],
+                "description": "What a decision reads. 'open' is accepted by the schema only so the validator can reject it with a clear message: an email open is never a branching signal on its own.",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "event",
+                      "click",
+                      "attribute",
+                      "open"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Event name, link id, or attribute name"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "authoritative",
+                      "behavioral",
+                      "inferred",
+                      "engagement"
+                    ],
+                    "description": "authoritative = system of record (billing, order, consent); behavioral = product/web analytics event; inferred = model/score; engagement = message interaction (clicks)"
+                  },
+                  "latency": {
+                    "$ref": "#/$defs/elapsed",
+                    "description": "How late this signal can arrive after the behavior"
+                  },
+                  "bot_filtered": {
+                    "type": "boolean",
+                    "description": "Clicks only: whether security-scanner/bot clicks are filtered before this decision reads them"
+                  }
+                }
+              }
+            }
+          }
         }
-      }
+      ]
     },
     "node": {
       "type": "object",
@@ -450,6 +559,58 @@
               }
             }
           }
+        },
+        "recipient_role": {
+          "type": "string",
+          "description": "Who receives this send when the journey is about an account with several people (admin, billing_contact, end_user). Frequency is counted per recipient."
+        },
+        "delivery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode"
+          ],
+          "description": "How the send is delivered. `scheduled`: sent at its computed time (quiet hours: delay to the next allowed time, never past `deadline`). `next_session`: in-app content shown at the user's next session after its time, for at most `expires_after`, then skipped. Later anchors on this node use its scheduled time, never the moment it was shown.",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "scheduled",
+                "next_session"
+              ]
+            },
+            "expires_after": {
+              "$ref": "#/$defs/elapsed"
+            },
+            "quiet_hours": {
+              "type": "string",
+              "enum": [
+                "delay",
+                "skip"
+              ],
+              "description": "What happens when the scheduled time falls in quiet hours"
+            },
+            "deadline": {
+              "$ref": "#/$defs/anchor",
+              "description": "Latest acceptable send time (e.g. a final payment notice before suspension). A delay that would pass it falls back to the last allowed time before it."
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "mode": {
+                    "const": "next_session"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "expires_after"
+                ]
+              }
+            }
+          ]
         }
       },
       "allOf": [
@@ -517,6 +678,11 @@
           }
         }
       ]
+    },
+    "elapsed": {
+      "type": "string",
+      "pattern": "^P(?!$)(?:\\d+W|(\\d+D)?(T(?=\\d)(\\d+H)?(\\d+M)?(\\d+S)?)?)$",
+      "description": "Non-negative ISO 8601 duration (no months/years) for elapsed time: cooldowns, latencies, windows, expiry. Only timing offsets may be negative (`duration`)."
     }
   },
   "properties": {
@@ -543,6 +709,13 @@
           "items": {
             "$ref": "#/$defs/channel"
           }
+        },
+        "withdrawn_channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/channel"
+          },
+          "description": "Channels this audience closed (unsubscribe, opt-out, consent withdrawn). Never sent on unless the same path passes an authoritative consent_granted decision for that channel; consent for one channel never opens another, and a grant on one branch never carries to a sibling branch."
         }
       }
     },
@@ -695,7 +868,7 @@
           }
         },
         "success_window": {
-          "$ref": "#/$defs/duration"
+          "$ref": "#/$defs/elapsed"
         },
         "exit_conditions": {
           "type": "array",
@@ -728,13 +901,52 @@
                     "before_each_send"
                   ]
                 },
-                "minItems": 1
+                "minItems": 1,
+                "contains": {
+                  "const": "before_each_send"
+                }
               },
               "note": {
                 "type": "string"
+              },
+              "scope": {
+                "type": "string",
+                "enum": [
+                  "instance",
+                  "journey",
+                  "channel"
+                ],
+                "description": "What the event stops: this instance (default), every instance of this journey for the user, or only sends on one channel (e.g. an email unsubscribe stops email sends, not push)."
+              },
+              "channel": {
+                "$ref": "#/$defs/channel"
+              },
+              "same_instance": {
+                "type": "boolean",
+                "description": "Only an event for this instance's instance_key counts (paying invoice A doesn't stop invoice B's dunning)."
               }
-            }
-          }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "scope": {
+                      "const": "channel"
+                    }
+                  },
+                  "required": [
+                    "scope"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "channel"
+                  ]
+                }
+              }
+            ]
+          },
+          "minItems": 1
         }
       }
     },
@@ -877,17 +1089,35 @@
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "relative_to_entry"
-        ],
         "properties": {
           "relative_to_entry": {
             "$ref": "#/$defs/duration"
           },
           "note": {
             "type": "string"
+          },
+          "range": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/duration"
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "When the date's distance from entry varies per user (a renewal 30, 11 or 2 days away at entry), give [earliest, latest]. The validator checks the timeline at both ends. The real date always comes from the system of record at send time."
           }
-        }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "relative_to_entry"
+            ]
+          },
+          {
+            "required": [
+              "range"
+            ]
+          }
+        ]
       },
       "description": "Known relation of an event/attribute timestamp to journey entry, e.g. trial_end = entry + P7D. Lets the validator place event-anchored sends on the timeline."
     },
@@ -915,7 +1145,7 @@
           ]
         },
         "cooldown": {
-          "$ref": "#/$defs/duration"
+          "$ref": "#/$defs/elapsed"
         },
         "on_duplicate_trigger": {
           "type": "string",
@@ -958,7 +1188,7 @@
               "type": "string"
             },
             "window": {
-              "$ref": "#/$defs/duration"
+              "$ref": "#/$defs/elapsed"
             }
           }
         },
@@ -993,7 +1223,7 @@
                   ]
                 },
                 "consistent": {
-                  "type": "boolean"
+                  "const": true
                 },
                 "method": {
                   "type": "string"
@@ -1048,7 +1278,76 @@
           "type": "string",
           "description": "The measurement used instead of a holdout"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "design": {
+                "const": "holdout"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "holdout"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "design": {
+                "enum": [
+                  "none_low_volume",
+                  "pre_post",
+                  "other"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "reason",
+              "alternative"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "design": {
+                "const": "none_service"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      ]
+    },
+    "instance_key": {
+      "type": "string",
+      "description": "The entity one journey instance is about (invoice_id, subscription_id, cart_id, order_id, feature). Events that stop or branch this instance must match it when `same_instance` is set."
+    },
+    "readiness": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "draft"
+      ],
+      "description": "ready = nothing that affects correctness is unconfirmed; draft = see open_items"
+    },
+    "open_items": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Unconfirmed facts that keep this journey a draft (channel consent, an event's existence, an existing communication, what a date means), each saying who confirms it"
     }
   },
   "x-schema-version": "2.0",
@@ -1065,8 +1364,28 @@
           "journey_class",
           "start",
           "nodes",
-          "reentry"
+          "reentry",
+          "readiness"
         ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "steps"
+              ]
+            },
+            {
+              "required": [
+                "flow"
+              ]
+            },
+            {
+              "required": [
+                "experiment"
+              ]
+            }
+          ]
+        },
         "properties": {
           "exit": {
             "required": [
@@ -1074,7 +1393,58 @@
               "exit_conditions"
             ]
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "journey_class": {
+                  "const": "marketing"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "measurement"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "readiness": {
+                  "const": "draft"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "open_items"
+              ],
+              "properties": {
+                "open_items": {
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "readiness": {
+                  "const": "ready"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "open_items": {
+                  "maxItems": 0
+                }
+              }
+            }
+          }
+        ]
       },
       "else": {
         "required": [

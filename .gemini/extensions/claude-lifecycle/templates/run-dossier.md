@@ -8,7 +8,7 @@ Keep it to roughly one page: this is the document a stakeholder reads instead of
 
 # <Company / Project> — Lifecycle Run Dossier
 
-**Date:** <date> · **Run ID:** `<YYYYMMDD-HHmm>` *(local time, minute precision — the file's own audit-trail key; see §1a)* · **Sector:** <sector> · **Tier:** T1 | T2 | T3 · **DQS:** <n>/100 <· activation flag when set> · reliability: <healthy | degraded | unreliable — `n/a` for T3> *(always present; `validate_output.py dossier` fails without it)*
+**Date:** <date> · **Run ID:** `<YYYYMMDD-HHmmss-xxxx>` *(local time to the second plus a short random suffix; matches run-manifest.json; see §1a)* · **Sector:** <sector> · **Tier:** T1 | T2 | T3 · **DQS:** <n>/100 <· activation flag when set> · reliability: <healthy | partial (unavailable: …) | degraded | unreliable — `n/a` for T3> *(always present; `validate_output.py dossier` fails without it)*
 
 ## 1. Input profile
 

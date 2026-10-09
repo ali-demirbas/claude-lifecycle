@@ -10,6 +10,7 @@ default_channels: [email, push]
 base_steps: 1
 depth_range: [1, 2]
 applicable_industries: [ecommerce, saas, mobile-app, fintech, marketplace, subscription-media, travel, edtech]
+mutually_exclusive_with: []
 journey_class: marketing
 signal_sources: {anniversary_date: authoritative, birthdate: authoritative, first_purchase_date: authoritative, tenure_years: authoritative, perk_expiry_date: authoritative, purchase: authoritative, coupon_redeemed: authoritative, login: behavioral, session_start: behavioral, consent_withdrawn: authoritative}
 insufficient_alone:
@@ -17,8 +18,9 @@ insufficient_alone:
   - a birthdate collected without a stated purpose
   - a year-in-review figure that can't be computed for this user
 exit_before_each_send: [coupon_redeemed, consent_withdrawn]
-reentry: {policy: after_cooldown, cooldown: P1Y, on_duplicate_trigger: ignore}
+reentry: {policy: each_trigger, on_duplicate_trigger: ignore}
 measurement_default: holdout
+instance_key: anniversary_occurrence_id
 ---
 
 # Anniversary
@@ -46,13 +48,13 @@ Two scheduling rules hold at every depth. **A date that passed without a message
 
 ## Entry / exit
 
-- **Entry:** the instance is created the day before the date and scheduled for the date itself in user-local daytime. Requires valid consent on the channel and a date that passes sanity checks (no placeholder dates, tenure ≥ 1 year for anniversaries).
+- **Entry:** the instance is created the day before the date and scheduled for the date itself in user-local daytime, so a generated journey declares `anniversary_date: entry +1d` in `time_anchors`, reading this year's occurrence from the attribute. Requires valid consent on the channel and a date that passes sanity checks (no placeholder dates, tenure ≥ 1 year for anniversaries).
 - **Exclude:** churned/dormant users (a "happy anniversary" from a product someone abandoned reads as unaware; dormant users belong to [winback](winback.md)), users in dunning or service recovery, negative-signal suppression per [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md) rule 4, birthday sends where `birthdate` was not explicitly and lawfully collected for this use.
 - **Date collision:** when a birthday and an anniversary (signup or first purchase) fall within the same window (default 7 days, configurable in brand config), the birthday instance wins and the anniversary instance for that year is closed unsent. Two anniversaries of different types in one window → the older relationship date wins. Never two date messages in one window.
 - **Missed moment:** if the scheduled send time has passed when the instance would act (late attribute, consent granted after the date, outage), the instance closes as expired. The message is not sent late and not rolled to next week.
 - **Success exit:** none required; goodwill touch. If a perk is attached, `coupon_redeemed` (or a `purchase` using it) · **Window:** 7 days, or the perk's recorded validity if shorter.
-- **Checked before each send:** `coupon_redeemed`, `consent_withdrawn`, and the exclusion states above (a user who entered dunning since the instance was created gets nothing).
-- **Re-entry:** once per year per date type. A repeated trigger for the same date in the same year (a re-imported attribute, an edited date) is ignored.
+- **Checked before each send:** `coupon_redeemed` for this occurrence's perk (`same_instance`), `consent_withdrawn` (channel-scoped: an email opt-out stops the email note; the shortened push version still goes where push is consented), and the exclusion states above (a user who entered dunning since the instance was created gets nothing).
+- **Re-entry:** `each_trigger`, keyed on `anniversary_occurrence_id` (date type + year). The date recurs through its attribute anchor each year, not through a cooldown. A repeated trigger for the same date in the same year (a re-imported attribute, an edited date) is ignored.
 - **Handoffs:** none. A user who turns out to be dormant is left to winback; the anniversary send is cancelled, not converted into a winback message.
 
 ## Depth scaling
@@ -73,12 +75,12 @@ Depth does **not** scale with DQS. An anniversary is one calendar moment; a sequ
 
 **Year-in-review variant:** where real per-user event history exists, the message leads with a delivered-value recap ("this year: {{order_count}} orders, {{assist_count}} times we helped"), the strongest form of this pattern, and bound by the same rule as insurance's pre-renewal recap: **real account data only; a single number that can't be computed means the recap is skipped, never estimated** (CLAUDE.md rule 3).
 
-**Perk reminder (standard, second send):** if a perk is attached and the promotion record holds its expiry, one push at `perk_expiry_date -2d at 10:00 user_local`, only if unredeemed (redemption is re-checked before the send). If that reminder moment has already passed, it is dropped. A perk with no recorded expiry gets no reminder and no deadline in copy.
+**Perk reminder (standard, second send):** if a perk is attached and the promotion record holds its expiry, one push at `perk_expiry_date -2d at 10:00 user_local`, only if unredeemed (redemption is re-checked before the send). Deadline: `perk_expiry_date -1d`; quiet hours delay it at most to the last allowed time before that. If that reminder moment has already passed, it is dropped. A perk with no recorded expiry gets no reminder and no deadline in copy.
 
 ## Timing and channel fit
 
 - Calendar time on the user's clock: 10:00 user_local on the date, market timezone when the user's is unknown. A birthday greeting at 03:00 because the scheduler ran in UTC is the classic failure.
-- Email for the note (room for personal stats), push for the one perk reminder. No email consent → push carries a shortened note; no consent on either → no send (in-app on the date is acceptable if the user happens to visit).
+- Email for the note (room for personal stats), push for the one perk reminder. No email consent → push carries a shortened note; no consent on either → no send (an in-app note is acceptable if the user happens to visit: shown at the next session, expiring at the end of the date in user-local time).
 - Quiet hours per [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md); a send that can't fit the allowed window on the date is closed, not moved to the next day.
 
 ## Frequency and overlap

@@ -1,0 +1,200 @@
+{
+  "schema_version": "2.0",
+  "id": "ecom-winback-01",
+  "version": "1.0.0",
+  "journey_class": "marketing",
+  "name": "Winback",
+  "pattern": "winback",
+  "stage": "winback",
+  "priority": "P0",
+  "data_tier": "T2",
+  "dqs": 55,
+  "depth_class": "standard",
+  "objective": "Bring lapsed buyers back to a second purchase.",
+  "constraints": {
+    "allowed_channels": [
+      "email",
+      "sms",
+      "push"
+    ],
+    "max_discount_pct": 15
+  },
+  "trigger": {
+    "type": "segment_entry",
+    "value": "lapsed_buyers"
+  },
+  "audience": {
+    "include": "bought before, no purchase in 2x median gap",
+    "exclude": [
+      "open refund"
+    ]
+  },
+  "events_available": [
+    "purchase",
+    "email_unsubscribe",
+    "consent_withdrawn",
+    "link_click",
+    "add_to_cart",
+    "trial_end",
+    "feature_used",
+    "subscription_start"
+  ],
+  "exit": {
+    "success_event": "purchase",
+    "success_window": "P30D",
+    "exit_conditions": [
+      {
+        "event": "purchase",
+        "source": "authoritative",
+        "check": [
+          "entry",
+          "before_each_send"
+        ]
+      },
+      {
+        "event": "consent_withdrawn",
+        "source": "authoritative",
+        "check": [
+          "entry",
+          "before_each_send"
+        ]
+      }
+    ]
+  },
+  "reentry": {
+    "policy": "after_cooldown",
+    "cooldown": "P90D",
+    "on_duplicate_trigger": "ignore"
+  },
+  "measurement": {
+    "design": "holdout",
+    "primary_outcome": {
+      "event": "purchase",
+      "window": "P30D"
+    },
+    "holdout": {
+      "pct": 10,
+      "assignment": {
+        "unit": "user",
+        "consistent": true,
+        "method": "hash(user_id)"
+      },
+      "control_excludes": [
+        "all sends in this journey"
+      ]
+    },
+    "routine_comms": [
+      {
+        "name": "transactional order emails",
+        "both_groups": true
+      }
+    ],
+    "contamination_risks": [
+      "users also in browse-abandonment"
+    ],
+    "volume_note": "~400 entrants/month: detects only large lifts in one month"
+  },
+  "start": "entry",
+  "nodes": [
+    {
+      "id": "entry",
+      "kind": "entry",
+      "next": "m1"
+    },
+    {
+      "id": "m1",
+      "kind": "message",
+      "channel": "email",
+      "purpose": "marketing",
+      "intent": "email touch m1",
+      "send": {
+        "from": "entry",
+        "offset": "P0D"
+      },
+      "next": "m2"
+    },
+    {
+      "id": "m2",
+      "kind": "message",
+      "channel": "sms",
+      "purpose": "marketing",
+      "intent": "sms touch m2",
+      "send": {
+        "from": "entry",
+        "offset": "P4D",
+        "calendar": {
+          "time_of_day": "10:00",
+          "timezone": "Not/A_Timezone"
+        }
+      },
+      "next": "m3"
+    },
+    {
+      "id": "m3",
+      "kind": "message",
+      "channel": "email",
+      "purpose": "marketing",
+      "intent": "email touch m3",
+      "send": {
+        "from": "entry",
+        "offset": "P9D"
+      },
+      "next": "m4"
+    },
+    {
+      "id": "m4",
+      "kind": "message",
+      "channel": "email",
+      "purpose": "marketing",
+      "intent": "email touch m4",
+      "send": {
+        "from": "entry",
+        "offset": "P16D"
+      },
+      "next": "m5"
+    },
+    {
+      "id": "m5",
+      "kind": "message",
+      "channel": "sms",
+      "purpose": "marketing",
+      "intent": "sms touch m5",
+      "send": {
+        "from": "entry",
+        "offset": "P23D"
+      },
+      "next": "m6"
+    },
+    {
+      "id": "m6",
+      "kind": "message",
+      "channel": "email",
+      "purpose": "marketing",
+      "intent": "email touch m6",
+      "send": {
+        "from": "entry",
+        "offset": "P30D"
+      },
+      "next": "done"
+    },
+    {
+      "id": "done",
+      "kind": "exit",
+      "reason": "completed",
+      "outcome": "neutral"
+    }
+  ],
+  "kpis": [
+    {
+      "name": "Incremental repurchase",
+      "type": "primary",
+      "definition": "purchase rate exposed minus control"
+    },
+    {
+      "name": "Unsubscribe rate",
+      "type": "guardrail",
+      "definition": "unsubscribes / delivered"
+    }
+  ],
+  "readiness": "ready"
+}

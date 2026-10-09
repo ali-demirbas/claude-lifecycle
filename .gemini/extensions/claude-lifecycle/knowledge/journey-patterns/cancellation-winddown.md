@@ -6,7 +6,7 @@ required_events: [subscription_cancel, subscription_expired]
 optional_events: [subscription_reactivated, subscription_pause, subscription_resumed, payment_failed, data_export, support_ticket_created, cancel_reason_submitted]
 required_attributes: [access_end_date]
 optional_attributes: [plan_name, cancel_reason, marketing_consent, resume_date, renewal_price, data_retention_days, outstanding_balance]
-default_channels: [email, push, in-app]
+default_channels: [email, push, in_app]
 base_steps: 3
 depth_range: [2, 4]
 applicable_industries: [saas, subscription-media, edtech, mobile-app, fintech, insurance]
@@ -20,8 +20,9 @@ insufficient_alone:
   - an app uninstall
   - the last send of this journey having gone out
 exit_before_each_send: [subscription_reactivated, subscription_expired, subscription_resumed]
-reentry: {policy: each_trigger, cooldown: P0D, on_duplicate_trigger: ignore}
+reentry: {policy: each_trigger, on_duplicate_trigger: ignore}
 measurement_default: none_service
+instance_key: subscription_id
 ---
 
 # Cancellation Wind-down
@@ -56,10 +57,12 @@ A **pause variant** runs on the same skeleton: the customer chose a break with a
 
 ## Entry / exit
 
-- **Entry:** `subscription_cancel` recorded for an active paid subscription, with `access_end_date` in the future or today. Instance key: subscription + `access_end_date`. In a generated journey, declare `access_end_date` in `time_anchors` relative to entry using the plan's remaining term (a monthly plan: at most `P31D`); otherwise the timeline is reported unverifiable.
+- **Entry:** `subscription_cancel` recorded for an active paid subscription, with `access_end_date` in the future or today. Instance key: `subscription_id` (one wind-down per subscription and term). Cancel intent (a cancel page, a started flow) never enters this journey; that belongs to churn-prevention's save branch.
+- **Time anchor:** the distance to `access_end_date` varies per customer (a monthly plan cancelled on its last day, an annual prepaid term cancelled in month two), so a generated journey declares it as a range relative to entry, `access_end_date: entry +0d … +366d` (narrowed to the product's longest prepaid term), and reads the real date from billing at every send. It is never computed from signup date plus plan length.
+- **Arriving from churn-prevention:** a confirmed cancellation recorded while a churn-prevention instance is open for the same subscription exits that instance and starts this one exactly once; churn-prevention's queued sends (a scheduled save offer included) are suppressed. A second `subscription_cancel` for the same subscription while this instance runs is ignored.
 - **Exclude:** cancellations that end access immediately with nothing left to wind down (only the confirmation is sent, then straight to the outcome decision); involuntary terminations after failed payments (payment-failure owns those); account deletions and data-erasure requests (the erasure flow owns contact, and it may forbid any further message); enterprise accounts with a named account owner.
 - **Success exit:** `subscription_expired` with the customer informed (completed), or `subscription_reactivated` (completed, the customer stayed) · **Window:** entry to `access_end_date` + 1 day.
-- **Exit checks before each send:** `subscription_reactivated`, `subscription_expired`, `subscription_resumed`, plus a fresh read of `access_end_date`. A moved end date (refund with immediate termination, a goodwill extension) is restated explicitly in the next send; it never shifts silently.
+- **Exit checks before each send:** for this subscription only (`same_instance`; reactivating subscription A does not end subscription B's wind-down): `subscription_reactivated`, `subscription_expired`, `subscription_resumed`, plus a fresh read of `access_end_date`. A moved end date (refund with immediate termination, a goodwill extension) is restated explicitly in the next send; it never shifts silently.
 - **Re-entry:** each cancellation of a distinct subscription or term is its own instance (`each_trigger`). A duplicate cancel event for the same subscription while an instance is active (webhook retry, a second click) is ignored.
 - **Permission withdrawn at cancellation is final.** If the customer opted out of marketing in the cancel flow or during the wind-down, that state is carried to win-back as withdrawn, and no re-permission request is sent to recover it. Service sends here still go, on channels where service contact is allowed.
 - **Handoffs:**
@@ -80,13 +83,22 @@ Depth is bounded by the runway between cancellation and access end, not by DQS: 
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
-| s1 | entry +15m | email | Confirmation (transactional): cancellation received, the exact date and time access ends, that paid access is not cut short, no further charges, and the one-step route to undo it. No offer, no survey push. | → d1 |
-| d1 | entry +15m | — | Decision on `access_end_date` (authoritative) between entry +15m and entry +15m | at least the minimum runway away (default 5 days) → s2 · default → d2 · unmeasurable → d2 |
-| s2 | access_end_date -3d at 10:00 user_local | email | Ending notice (service): the date restated, what survives and what doesn't (data, history, downloads, saved work; insurance: cover stops at the stated time), how to export, any outstanding balance as a fact with a link. One quiet line on how to stay. | → s3 |
-| s3 | access_end_date -1d at 10:00 user_local | push (in-app if push not permitted; skipped otherwise) | Heads-up (service): access ends tomorrow, pointing back to the ending notice. Skipped when s2 went out less than 48 hours earlier. | → d2 |
+| s1 | entry +15m | email | Confirmation (transactional): cancellation received, the exact date and time access ends, that paid access is not cut short, no further charges, and the one-step route to undo it. No offer, no survey push. In a short runway (below), it also carries the ending-notice facts. | → d1 |
+| d1 | entry +15m | — | Decision on `access_end_date` (authoritative), evaluated at the decision moment (from = to = entry +15m): is the end date at least the minimum runway away (default 5 days)? | occurred → s2 · not_occurred → d2 · unmeasurable → d2 |
+| s2 | access_end_date -3d at 10:00 user_local | email | Ending notice (service): the date restated, what survives and what doesn't (data, history, downloads, saved work; insurance: cover stops at the stated time), how to export, any outstanding balance as a fact with a link. One quiet line on how to stay. Deadline: access_end_date -1d; quiet hours move it earlier, never later. | → s3 |
+| s3 | access_end_date -1d at 10:00 user_local | push (in_app if push not permitted, shown at the next session and expiring at access_end_date; skipped otherwise) | Heads-up (service): access ends tomorrow, pointing back to the ending notice. Deadline: access_end_date; quiet hours delay it at most to the last allowed time before that. Skipped when s2 went out less than 48 hours earlier. | → d2 |
 | d2 | access_end_date +1d | — | Decision on `subscription_expired` (authoritative) between entry and access_end_date +1d | occurred → x1 · not_occurred → x2 · unmeasurable → x2 |
 | x1 | access_end_date +1d | — | Exit `handoff` → winback, `suppress_queued: true`, carrying end date, cancel reason, plan and consent state at cancellation. | — |
 | x2 | access_end_date +1d | — | Exit `completed` (neutral): access has not ended or the end can't be confirmed (moved date, billing lag). Reconcile; no win-back handoff until expiry is recorded. | — |
+
+**Short-runway compression.** The runway is `access_end_date` minus entry, re-read from billing. No step is ever pushed past the next one or past the end date.
+
+| Runway at entry | Sends | What changes |
+|---|---|---|
+| 30 days | s1, s2 (end -3d), s3 (end -1d) | Full path. |
+| 11 days | s1, s2 (entry +8d), s3 (entry +10d) | Full path; s2 and s3 are still 48 hours apart. |
+| 2 days | s1 only | d1 routes to d2: s2's facts (what survives, export, balance) merge into s1; s3 is dropped because a heads-up one day after the confirmation repeats it. |
+| under 15 minutes / immediate end | s1 only | Confirmation states that access has ended; straight to the outcome decision. |
 
 `subscription_reactivated` before any send exits as `completed` (good) through the exit check; it needs no node. The branched data-retention notice sits at `access_end_date +1d at 10:00 user_local` (email, service), only where `data_retention_days` says data will be deleted later, and only for customers without a `data_export`.
 
@@ -95,12 +107,14 @@ Depth is bounded by the runway between cancellation and access end, not by DQS: 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
 | p1 | entry +15m | email | Pause confirmation (transactional): pause start, the resume date, what restarts on that date (billing amount, payment method), how to resume early, extend or cancel. | → p2 |
-| p2 | resume_date -3d at 10:00 user_local | email (push as an added heads-up where permitted) | Resume reminder (service): the date, the amount, the payment method on file, the same change routes. The lead is configurable and is raised to any notice period the terms require. | → pd1 |
+| p2 | resume_date -3d at 10:00 user_local | email (push as an added heads-up where permitted) | Resume reminder (service): the date, the amount, the payment method on file, the same change routes. The lead is configurable and is raised to any notice period the terms require. Deadline: the notice period before resume_date. A pause shorter than the lead merges this reminder into p1. | → pd1 |
 | pd1 | resume_date +1d | — | Decision on `subscription_resumed` (authoritative) between entry and resume_date +1d | occurred → px1 · not_occurred → pd2 · unmeasurable → px3 |
 | pd2 | resume_date +1d | — | Decision on `payment_failed` (authoritative) between resume_date -1d and resume_date +1d | occurred → px2 · not_occurred → px3 · unmeasurable → px3 |
 | px1 | resume_date +1d | — | Exit `completed` (good): the subscription is running again; the billing receipt is the only follow-up. | — |
 | px2 | resume_date +1d | — | Exit `handoff` → payment-failure, `suppress_queued: true`. | — |
 | px3 | resume_date +1d | — | Exit `completed` (neutral): state unclear (extended, cancelled or not yet recorded); reconcile before anyone is told anything. | — |
+
+`resume_date` is declared as a range relative to entry (`resume_date: entry +1d … +` the product's longest pause, in days) and re-read from billing before p2.
 
 During a pause, every marketing journey for that subscription is suppressed (usage nudges, feature adoption, upsell, renewal reminders, churn-prevention). The only exceptions are things the customer asked for while pausing, such as staying on a release newsletter they chose in the pause flow. A cancellation during the pause exits the pause instance and starts the main path.
 

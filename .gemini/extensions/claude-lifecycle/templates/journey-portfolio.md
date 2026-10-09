@@ -11,13 +11,13 @@ The portfolio is the top-level deliverable of `lifecycle-journeys`. It always pr
 **Generated:** <date> · **Data tier:** T1 | T2 | T3 · **Validation:** `validate_output.py` <version> · schema 2.0 · <passed | incomplete: n unverified | failed>
 **Goal weighting:** <user goal from intake, e.g. "retention-first">
 
-**Single-industry brands:** **Industry:** <sector> · **DQS:** <n>/100 · **Activation:** ready | **blocked — <reason, e.g. no per-user identity>** *(mandatory when the DQS activation flag is set; see docs/data-quality-score.md hard rule 3)*
+**Single-industry brands:** **Industry:** <sector> · **DQS:** <n>/100 · **Activation:** ready | **unverified — <reason, e.g. this input has no per-user identity; confirm CRM identity mapping>** *(mandatory when the DQS activation flag is set; see docs/data-quality-score.md hard rule 3)*
 
 **Multi-vertical brands** — one row per vertical instead of the line above:
 
 | Vertical | Industry | DQS | Activation |
 |---|---|---|---|
-| <name> | <sector> | <n>/100 | ready \| blocked — <reason> |
+| <name> | <sector> | <n>/100 | ready \| unverified — <reason> |
 
 ## 1. Executive summary (required)
 

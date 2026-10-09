@@ -5,7 +5,7 @@ description: Audit an existing journey portfolio — user-described, imported fr
 metadata:
   version: 0.2.0
   category: analysis
-  updated: 2026-08-14
+  updated: 2026-10-09
 ---
 
 # Lifecycle Audit — Portfolio Review
@@ -31,7 +31,7 @@ Journeys as: prior engine output, user description ("we have a welcome email and
 | 3 | Depth-vs-data fit | Journey complexity matches what the data supports: 10-step branched flows on thin data = over-engineered; 2-step flows on rich data = under-leveraged |
 | 4 | Trigger & exit hygiene | Event triggers vs blast schedules; success exits defined; re-entry policies exist |
 | 5 | Frequency & conflict | Aggregate worst-case messages/user/week vs caps in `knowledge/compliance/consent-and-quiet-hours.md`; overlapping triggers |
-| 6 | Measurement | Primary KPI + guardrail per journey; holdout existence; primary KPI defined as incremental lift vs holdout, not an attributed number (see `knowledge/measurement.md`) |
+| 6 | Measurement | Primary KPI + guardrail per journey, judged against the journey's own measurement design (see `knowledge/measurement.md`, "Evaluate by measurement design"): holdout → incremental lift vs a randomized holdout read intent-to-treat, not an attributed number; service/transactional → operational outcomes/SLA + harm guardrails (no holdout is correct, not a finding); pre_post → directional with confounders named; low volume → the stated alternative. Power stated from baseline, effect, both arms' sizes and allocation, never a fixed conversion count |
 | 7 | Copy compliance *(if copy provided)* | Spot-check against channel hard rules + lexicon banned lists |
 | 8 | Portfolio currency | Has the portfolio changed (journeys added/removed) since the last conflict review? A stale conflict review — cap math not covering the current journey set — is automatically a High finding |
 
@@ -41,7 +41,7 @@ Journeys as: prior engine output, user description ("we have a welcome email and
 
 Score as an adversarial reviewer of someone else's work, not as the author: if you cannot name a concrete gap for a dimension, you have not looked hard enough to score it high. When torn between two adjacent scores, take the lower. Mostly-top scores on a first pass are a signal to re-examine the scoring, not evidence of quality. Never reverse-engineer scores from a desired overall verdict.
 
-Two failure modes get confused under this posture and must be told apart: **no evidence provided** (the description simply didn't cover it — mark "not assessable," exclude it from the average, but count it in coverage) is not the same as **evidence of absence** (the journey was described and plainly has no exit criteria, no holdout, etc. — that scores low). Defaulting ambiguous cases to "not assessable" rather than a guessed-low score keeps the adversarial posture from tipping into fabrication.
+Two failure modes get confused under this posture and must be told apart: **no evidence provided** (the description simply didn't cover it — mark "not assessable," exclude it from the average, but count it in coverage) is not the same as **evidence of absence** (the journey was described and plainly has no exit criteria, a marketing journey with volume for a holdout has none and names no alternative, etc. — that scores low). Defaulting ambiguous cases to "not assessable" rather than a guessed-low score keeps the adversarial posture from tipping into fabrication.
 
 When the verdict gates a real decision (budget, headcount, killing a program), treat one pass as provisional: a second independent pass (fresh session, or a different model) that disagrees by ≥ 2 points on any dimension is the same "two judgments to gate" discipline `evals/rubric.md` already applies to copy and journey judging — one adversarial pass catches more than no review, but it is still one reviewer's read.
 
@@ -74,4 +74,5 @@ Fix: if the write-up can't name a concrete gap, the score is not yet earned — 
 
 - Never score dimensions without stating the evidence ("no exit criteria mentioned for 3 of 5 journeys").
 - Never fail a journey for missing information the user didn't provide — mark "not assessable" instead.
+- Never mark a service/transactional journey down for having no holdout, and never require every journey to justify itself with holdout lift or iROI — the measurement design decides the evaluator.
 - Never rewrite the user's journeys inside the audit — the audit diagnoses; generation is a separate, offered step.
