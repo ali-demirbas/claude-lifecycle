@@ -60,3 +60,7 @@ Fix: this skill's own step 4 already requires flagging this — treat a clean-lo
 - Never silently guess a stage for an event that fails all rules (CLAUDE.md rule 7).
 - Never map an event to `winback` — winback is defined by absence, not by an event.
 - Never claim a revenue stage is covered on `revenue-intent` events alone; say "intent only — no true conversion event".
+
+## Store the assessment for reuse
+
+After `stage-map.json` is written, store this fresh assessment: `python3 "${CLAUDE_PLUGIN_ROOT:-.}/scripts/run_cache.py" store output/<project>/_cache --input <file> --sector <sector> [--brand <brand>] --run-id <run-id> --files output/<project>/data-assessment.md output/<project>/stage-map.json`. The next run with the same input, code, rules and sector reuses it as a labelled cached assessment (see `lifecycle-connect` Step 0). Live pulls are not stored.

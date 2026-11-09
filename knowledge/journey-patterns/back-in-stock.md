@@ -22,7 +22,7 @@ signal_sources:
   inventory_level: authoritative
   catalog_status: authoritative
   consent_withdrawn: authoritative
-  message_click: engagement
+  link_click: engagement
 insufficient_alone:
   - a single view_item
   - a restock event without a live availability check at send time
@@ -65,7 +65,7 @@ Tell people the moment an item they wanted becomes available again. This is an i
 - **Checked before each send:** for this instance's item only (`instance_key: item_id`; buying or unwishlisting another item never stops this alert): `purchase` of the item, `remove_from_wishlist` or `stock_alert_unsubscribe` for the item, `item_discontinued` for the item, and live availability. `consent_withdrawn` is scoped to that send's channel: a push opt-out skips the push step and leaves a consented email in place. A withdrawn interest ends the instance; it is never treated as a quiet one. An item that sold out again in the gap means the send is skipped and the instance ends.
 - **Re-entry:** per item, once per restock event. An item that sells out again after the alert doesn't reopen this instance; interest recorded during the next out-of-stock period is a new instance on its own clock.
 - **Repeated trigger while active:** a second restock event or a second interest signal for the same item while an instance is open is ignored.
-- **Handoffs:** received from [abandoned-cart](abandoned-cart.md) when every item in a cart became unavailable (one instance per item). An `add_to_cart` of the restocked item → [abandoned-cart](abandoned-cart.md), queued sends here suppressed.
+- **Handoffs:** received from [abandoned-cart](abandoned-cart.md) when every item in a cart became unavailable (one instance per item). An `add_to_cart` of the restocked item → [abandoned-cart](abandoned-cart.md), queued sends here suppressed. Inbound from [browse-abandonment](browse-abandonment.md): an `add_to_wishlist` on an unavailable item arrives here as the entry trigger, with the browse journey's remaining sends suppressed.
 
 ## Depth scaling
 

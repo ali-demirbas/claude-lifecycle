@@ -4,7 +4,7 @@ stage: engagement
 trigger_type: absence
 journey_class: marketing
 required_events: [email_delivered, link_click]
-optional_events: [session_start, login, purchase, preference_updated, unsubscribe, spam_complaint, hard_bounce]
+optional_events: [session_start, login, purchase, preference_updated, unsubscribe, spam_complaint, hard_bounce, consent_withdrawn]
 required_attributes: []
 optional_attributes: [last_engaged_at, consent_date, click_tracking_reliable, marketing_streams, sender_suppression]
 default_channels: [email]
@@ -12,7 +12,7 @@ base_steps: 3
 depth_range: [2, 4]
 applicable_industries: [ecommerce, marketplace, saas, subscription-media, travel, fintech, insurance, edtech, mobile-app]
 mutually_exclusive_with: []
-signal_sources: {email_delivered: authoritative, link_click: engagement, session_start: behavioral, login: behavioral, purchase: authoritative, preference_updated: authoritative, unsubscribe: authoritative, spam_complaint: authoritative, hard_bounce: authoritative, click_tracking_reliable: authoritative, sender_suppression: authoritative}
+signal_sources: {email_delivered: authoritative, link_click: engagement, session_start: behavioral, login: behavioral, purchase: authoritative, preference_updated: authoritative, unsubscribe: authoritative, spam_complaint: authoritative, hard_bounce: authoritative, click_tracking_reliable: authoritative, sender_suppression: authoritative, consent_withdrawn: authoritative}
 insufficient_alone:
   - no email opens
   - silence on a route where clicks are not measured
@@ -55,7 +55,7 @@ The journey ends in a **sender-side suppression**: the brand decides to stop sen
 
 - **Entry:** marketing consent valid; at least the minimum number of marketing deliveries in the window; no bot-filtered `link_click`, `session_start`, `login`, `purchase` or `preference_updated` in the window; the route's click tracking is reliable. Also entered by handoff when winback, reactivation or lead-nurture exhaust their lifetime cycles.
 - **Exclude:** consent younger than the window (new subscribers are onboarding, not silent); open transactional or service flows are unaffected and need no exclusion; people already sender-suppressed; people already suppressed by a complaint or hard bounce (those are immediate, not sunset); people under the portfolio negative-signal override.
-- **Success exit:** any of a content-link `link_click` (bot-filtered; preference, unsubscribe, help and this journey's choice links never count), `session_start`, `purchase`, or a recorded `preference_updated` applied as its value says · **Window:** default 45 days (configurable, tied to the probation length in `d2`).
+- **Success exit:** any of a content-link `link_click` (bot-filtered; preference, unsubscribe, help and this journey's choice links never count), `session_start`, `purchase`, or a recorded `preference_updated` applied as its value says · **Window:** default 44 days = 7 + 30 + 7 (configurable, tied to the probation length in `d2`).
 - **Checked before each send:** content-link `link_click` (bot-filtered), `session_start`, `purchase`, `preference_updated` (any recorded value ends the instance and is applied as recorded), `consent_withdrawn` for marketing email (channel-scoped: a push or SMS opt-out does not end this email journey, and this journey never changes push or SMS consent).
 - **How a choice is applied:** the s1 and s3 links open the preference center, which writes `preference_updated`. `keep` keeps full cadence; `fewer` moves the covered streams to the digest; `pause` stops the covered streams until the recorded end date (default 90 days, configurable; the date is stated on the confirmation page and in copy), after which they resume at the cadence held before the pause, and the paused time never counts as silence for a later sunset; `stop` is a consent change recorded in the consent system for the covered streams, not a sender suppression. Stream scope is part of the record: by default all marketing email, or only the stream the email belonged to when the preference center offers per-stream choices. If the preference write failed, the choice is not applied and not assumed from the click: the failure is logged for repair, and no further marketing email goes to the address while a stop or pause request is unresolved (the legal deadline for honoring an unsubscribe runs regardless of a technical failure).
 - **What the suppression does:** records `sender_suppression` (reason: unengaged; date; streams covered). Every marketing and lifecycle journey reads it as an exclusion. It never touches transactional or service journeys, and it never edits the consent record. Re-engagement (sign-in, purchase, a bot-filtered content click from a transactional message's account link, or a recorded `preference_updated` of keep or fewer) lifts it. Lifting a sender-side suppression never lifts a consent withdrawal: a person who chose `stop`, or unsubscribed anywhere, stays withdrawn until they grant consent again through the consent system.

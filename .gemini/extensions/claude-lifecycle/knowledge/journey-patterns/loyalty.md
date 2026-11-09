@@ -3,7 +3,7 @@ name: loyalty
 stage: retention
 trigger_type: event
 required_events: [purchase, earn_virtual_currency]
-optional_events: [spend_virtual_currency, loyalty_enrolled, tier_changed, reward_issued, sign_up, join_group, refund]
+optional_events: [spend_virtual_currency, loyalty_enrolled, tier_changed, reward_issued, sign_up, join_group, refund, consent_withdrawn]
 required_attributes: []
 optional_attributes: [points_balance, tier, points_to_next_tier, tier_expiry_date, points_expiry_date, tier_benefits]
 default_channels: [email, push]
@@ -105,7 +105,7 @@ The success exit (redemption or qualifying purchase) is re-checked before n2, n3
 
 - Reward confirmations go immediately; they are service messages and are not held for a marketing send window, but push respects 22:00–09:00 quiet hours (email carries it overnight, push follows in the morning).
 - Tier and welcome sends allow an hour of settling time so a reversed transaction can cancel them first.
-- Nurture runs on the user's clock: push inside quiet hours per [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md); calendar sends at 10:00 user_local, falling back to the market timezone.
+- Nurture runs on the user's clock: push outside quiet hours, per [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md); calendar sends at 10:00 user_local, falling back to the market timezone.
 - Email carries anything with numbers, terms or dates; push carries one short nudge with a deeplink. No push consent → n2 moves to email at the same anchor; no marketing consent on any channel → only r1 and t2 run.
 
 ## Frequency and overlap

@@ -4,7 +4,7 @@ stage: retention
 trigger_type: segment
 journey_class: marketing
 required_events: [login, subscription_start]
-optional_events: [feature_used, cancellation_intent, subscription_cancel, payment_failed, session_start, share, subscription_renewed, support_ticket_opened]
+optional_events: [feature_used, cancellation_intent, subscription_cancel, payment_failed, session_start, share, subscription_renewed, support_ticket_opened, usage_recovered, subscription_expired, consent_withdrawn]
 required_attributes: []
 optional_attributes: [usage_trend_30d, plan_type, renewal_date, seats_active, rfm_tier_change, champion_changed, risk_score]
 default_channels: [email, in_app]
@@ -12,7 +12,7 @@ base_steps: 4
 depth_range: [3, 7]
 applicable_industries: [saas, mobile-app, fintech, subscription-media, edtech, insurance]
 mutually_exclusive_with: [winback]
-signal_sources: {login: behavioral, subscription_start: authoritative, feature_used: behavioral, session_start: behavioral, cancellation_intent: behavioral, subscription_cancel: authoritative, support_ticket_opened: authoritative, subscription_renewed: authoritative, payment_failed: authoritative, usage_trend_30d: behavioral, rfm_tier_change: inferred, risk_score: inferred, seats_active: authoritative, champion_changed: authoritative}
+signal_sources: {login: behavioral, subscription_start: authoritative, feature_used: behavioral, session_start: behavioral, cancellation_intent: behavioral, subscription_cancel: authoritative, support_ticket_opened: authoritative, subscription_renewed: authoritative, payment_failed: authoritative, usage_trend_30d: behavioral, rfm_tier_change: inferred, risk_score: inferred, seats_active: authoritative, champion_changed: authoritative, usage_recovered: behavioral, subscription_expired: authoritative, consent_withdrawn: authoritative}
 insufficient_alone:
   - a risk score whose drivers cannot be traced back to observed signals
   - high account value
@@ -105,7 +105,7 @@ Anomaly-entry framing: when entry was a sharp break in the user's own pattern (a
 
 ## Frequency and overlap
 
-- **Worst path:** 2 sends in the first rolling 7 days (s1, s2), 1 per 7 days after that. Declining users get *fewer* messages under the cap, not more (compliance file, cap-by-engagement rule).
+- **Worst path:** 2 sends in any rolling 7 days (s1+s2, or s2 on day 3 with s3 on day 8). Declining users get *fewer* messages under the cap, not more (compliance file, cap-by-engagement rule).
 - **Usually overlaps with:** [feature-adoption](feature-adoption.md), [upsell-cross-sell](upsell-cross-sell.md), [feedback-nps](feedback-nps.md), [payment-failure](payment-failure.md), [winback](winback.md) (mutually exclusive).
 - **Precedence:** dunning, [cancellation-winddown](cancellation-winddown.md), [renewal-reminder](renewal-reminder.md)'s last 7 days and the negative-signal override outrank this journey (it defers, pauses or exits). While an instance is open, upsell and cross-sell sends to the same user are deferred; selling more to someone on the way out accelerates the exit. A feature-adoption message for the same feature as s1 is deduplicated (one of them, not both).
 

@@ -59,6 +59,11 @@ def run_validator(*args):
     summary = next((ln for ln in r.stdout.splitlines() if ln.startswith("validator ")), "")
     problems = [ln.strip() for ln in r.stdout.splitlines()
                 if ln.startswith("FAIL") or "unverifiable (critical)" in ln]
+    if r.returncode not in (0, 3) and not problems:
+        # a traceback or a usage error: never silently a pass
+        tail = (r.stderr.strip() or r.stdout.strip()).splitlines()[-1:] or ["no output"]
+        problems = [f"FAIL: validator exited {r.returncode} without findings: {tail[0][:200]}"]
+        r.returncode = 1
     return r.returncode, summary, problems
 
 
@@ -67,13 +72,27 @@ def load_manifest(outdir):
     return (json.load(open(p, encoding="utf-8")), p) if os.path.isfile(p) else (None, p)
 
 
+ID_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*-[0-9]{2}$")
+RUN_ID_RE = re.compile(r"^\d{8}-\d{6}-[0-9a-f]{4}$")
+
+
 def cmd_start(a):
+    bad = [s for s in a.scope if not ID_RE.match(s)]
+    if bad:
+        print(f"error: journey ids must match <sector>-<pattern>-<nn>: {bad}", file=sys.stderr)
+        return 2
     os.makedirs(a.outdir, exist_ok=True)
     old, mpath = load_manifest(a.outdir)
     if old:
-        dest = os.path.join(a.outdir, "runs", old.get("run_id", "unknown"))
+        old_id = old.get("run_id", "")
+        if not RUN_ID_RE.match(str(old_id)):
+            print(f"error: previous manifest has a malformed run_id {old_id!r}; not archiving into it", file=sys.stderr)
+            return 2
+        dest = os.path.join(a.outdir, "runs", old_id)
         os.makedirs(dest, exist_ok=True)
-        listed = [f["path"] for f in old.get("files", [])] + ["dossier.md", "canvas.html", "run-manifest.json"]
+        listed = [f["path"] for f in old.get("files", [])] + ["dossier.md", "canvas.html", "_meta.json",
+                                                              "run-manifest.json"]
+        listed = [p for p in listed if not os.path.isabs(p) and ".." not in p.split("/")]
         moved = 0
         for rel in dict.fromkeys(listed):
             src = os.path.join(a.outdir, rel)
@@ -116,22 +135,34 @@ def cmd_finish(a):
             failures.append(f"{jid}: journey JSON missing ({jid}.json)")
             continue
         code, summary, probs = run_validator("journey", jp)
-        doc = json.load(open(jp, encoding="utf-8"))
+        try:
+            doc = json.load(open(jp, encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            failures.append(f"{jid}: journey JSON unreadable: {e}")
+            files.append(jp)
+            continue
         journeys[jid] = {"readiness": doc.get("readiness"), "open_items": doc.get("open_items", []),
                          "validator": summary, "exit": code}
         (failures if code == 1 else unverified if code == 3 else []).extend(f"{jid}: {p}" for p in probs)
         files.append(jp)
-        if os.path.isfile(mp) and jg.is_v2(doc):
-            md = open(mp, encoding="utf-8").read()
-            md, _ = replace_section(md, r"^## 5\. Steps[^\n]*$", jr.render_step_table(doc))
-            md, _ = replace_section(md, r"^## 8\. Flow diagram[^\n]*$", jr.render_mermaid(doc))
-            open(mp, "w", encoding="utf-8").write(md)
+        if not os.path.isfile(mp):
+            failures.append(f"{jid}: journey doc missing ({jid}.md)")
+            continue
+        try:
+            if jg.is_v2(doc) and code != 1:
+                md = open(mp, encoding="utf-8").read()
+                md, ok5 = replace_section(md, r"^## 5\. Steps[^\n]*$", jr.render_step_table(doc))
+                md, ok8 = replace_section(md, r"^## 8\. Flow diagram[^\n]*$", jr.render_mermaid(doc))
+                if not (ok5 and ok8):
+                    failures.append(f"{jid}: doc lacks the '## 5. Steps' / '## 8. Flow diagram' headings the "
+                                    f"template requires; the mechanical sections could not be rendered")
+                open(mp, "w", encoding="utf-8").write(md)
             ccode, _, cprobs = run_validator("consistency", mp, jp)
             if ccode == 1:
                 failures.extend(f"{jid}: {p}" for p in cprobs)
-            files.append(mp)
-        elif not os.path.isfile(mp):
-            failures.append(f"{jid}: journey doc missing ({jid}.md)")
+        except Exception as e:  # noqa: BLE001  a render crash is a failed run, not a traceback
+            failures.append(f"{jid}: rendering the doc failed: {type(e).__name__}: {e}")
+        files.append(mp)
     # registry: mechanical fields from the journey files, judgment fields kept
     ppath = os.path.join(a.outdir, "portfolio.json")
     reg = json.load(open(ppath, encoding="utf-8")) if os.path.isfile(ppath) else {}
@@ -145,12 +176,17 @@ def cmd_finish(a):
         jp = os.path.join(a.outdir, f"{jid}.json")
         if not os.path.isfile(jp):
             continue
-        doc = json.load(open(jp, encoding="utf-8"))
+        try:
+            doc = json.load(open(jp, encoding="utf-8"))
+            res = jg.analyze(doc)
+        except Exception as e:  # noqa: BLE001
+            failures.append(f"{jid}: registry refresh failed: {type(e).__name__}: {e}")
+            continue
         e = dict(old.get(jid, {}))
-        res = jg.analyze(doc)
         e.update({"id": jid, "file": f"{jid}.json", "pattern": doc.get("pattern"), "stage": doc.get("stage"),
                   "priority": doc.get("priority"),
-                  "channels": sorted({n.get("channel") for n in doc.get("nodes", []) if n.get("kind") == "message"}),
+                  "channels": sorted({n.get("channel") for n in doc.get("nodes", [])
+                                      if n.get("kind") == "message" and n.get("channel")}),
                   "est_msgs_per_week": {k: v for k, v in res["freq"].items() if k != "total"}})
         e.setdefault("audience_group", jid)
         entries.append(e)
@@ -185,8 +221,10 @@ def cmd_finish(a):
                             *[os.path.join(a.outdir, f"{j}.json") for j in scope], "--meta", meta_path,
                             "--out", out], capture_output=True, text=True)
         canvas = "built" if r.returncode == 0 and os.path.isfile(out) else f"failed: {r.stderr.strip()[:200]}"
-        if os.path.isfile(out):
+        if os.path.isfile(out) and r.returncode == 0:
             files.append(out)
+        else:
+            failures.append(f"canvas: {canvas}")
     status = "failed" if failures else ("unverified" if unverified or
                                         any(j["readiness"] == "draft" for j in journeys.values()) else "passed")
     vline = subprocess.run([sys.executable, VO, "dossier", "/dev/null"], capture_output=True, text=True).stdout

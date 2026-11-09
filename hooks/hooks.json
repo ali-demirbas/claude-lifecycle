@@ -6,10 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/hooks/session_orientation.py"
-            ],
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session_orientation.py\"",
             "timeout": 5
           }
         ]

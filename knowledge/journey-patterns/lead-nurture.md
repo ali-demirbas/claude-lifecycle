@@ -3,7 +3,7 @@ name: lead-nurture
 stage: acquisition
 trigger_type: event
 required_events: [generate_lead, sign_up]
-optional_events: [trial_start, purchase, file_download, session_start, view_item, link_click, lead_qualified]
+optional_events: [trial_start, purchase, file_download, session_start, view_item, link_click, lead_qualified, consent_withdrawn]
 required_attributes: []
 optional_attributes: [lead_source, lead_score, content_topic, lead_status, marketing_consent]
 default_channels: [email]

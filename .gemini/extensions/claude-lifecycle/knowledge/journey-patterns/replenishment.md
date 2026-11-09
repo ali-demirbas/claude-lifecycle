@@ -21,7 +21,7 @@ signal_sources:
   add_to_cart: behavioral
   view_item: behavioral
   consent_withdrawn: authoritative
-  message_click: engagement
+  link_click: engagement
 insufficient_alone:
   - a category-average cycle with no purchase by this person behind it
   - a predicted run-out date, which is an estimate
@@ -57,7 +57,7 @@ Remind buyers of consumables to reorder just before the product runs out. Timing
 
 - **Entry:** `purchase` containing a replenishable item (catalog-flagged, or inferred from a tight repeat-interval distribution), a cycle reliable enough to act on, no repurchase yet. The instance opens at purchase and waits for the anchors below.
 - **Exclude:** item on an auto-delivery subscription, item refunded or returned, person already in a replenishment instance for the same item, an item whose cycle estimate is too loose to time (no instance opens rather than a mistimed one), portfolio-wide negative-signal override.
-- **Success exit:** `purchase` containing the same `item_id` (or its category) · **Window:** through 1.5× the cycle (configurable).
+- **Success exit:** `purchase` containing the same `item_id` (or its category) · **Window:** through `predicted_runout` + 0.5× the cycle (so a multi-pack's longer runout is covered; configurable).
 - **Checked before each send:** for this instance only (`instance_key: item_id`, anchored to one purchase): a `purchase` of the item or its category **placed after the anchoring purchase** (an older order arriving late from a batch import never ends a newer replenishment), `subscription_start` for the item, `refund` of the anchoring order's item (a refund of an earlier order does not). `consent_withdrawn` is scoped to that send's channel: an email unsubscribe stops s1/s3, a consented push continues.
 - **Re-entry:** every cycle, per item; portfolio caps decide whether several items' reminders can coexist.
 - **Repeated trigger while active:** a new purchase of the same item closes the open instance as replenished and restarts the clock from the new purchase.

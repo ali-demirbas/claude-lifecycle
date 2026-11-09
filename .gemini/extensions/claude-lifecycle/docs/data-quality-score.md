@@ -48,7 +48,7 @@ Every signal is reported as **checked / failed / unavailable** — unavailable m
 
 ## Worked example
 
-E-commerce store, GA4 connected: 9 meaningful events across 4 stages (**18**), `purchase` with full params but no second conversion type (**16**), funnel tracked view_item → purchase except `add_payment_info` (6/7 consecutive → **17**), user_id + consent state but no RFM history (**9**), ~800 conversions/month (**9**). **DQS = 69 → standard** (one point short of branched — the report should say exactly that, and what would tip it).
+E-commerce store, GA4 connected: 9 meaningful events across 4 stages (**18**), `purchase` with full params but no second conversion type (**16**), funnel tracked view_item → purchase except `add_payment_info` (the chain breaks at step 6 of 7, so consecutive coverage caps this at **12**), user_id + consent state but no RFM history (**9**), ~800 conversions/month (**9**). **DQS = 64 → standard** (six points short of branched — the report should say exactly that, and what would tip it).
 
 ## Re-scoring
 

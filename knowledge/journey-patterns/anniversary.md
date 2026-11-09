@@ -3,7 +3,7 @@ name: anniversary
 stage: retention
 trigger_type: time
 required_events: []
-optional_events: [purchase, login, session_start, coupon_redeemed]
+optional_events: [purchase, login, session_start, coupon_redeemed, consent_withdrawn]
 required_attributes: [anniversary_date]
 optional_attributes: [first_purchase_date, birthdate, tenure_years, perk_expiry_date]
 default_channels: [email, push]

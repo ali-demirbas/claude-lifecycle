@@ -4,15 +4,15 @@ stage: retention
 trigger_type: event
 journey_class: service
 required_events: [external_alert]
-optional_events: [session_start, claim_filed, purchase, alert_cancelled, coverage_ended]
+optional_events: [session_start, claim_filed, purchase, alert_cancelled, coverage_ended, consent_withdrawn]
 required_attributes: [alert_type, affected_region]
 optional_attributes: [product_line, travel_date, severity, alert_end]
 default_channels: [push, sms]
-base_steps: 1
+base_steps: 2
 depth_range: [1, 2]
 applicable_industries: [insurance, travel]
 mutually_exclusive_with: []
-signal_sources: {external_alert: authoritative, alert_type: authoritative, affected_region: authoritative, severity: authoritative, alert_end: authoritative, alert_cancelled: authoritative, claim_filed: authoritative, coverage_ended: authoritative, product_line: authoritative, travel_date: authoritative, session_start: behavioral, purchase: authoritative}
+signal_sources: {external_alert: authoritative, alert_type: authoritative, affected_region: authoritative, severity: authoritative, alert_end: authoritative, alert_cancelled: authoritative, claim_filed: authoritative, coverage_ended: authoritative, product_line: authoritative, travel_date: authoritative, session_start: behavioral, purchase: authoritative, consent_withdrawn: authoritative}
 insufficient_alone:
   - a forecast or model output that is not the official feed
   - a region match without a held product or booking exposed to the peril

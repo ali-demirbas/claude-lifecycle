@@ -90,7 +90,14 @@ def split_list(s):
 
 
 def scalar(v):
-    v = v.strip().strip('"').strip("'")
+    v = v.strip()
+    if len(v) >= 2 and v[0] == '"' and v[-1] == '"':
+        try:
+            return json.loads(v)  # a double-quoted YAML scalar decodes like JSON: \" and \\ become real characters
+        except json.JSONDecodeError:
+            return v[1:-1]
+    if len(v) >= 2 and v[0] == "'" and v[-1] == "'":
+        return v[1:-1].replace("''", "'")
     if v.lower() in ("true", "false"):
         return v.lower() == "true"
     try:
@@ -212,6 +219,8 @@ def check_case(case_dir, out_root=None):
 
     # greps
     texts = read_all_text(out_dir)
+    if not texts:
+        fail("the run produced no artifacts in the output dir: nothing to grade (an empty run is not a pass)")
     blob = tr_fold("\n".join(texts.values()))
     for s in a.get("required_anywhere", []):
         if tr_fold(str(s)) not in blob:

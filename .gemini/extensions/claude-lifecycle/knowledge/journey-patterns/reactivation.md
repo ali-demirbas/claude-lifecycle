@@ -4,7 +4,7 @@ stage: engagement
 trigger_type: segment
 journey_class: marketing
 required_events: [session_start]
-optional_events: [sign_up, first_open, login, purchase, app_remove, link_click, preference_updated]
+optional_events: [sign_up, first_open, login, purchase, app_remove, link_click, preference_updated, consent_withdrawn]
 required_attributes: []
 optional_attributes: [days_dormant, acquisition_source, last_screen, push_token_valid, reactivation_reason]
 default_channels: [push, email]
@@ -12,7 +12,7 @@ base_steps: 3
 depth_range: [3, 6]
 applicable_industries: [mobile-app, saas, marketplace, subscription-media, edtech, ecommerce, fintech, travel]
 mutually_exclusive_with: []
-signal_sources: {session_start: behavioral, login: behavioral, purchase: authoritative, app_remove: behavioral, link_click: engagement, preference_updated: authoritative, push_token_valid: authoritative, acquisition_source: behavioral, last_screen: behavioral, days_dormant: behavioral}
+signal_sources: {session_start: behavioral, login: behavioral, purchase: authoritative, app_remove: behavioral, link_click: engagement, preference_updated: authoritative, push_token_valid: authoritative, acquisition_source: behavioral, last_screen: behavioral, days_dormant: behavioral, consent_withdrawn: authoritative}
 insufficient_alone:
   - no session on one surface while another surface is active
   - another inactive period with nothing new to say
@@ -53,7 +53,7 @@ Bring back dormant **non-customers**: users who signed up or installed, never co
 - **Success exit:** `session_start` or `login`. Revenue is explicitly *not* this journey's exit; returners hand off to activation/revenue patterns · **Window:** 14 days.
 - **Checked before each send:** `session_start`, `login`, `purchase` (hand off; the person is now a customer), `consent_withdrawn` (channel-scoped: an email unsubscribe stops the email steps, a revoked push permission or invalid token stops push; neither moves the message to another channel on its own).
 - **Re-entry:** after a 60-day cooldown, max 3 lifetime cycles, and only with a new `reactivation_reason` each time; a repeated trigger while an instance is open is ignored. Without a new reason, or after the third cycle, the person goes to [unengaged-sunset](unengaged-sunset.md) instead of another campaign.
-- **Handoffs:** return session → [activation](activation.md) or [welcome-onboarding](welcome-onboarding.md) (whichever the person never finished); `purchase` → [post-purchase](post-purchase.md). Queued reactivation sends are suppressed in both cases.
+- **Handoffs:** return session → [activation](activation.md) or [welcome-onboarding](welcome-onboarding.md) (whichever the person never finished); `purchase` → [post-purchase](post-purchase.md). Queued reactivation sends are suppressed in both cases. Inbound from [trial-conversion](trial-conversion.md): non-converting trialists arrive here after the trial's grace step (they never qualify for winback, which needs a past purchase).
 
 ## Depth scaling
 
@@ -67,7 +67,7 @@ Bring back dormant **non-customers**: users who signed up or installed, never co
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
-| s1 | entry +0h at 18:00 user_local | push (email if `app_remove` or invalid token) | What's genuinely new since their last visit, deeplinked to the freshest relevant content | → s2 |
+| s1 | entry +0h, delivered at the next 18:00 user_local | push (email if `app_remove` or invalid token) | What's genuinely new since their last visit, deeplinked to the freshest relevant content | → s2 |
 | s2 | s1 +3d | email | The concrete value they never tried, matched to `acquisition_source` when known | → s3 |
 | s3 | s1 +10d | email | Honest last touch: "should we stop?" with a link to the preference center for snooze, fewer messages or stop. The choice applies only once the preference system records it as `preference_updated` with its value; a click on the link is not a choice | → exit (expired) at entry +14d |
 

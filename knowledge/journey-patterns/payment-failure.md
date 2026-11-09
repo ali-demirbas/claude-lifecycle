@@ -60,7 +60,7 @@ Recover failed subscription payments before involuntary churn. This protects exi
 - **Restriction is never a surprise:** if there was time to warn before access is restricted, the final notice (s3) must have gone out first; a suspension without a prior final notice is a defect.
 - **Restoration is confirmed explicitly:** when payment succeeds after `access_suspended`, the customer receives a transactional confirmation that access is back, triggered on `access_restored`. That confirmation sits outside this graph, because a send after the success event would be cancelled by the before-each-send check; the journey doc must name the message that does it, and QA treats its absence as a gap.
 - **Re-entry:** per distinct failed invoice (`instance_key: invoice_id`); two failed invoices are two instances with their own clocks, and a send from each is merged into one message when both fall on the same day. A repeated `payment_failed` for the same invoice (a failed automatic retry) is ignored by the trigger; the open instance continues on its own timeline.
-- **Handoffs:** none on success. If grace ends without payment and the subscription lapses, [winback](winback.md) may pick the person up later on its own lapse clock, after paid access has ended.
+- **Handoffs:** none on success. If grace ends without payment and the subscription lapses, [winback](winback.md) may pick the person up later on its own lapse clock, after paid access has ended. Inbound from [abandoned-cart](abandoned-cart.md): a `payment_failed` during checkout hands the person here with the cart journey's queued sends suppressed; this journey's copy then owns the payment problem and never re-pitches the cart.
 
 ## Depth scaling
 

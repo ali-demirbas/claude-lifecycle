@@ -3,12 +3,12 @@ name: referral
 stage: engagement
 trigger_type: segment
 required_events: [invite_sent]
-optional_events: [invite_accepted, referral_reward_credited, share, survey_response, purchase, login]
+optional_events: [invite_accepted, referral_reward_credited, share, survey_response, purchase, login, consent_withdrawn]
 required_attributes: []
 optional_attributes: [nps_score, engagement_score, referral_reward]
 default_channels: [in_app, email]
-base_steps: 2
-depth_range: [1, 2]
+base_steps: 4
+depth_range: [2, 4]
 applicable_industries: [saas, mobile-app, fintech, ecommerce, marketplace, edtech, subscription-media, insurance, travel]
 mutually_exclusive_with: []
 journey_class: marketing

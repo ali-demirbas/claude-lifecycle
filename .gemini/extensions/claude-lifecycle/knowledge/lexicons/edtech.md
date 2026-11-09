@@ -17,11 +17,11 @@ Word choice for course/learning-app CRM copy. The learner's inner critic already
 
 | Use | Avoid | Why |
 |---|---|---|
-| "12 ders tamamladın — Unit 3'e geldin" / "you've completed 12 lessons — you're into Unit 3" | "harikasın, devam et!" / "you're amazing, keep going!" (alone) | Concrete progress motivates; empty cheerleading reads as automated |
-| "kaldığın yerden devam et: 4 dakikalık bir ders" / "pick up where you left off — a 4-minute lesson" | "derslerine geri dön" / "get back to your lessons" | Small, named next step lowers the re-entry wall; commands raise it |
-| "dün ara verdin — bugün kısa bir dersle dönmek ister misin?" / "you took a break yesterday — fancy a short one today?" | "serini kaybettin", "yine mi bıraktın?" / "you lost your streak", "quitting again?" | Break ≠ failure; guilt framing is the sector's #1 uninstall trigger |
+| "12 ders tamamladın: Unit 3'e geldin" / "you've completed 12 lessons: you're into Unit 3" | "harikasın, devam et!" / "you're amazing, keep going!" (alone) | Concrete progress motivates; empty cheerleading reads as automated |
+| "kaldığın yerden devam et: 4 dakikalık bir ders" / "pick up where you left off: a 4-minute lesson" | "derslerine geri dön" / "get back to your lessons" | Small, named next step lowers the re-entry wall; commands raise it |
+| "dün ara verdin: bugün kısa bir dersle dönmek ister misin?" / "you took a break yesterday: fancy a short one today?" | "serini kaybettin", "yine mi bıraktın?" / "you lost your streak", "quitting again?" | Break ≠ failure; guilt framing is the sector's #1 uninstall trigger |
 | "hedefine %60 yaklaştın" / "you're 60% of the way to your goal" (real data) | "geride kaldın" / "you're falling behind" | Same data, opposite frame; always measure toward, never behind |
-| "bu hafta 3 gün çalıştın — geçen haftadan bir gün fazla" / "3 study days this week — one more than last week" | comparisons to other learners ("kullanıcıların %80'i senden ileride") | Self-comparison motivates; peer-comparison shames the exact users at risk |
+| "bu hafta 3 gün çalıştın: geçen haftadan bir gün fazla" / "3 study days this week: one more than last week" | comparisons to other learners ("kullanıcıların %80'i senden ileride") | Self-comparison motivates; peer-comparison shames the exact users at risk |
 | "sertifikana 2 ders kaldı" / "2 lessons to your certificate" | "başarısız olma", "fırsatı kaçırma" / "don't fail", "don't miss out" | Proximity-to-goal is the strongest honest urgency edtech has |
 | "5 günlük seri! Yarın da buradayız" / "5-day streak! see you tomorrow" | "serin tehlikede!!" / "your streak is in danger!!" | Celebrate the streak's existence; weaponizing it against the user backfires |
 
@@ -37,7 +37,7 @@ Urgency is allowed only for **real, external deadlines**: cohort start dates, li
 | Activation (enrolled, not started) | Friction-removing: shrink the task, restate the goal; assume life got busy, not that they lost interest |
 | Daily rhythm / streak | Light, brief, same-time-of-day; celebrate consistency, personalize by their usual study window |
 | Streak-break rescue (churn prevention) | The gentlest message in the portfolio: normalize the break, offer the smallest possible re-entry, zero guilt |
-| Milestone | Genuinely celebratory + concrete ("Unit 2 bitti — 340 kelime öğrendin"); this is the moment to invite sharing/referral |
+| Milestone | Genuinely celebratory + concrete ("Unit 2 bitti: 340 kelime öğrendin"); this is the moment to invite sharing/referral |
 | Trial conversion / purchase | Progress-led: their numbers first, plan facts second; the pitch is "protect what you've built" |
 | Winback | Honest, position-specific ("Unit 3, ders 2 seni bekliyor"), forward-looking; never relitigate the absence |
 

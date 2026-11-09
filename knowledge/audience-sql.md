@@ -60,6 +60,7 @@ WHERE _TABLE_SUFFIX BETWEEN <window>
       AND p.user_pseudo_id = e.user_pseudo_id
       AND p.event_timestamp > e.event_timestamp)
 -- validates: journey doc §3 "added to cart, no purchase since" · consent filtering happens downstream in the CRM
+-- activation_status: conditional (consent, suppression list and holdout assignment are applied in the CRM at send time)
 ```
 
 **Exclusion at scale:** a correlated `NOT EXISTS` (above) is the clearest way to write a small include-exclude query. Correlated subqueries are not automatically slow — the engine often rewrites them into a join — so when a query stacks several exclusions or excludes against a high-volume event, write the alternative below and **compare the two plans and bytes/slot usage** before choosing; don't assume either is faster. The rewrite must keep the time condition: the purchase has to come **after that cart event, for the same identity** — excluding anyone who purchased anywhere in the window (including before the cart) is a different, wrong audience.
@@ -89,6 +90,7 @@ LEFT JOIN converted_carts x
  AND x.cart_ts = c.cart_ts
 WHERE x.user_pseudo_id IS NULL
 -- validates: journey doc §3 "added to cart, no purchase since" · consent filtering happens downstream in the CRM
+-- activation_status: conditional (consent, suppression list and holdout assignment are applied in the CRM at send time)
 ```
 
 Like the correlated form, this keeps a person whose *latest* cart is unconverted even if an earlier cart was; if the journey means "no purchase since the most recent cart", reduce `carts` to each identity's latest cart first. Check that both forms return the same Validation B count on a sample before switching.
@@ -108,6 +110,7 @@ SELECT DISTINCT user_pseudo_id
 FROM ordered
 WHERE event_name = 'add_to_cart' AND prev_event = 'view_item'
 -- validates: journey doc §3 "<the sequential audience line it implements>"
+-- activation_status: conditional (consent, suppression list and holdout assignment are applied in the CRM at send time)
 ```
 
 Same rules apply as any other pattern (dated bound, identity choice, decision-trace comment) — this is a shape, not an exemption. Reach for it only when the journey doc's audience line is genuinely sequential ("after viewing X" / "without doing Y since Z"); most audiences are still flat thresholds and don't need it.
@@ -117,6 +120,7 @@ Same rules apply as any other pattern (dated bound, identity choice, decision-tr
 `knowledge/industries/ecommerce.md`'s segmentation attributes and the DQS "user attributes" component both name RFM (recency, frequency, monetary) as a segmentation dimension — this is the SQL to actually compute it, not just cite it:
 
 ```sql
+-- journey: <id> · audience: include (RFM tiers for segmentation)
 WITH rfm AS (
   SELECT user_pseudo_id,
          DATE_DIFF(CURRENT_DATE(), MAX(DATE(TIMESTAMP_MICROS(event_timestamp))), DAY) AS recency_days,
@@ -131,6 +135,8 @@ SELECT *,
        NTILE(5) OVER (ORDER BY frequency)         AS f_tile,
        NTILE(5) OVER (ORDER BY monetary)          AS m_tile
 FROM rfm
+-- validates: journey doc §3 "<the RFM tier line it implements>"
+-- activation_status: conditional (consent, suppression list and holdout assignment are applied in the CRM at send time)
 ```
 
 `NTILE(5)` needs a real population to bucket meaningfully — below a few hundred purchasers, fixed thresholds (from the industry playbook or the user's own figures) beat a five-way split of a tiny group; state which one was used and why.
@@ -139,7 +145,7 @@ FROM rfm
 
 1. `event_timestamp` is **microseconds** since epoch; compare timestamps to timestamps, dates to `_TABLE_SUFFIX` (or `event_date` on the partitioned-table variant).
 2. Frequency conditions ("≥ 2 view_item") are `GROUP BY identity HAVING COUNT(*) >= n` — never approximated with EXISTS.
-3. Every query ends with `-- validates: <journey-doc line it implements>` (decision-trace rule) and, where pseudo-id is used, the device-scope flag comment.
+3. Every query starts with `-- journey: <id> · audience: include|exclude` and ends with `-- validates: <journey-doc line it implements>` plus `-- activation_status: ready|conditional <note>` (the validator's `audience` mode fails a block without them) and, where pseudo-id is used, the device-scope flag comment.
 4. Consent is never filtered in SQL — behavioral selection here, consent/İYS enforcement downstream in the CRM; a comment states this on every query.
 5. **Costs and size are two different checks, not one — a dry run answers neither "how many" question.** State the scanned date range at the top of the file, then pair every query with BOTH:
    - **Validation A — dry run** (`bq query --dry_run` or the workspace's equivalent): confirms syntax and returns **bytes to be processed**, not a row count. Use it to catch cost/schema errors before anyone runs the real query.

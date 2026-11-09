@@ -3,7 +3,7 @@ name: account-onboarding
 stage: activation
 trigger_type: event
 required_events: [sign_up]
-optional_events: [invite_sent, invite_accepted, feature_used, tutorial_complete, subscription_start, integration_completed]
+optional_events: [invite_sent, invite_accepted, feature_used, tutorial_complete, subscription_start, integration_completed, account_activated, consent_withdrawn, csm_owner_assigned]
 required_attributes: [account_id, user_role]
 optional_attributes: [seats_total, seats_active, plan_name, champion_changed, csm_owner]
 default_channels: [email, in_app]

@@ -58,7 +58,7 @@ Two boundaries frame everything below. **An open channel carries this one reques
 - **Success exit:** `consent_updated` grant for the target channel · **Window:** 14 days.
 - **Instance key:** `target_channel`, one instance per channel being asked for.
 - **Checked before each send:** `consent_updated` for the target channel (`same_instance`; a grant ends the journey, including one the user made on their own elsewhere; a grant on a different channel does not), `consent_withdrawn` on the asking channel (channel-scoped: it stops the asks sent on that channel; nothing switches to another channel to continue asking). A withdrawal on the target channel excludes the user from this pattern for that channel.
-- **Re-entry:** per target channel, once per 60–90 days, and stop permanently after 2–3 ignored asks or one explicit "no": the same restraint rule as [referral](referral.md). Reachability is a favor the user grants, not a metric to be extracted. A repeated value moment while an instance is active is ignored.
+- **Re-entry:** per target channel, once per 60 days (configurable up to 90), and stop permanently after 2–3 ignored asks or one explicit "no": the same restraint rule as [referral](referral.md). Reachability is a favor the user grants, not a metric to be extracted. A repeated value moment while an instance is active is ignored.
 - **Handoffs:** a grant unlocks journeys and depth upgrades in the tracking plan; the newly opened channel is used only for the purpose stated in the ask.
 
 ## Push mechanics (platform constraint, not a style choice)

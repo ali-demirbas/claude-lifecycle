@@ -452,6 +452,7 @@ body.lab {
     .print-step .ps-row { font-size: 12px; margin: 2px 0; }
     .print-step.exit-good { background: #ecfdf5; }
     .print-step.exit-bad { background: #f7f8fb; }
+    .print-step.exit-neutral { background: #f7f8fb; }
     .print-branch-label { font-size: 11px; font-weight: 600; color: #007956; margin: 10px 0 4px; }
     code.variable { background: #f3f7ff; }
     .lab-tip-bubble { display: none; }
@@ -565,7 +566,7 @@ const JOURNEYS = [
       rows: [
         { icon: "clock", html: "<b>Tetikleyici:</b> haftalık tarama; koltuk kullanımı < %50 VEYA 30 günlük login trendi hesabın kendi taban çizgisinin < %50'si" },
         { icon: "target", html: `<b>Hedef kitle:</b> hesabın champion'ı + economic buyer'ı; end-user'lara bu journey'de mesaj yok. ${HOLDOUT_TIP}` },
-        { icon: "gear", html: "<b>Kontrol:</b> kontrat dönemi başına 1 giriş; her adımda exception check (gönderim anında kullanım trendi yeniden hesaplanır)" }
+        { icon: "gear", html: "<b>Kural:</b> kontrat dönemi başına 1 giriş; her adımda exception check (gönderim anında kullanım trendi yeniden hesaplanır)" }
       ],
       children: [{ label: null, node: {
         kind: "decision", tag: "Yol Ayrımı", title: "Negatif sinyal var mı? (NPS ≤ 6 / eskalasyonlu bilet)",
@@ -623,7 +624,7 @@ const JOURNEYS = [
       rows: [
         { icon: "clock", html: "<b>Tetikleyici:</b> trial_start event'i; tüm adımlar trial penceresine sığar, sığmayan adım otomatik düşer" },
         { icon: "target", html: `<b>Hedef kitle:</b> trial hesabının admin'i. ${HOLDOUT_TIP}` },
-        { icon: "gear", html: "<b>Kontrol:</b> hesap başına tek sekans; subscription_start gelirse anında çıkış (exception check her adımda)" }
+        { icon: "gear", html: "<b>Kural:</b> hesap başına tek sekans; subscription_start gelirse anında çıkış (exception check her adımda)" }
       ],
       children: [{ label: null, node: {
         kind: "message", tag: "Gün 0 · Email → Admin", title: "Hoş geldin + başarıyı öngören tek adım",
@@ -676,7 +677,7 @@ const JOURNEYS = [
       rows: [
         { icon: "clock", html: "<b>Tetikleyici:</b> hesap oluşturma; account_id + user_role mevcutsa kişi-düzeyi welcome bu journey'ye devrolur (ikisi aynı hesapta çalışmaz)" },
         { icon: "target", html: `<b>Hedef kitle:</b> rol bazlı paralel parkurlar. ${HOLDOUT_TIP}` },
-        { icon: "gear", html: "<b>Kontrol:</b> satış-yönetimli hesaplarda CSM sahipse journey sadece boşluk doldurur" }
+        { icon: "gear", html: "<b>Kural:</b> satış-yönetimli hesaplarda CSM sahipse journey sadece boşluk doldurur" }
       ],
       children: [{ label: null, node: {
         kind: "message", tag: "Gün 0 · Email → Admin", title: "Hesap hoş geldin + kurulum adımı",
@@ -726,7 +727,7 @@ const JOURNEYS = [
       rows: [
         { icon: "clock", html: "<b>Tetikleyici:</b> champion rolündeki kişi inactive oldu (role_changed event'i)" },
         { icon: "target", html: `<b>Hedef kitle:</b> yeni champion (varsa) + economic buyer. ${HOLDOUT_TIP}` },
-        { icon: "gear", html: "<b>Kontrol:</b> champion turnover yalnızca hesap/rol sürekliliğinde görünür; kişi-düzeyi metrikler bunu göremez" }
+        { icon: "gear", html: "<b>Kural:</b> champion turnover yalnızca hesap/rol sürekliliğinde görünür; kişi-düzeyi metrikler bunu göremez" }
       ],
       children: [{ label: null, node: {
         kind: "decision", tag: "Yol Ayrımı", title: "Yeni champion atandı mı?",
@@ -767,7 +768,7 @@ const JOURNEYS = [
       rows: [
         { icon: "clock", html: "<b>Tetikleyici:</b> seats_active / seats_purchased ≥ %90, 30+ gündür" },
         { icon: "target", html: `<b>Hedef kitle:</b> admin + economic buyer. ${HOLDOUT_TIP}` },
-        { icon: "gear", html: "<b>Kontrol:</b> sağlık kapısı — NPS ≤ 6, eskalasyonlu bilet veya düşen trend varsa giriş yok; churn-prevention ile karşılıklı dışlama" }
+        { icon: "gear", html: "<b>Kural:</b> sağlık kapısı — NPS ≤ 6, eskalasyonlu bilet veya düşen trend varsa giriş yok; churn-prevention ile karşılıklı dışlama" }
       ],
       children: [{ label: null, node: {
         kind: "message", tag: "Gün 0 · Email → Admin", title: "Kullanım zirvesi: veri mesajın kendisi",
@@ -798,7 +799,7 @@ const JOURNEYS = [
       rows: [
         { icon: "clock", html: "<b>Tetikleyici:</b> nps_response, skor parametresiyle" },
         { icon: "target", html: `<b>Hedef kitle:</b> yanıt veren kişi + hesabı. ${HOLDOUT_TIP}` },
-        { icon: "gear", html: "<b>Kontrol:</b> detractor bastırması portföy çapında — sadece bu journey değil, TÜM marketing durur" }
+        { icon: "gear", html: "<b>Kural:</b> detractor bastırması portföy çapında — sadece bu journey değil, TÜM marketing durur" }
       ],
       children: [{ label: null, node: {
         kind: "decision", tag: "Yol Ayrımı", title: "Skor?",
@@ -838,7 +839,7 @@ const JOURNEYS = [
       rows: [
         { icon: "clock", html: "<b>Tetikleyici:</b> segment taraması — hedef feature'ı hiç kullanmamış ama komşu davranışı yoğun hesaplar" },
         { icon: "target", html: `<b>Hedef kitle:</b> davranışı sinyali veren end-user. ${HOLDOUT_TIP}` },
-        { icon: "gear", html: "<b>Kontrol:</b> in-app sıfır izin riski — kullanıcı zaten üründe; iş akışı asla bloke edilmez, oturum başına 1 mesaj" }
+        { icon: "gear", html: "<b>Kural:</b> in-app sıfır izin riski — kullanıcı zaten üründe; iş akışı asla bloke edilmez, oturum başına 1 mesaj" }
       ],
       children: [{ label: null, node: {
         kind: "message", tag: "In-app → End-user", title: "Bağlamsal ipucu, tam o anda",
@@ -911,8 +912,10 @@ function buildCard(node) {
   const el = document.createElement('div');
   if (node.kind === 'exit') {
     const good = node.exit === 'good';
-    el.className = `lab-node lab-node--pill lab-node--exit${good ? ' is-good' : ''}`;
-    el.innerHTML = `<span class="lab-icon lab-icon--xs lab-icon--round ${good ? 'lab-t-good' : 'lab-t-neutral'}">${good ? ICONS.check : ICONS.x}</span><span>${escapeHtml(node.title)}</span>`;
+    const neutral = node.exit === 'neutral';
+    el.className = `lab-node lab-node--pill lab-node--exit${good ? ' is-good' : ''}${neutral ? ' is-neutral' : ''}`;
+    const mark = good ? ICONS.check : (neutral ? ICONS.chevron : ICONS.x);
+    el.innerHTML = `<span class="lab-icon lab-icon--xs lab-icon--round ${good ? 'lab-t-good' : 'lab-t-neutral'}">${mark}</span><span>${escapeHtml(node.title)}</span>`;
     return el;
   }
   if (node.kind === 'wait') {
@@ -1125,7 +1128,7 @@ function buildPrintView() {
       const indent = `style="margin-left:${Math.min(depth, 6) * 18}px"`;
       const labelHtml = label ? `<div class="print-branch-label" ${indent}>${escapeHtml(label)} →</div>` : '';
       if (node.kind === 'exit') {
-        const mark = node.exit === 'good' ? '✓' : '✕';
+        const mark = node.exit === 'good' ? '✓' : (node.exit === 'neutral' ? '→' : '✕');
         return `${labelHtml}<div class="print-step ${cls}" ${indent}><div class="ps-title">${mark} ${escapeHtml(node.title)}</div></div>`;
       }
       const rows = (node.rows || []).map(r => `<div class="ps-row">${highlightVars(r.html)}</div>`).join('');

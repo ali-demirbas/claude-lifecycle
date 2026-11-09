@@ -3,7 +3,7 @@ name: abandoned-cart
 stage: revenue
 trigger_type: event
 required_events: [add_to_cart, purchase]
-optional_events: [begin_checkout, view_cart, remove_from_cart, payment_failed, consent_withdrawn]
+optional_events: [begin_checkout, view_cart, remove_from_cart, payment_failed, consent_withdrawn, cart_cleared]
 required_attributes: []
 optional_attributes: [cart_value, cart_items, cart_id, item_availability]
 default_channels: [email, push]
@@ -21,7 +21,8 @@ signal_sources:
   cart_value: authoritative
   item_availability: authoritative
   consent_withdrawn: authoritative
-  message_click: engagement
+  cart_cleared: authoritative
+  link_click: engagement
 insufficient_alone:
   - add_to_cart from a session that never resolved to a contactable person
   - a click on a cart message
@@ -83,7 +84,7 @@ Recover people who put items in a cart and did not buy. Consistently the highest
 | d1 | s1 +20h | — | Decision on any_of(`view_cart` for this cart (behavioral), link_click on s1 (engagement, bot-filtered)) between s1 and s1 +20h | occurred → s3 · not_occurred → s2 · unmeasurable → s2 |
 | s2 | s1 +20h | push | Short nudge, deeplink straight into the cart | → s3 |
 | s3 | s1 +44h | email | Objection handling: shipping, returns, payment options, trust | → d2 |
-| d2 | s3 +24h | — | Decision on any_of(`view_cart` for this cart (behavioral), link_click on s3 (engagement, bot-filtered)) between s1 and s3 +24h | occurred → s4 · not_occurred → end · unmeasurable → end |
+| d2 | s3 +24h | — | Decision on any_of(`view_cart` for this cart (behavioral), link_click on s3 (engagement, bot-filtered)) between s3 and s3 +24h | occurred → s4 · not_occurred → end · unmeasurable → end |
 | s4 | s3 +24h | email | Social proof on the cart's items, for someone who came back and still didn't buy; name a real cart expiry only if the system holds one, never invented urgency | → end |
 
 Longest path s1 → s2 → s3 → s4 lands on about day 3 of the 7-day window. There is no late push: [push.md](../channels/push.md) accepts a cart push only while the intent is recent (under 24h), and someone who hasn't come back by d2 isn't chased further on any channel. any_of reads as occurred when either member occurred, not_occurred only when both were measured and neither occurred, unmeasurable otherwise (for example click tracking off and no `view_cart`).
@@ -96,7 +97,7 @@ Honest low-stock urgency: where a live `inventory_level` exists for a cart item,
 
 ## Timing and channel fit
 
-- **Clock:** user local time; unknown timezone falls back to the market timezone from intake. Push is held through 22:00–09:00 and released at the window's opening, not dropped; email avoids 00:00–06:00. If a send would land in quiet hours, the following sends keep their anchors to the actual send time of the node they reference, so spacing is preserved.
+- **Clock:** user local time; unknown timezone falls back to the market timezone from intake. A push that would land in 22:00–09:00 is skipped when it would otherwise go out more than 24h after `add_to_cart` (push.md's recency test); when it still fits, it is released staggered inside 09:00–11:00, never as a 09:00 burst. Email avoids 00:00–06:00. If a send would land in quiet hours, the following sends keep their anchors to the actual send time of the node they reference, so spacing is preserved.
 - **Channel fit:** email carries the cart's contents and survives until the person returns, so it holds the reminder and objection steps. Push is a short re-entry deeplink; its reason is [push.md](../channels/push.md)'s recency test for an abandoned cart, which s2 meets (about 21h after entry), not the missing click on s1. SMS is not used: [sms.md](../channels/sms.md)'s suitability table rejects abandoned cart, and a cart that went unclicked is not a reason to escalate (not reached is not not-engaged). WhatsApp may **replace** push as the carrier of s2 for a person who opted in to WhatsApp in a market where it is the highest-attention channel ([whatsapp.md](../channels/whatsapp.md), first row); it is chosen per person up front, never added after a missing click, and cart value alone does not qualify anyone.
 - **Fallback:** a push step for someone without push consent or a valid token is skipped, not moved to SMS; an email step for someone without email consent moves to push only when push is consented. A channel that fails reachability is skipped and the skip is recorded.
 

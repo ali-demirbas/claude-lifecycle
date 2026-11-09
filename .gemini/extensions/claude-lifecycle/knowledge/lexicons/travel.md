@@ -17,11 +17,11 @@ Word choice for OTA/airline/hotel CRM copy. Travel copy gets to dream a little �
 
 | Use | Avoid | Why |
 |---|---|---|
-| "İstanbul→Barselona, 12–19 Ağustos araman hâlâ geçerli" / "your Istanbul→Barcelona search, 12–19 Aug, is still live" | "hayalindeki tatil seni bekliyor" / "your dream vacation awaits" | Quote the actual search; generic wanderlust is noise |
+| "İstanbul→Barselona, 12-19 Ağustos araman hâlâ geçerli" / "your Istanbul→Barcelona search, 12-19 Aug, is still live" | "hayalindeki tatil seni bekliyor" / "your dream vacation awaits" | Quote the actual search; generic wanderlust is noise |
 | "aradığın rota şu an ₺4.230'dan başlıyor" / "fares on your route now start at $189" (live data) | "inanılmaz fiyatlar!", "fiyatlar uçuyor" / "unbelievable prices!" | The number is the message; adjectives dilute it |
 | "bu tarihte son 3 oda kaldı" (real inventory) / "3 rooms left for your dates" | "tükenmek üzere!" with no data / "selling fast!" | Real counts convert AND preserve trust; fake scarcity destroys both |
 | "fiyat düştü: takip ettiğin uçuş şimdi ₺3.980" / "price drop: the flight you're watching is now €142" | "fırsatı kaçırma, hemen al" / "grab it before it's gone" | A fare drop needs no decoration — data IS the urgency |
-| "yolculuğuna 5 gün kaldı — online check-in açıldı" / "5 days to your trip — check-in is open" | "unutmayın!", "önemli hatırlatma!!" | Countdown-to-departure framing is naturally engaging; alarm tone is for disruptions only |
+| "yolculuğuna 5 gün kaldı: online check-in açıldı" / "5 days to your trip: check-in is open" | "unutmayın!", "önemli hatırlatma!!" | Countdown-to-departure framing is naturally engaging; alarm tone is for disruptions only |
 | "Eylülde Ege: az kalabalık, hâlâ deniz" / "September on the Aegean: fewer crowds, warm sea" | "cennet gibi", "büyüleyici deneyim" / "paradise awaits", "magical experience" | Evocative = concrete sensory facts; brochure superlatives are wallpaper |
 | "iptal koşulları: 48 saate kadar ücretsiz" / "free cancellation until 48h before" | "içiniz rahat olsun" / "book with total peace of mind" | The policy is the reassurance; state it |
 
@@ -39,13 +39,13 @@ Urgency is permitted **only on real fare/availability data**: an actual fare cha
 | Pre-trip (post-purchase) | Warm concierge: anticipation + logistics; ancillary offers framed as trip improvements, not add-on sales |
 | In-trip | Service-only, minimal, instantly useful (directions, support, check-out time); marketing silence |
 | Post-trip / review ask | Grateful, brief, memory-forward ("Barselona nasıldı?"); one ask per message |
-| Winback / re-inspiration | Seasonal + personal ("geçen eylül Ege'deydin — bu yıl nereye?"); inspiration allowed here more than anywhere |
+| Winback / re-inspiration | Seasonal + personal ("geçen eylül Ege'deydin, bu yıl nereye?"); inspiration allowed here more than anywhere |
 
 ## TR / EN notes
 
 - TR: "sen" for leisure OTA audiences; "siz" for airlines, corporate travel, and upscale hotel brands — the price point sets the register.
 - TR: destination names in Turkish exonyms where natural (Barselona, Atina); airport codes only for frequent-flyer segments.
-- TR: currency always ₺ with thousands separator (₺4.230); date format "12–19 Ağustos" — never ISO dates in customer copy.
+- TR: currency always ₺ with thousands separator (₺4.230); date format "12-19 Ağustos" — never ISO dates in customer copy.
 - EN: aviation jargon (layover, red-eye, carrier) is fine for flight products; hotel copy stays plainer. No "wanderlust"/"getaway" filler.
 - Both: always name route/city/hotel — a travel message without a place name in the first line has failed.
 - Both: disruption and change messages follow transactional rules: no promo content, no emoji, formal register.

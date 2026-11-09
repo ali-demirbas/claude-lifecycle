@@ -43,6 +43,7 @@ Usage:
 Exit: 0 = built and self-verified, 2 = usage error / drift detected.
 """
 import argparse
+import html
 import json
 import re
 import sys
@@ -61,6 +62,67 @@ def _sub_once(text, pattern, repl, flags=0):
 
 # --------------------------------------------- journey JSON -> canvas journey obj
 _CHANNEL_ICON = {"email": "mail", "push": "bell", "sms": "chat", "in_app": "bolt", "whatsapp": "chat"}
+# The canvas keys its channel styles by these ids (templates/canvas.html CHANNELS).
+_CANVAS_CHANNEL = {"in_app": "inapp"}
+_EDGE_LABEL = {"occurred": "Oldu", "not_occurred": "Olmadı", "default": "Varsayılan", "unmeasurable": "Ölçülemedi"}
+_EXIT_TITLE = {"completed": "Tamamlandı", "converted": "Dönüştü", "expired": "Süre doldu", "handoff": "Devir",
+               "suppressed": "Bastırıldı", "unsubscribed": "Abonelikten çıktı", "ineligible": "Uygun değil"}
+_UNIT_TR = {"W": "hafta", "D": "gün", "H": "saat", "M": "dakika"}
+
+
+def _esc(s):
+    """Journey data that lands inside a `rows[].html` string: it is rendered with
+    innerHTML, so event names, anchors and signal names are escaped here. Only
+    the model-authored `display.rows` keep their HTML, like copy bodies."""
+    return html.escape(str(s if s is not None else ""), quote=True)
+
+
+def _js_safe(s):
+    """A JSON text embedded in a <script> block must not contain `</`: a
+    `</script>` inside any string would close the block and run what follows."""
+    return s.replace("</", "<\\/")
+
+
+def _dur_tr(iso):
+    """'P1D' -> '1 gün', 'PT1H' -> '1 saat', 'P1DT12H' -> '1 gün 12 saat'."""
+    m = re.fullmatch(r"-?P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?", iso or "")
+    if not m or not iso or iso in ("P0D", "PT0H", "PT0M"):
+        return "hemen" if iso in ("P0D", "PT0H", "PT0M") else (iso or "?")
+    parts = [f"{v} {_UNIT_TR[u]}" for v, u in zip(m.groups(), "WDHM") if v and int(v)]
+    return " ".join(parts) or "hemen"
+
+
+def anchor_text_tr(a):
+    """Anchor -> Turkish text for the canvas: 'Girişten 1 gün sonra', 'trial_end 2 gün önce', 'd1 sonrası hemen'."""
+    if not isinstance(a, dict):
+        return "?"
+    off = a.get("offset", "P0D")
+    src = a.get("from")
+    ref = {"entry": "Giriş", "node": a.get("node"), "event": a.get("event"), "attribute": a.get("attribute")}.get(src) or "?"
+    neg = str(off).startswith("-")
+    d = _dur_tr(str(off).lstrip("-"))
+    if d == "hemen":
+        txt = f"{ref} anında" if src == "entry" else f"{ref} sonrası hemen"
+    else:
+        txt = f"{ref} {d} {'önce' if neg else 'sonra'}"
+    cal = a.get("calendar")
+    if cal:
+        txt += f", saat {cal.get('time_of_day')} ({cal.get('timezone') or 'saat dilimi yok'})"
+    return txt
+
+
+def _signal_text(sig):
+    import journey_graph as jg  # noqa: PLC0415
+    members = jg.signal_members(sig or {})
+    if not members:
+        return "?", "?"
+    if len(members) == 1:
+        m = members[0]
+        return str(m.get("name", "?")), str(m.get("source", "?"))
+    joiner = " veya " if "any_of" in sig else " ve "
+    names = joiner.join(str(m.get("name", "?")) for m in members)
+    sources = ", ".join(sorted({str(m.get("source", "?")) for m in members}))
+    return names, sources
 
 
 def _primary_metric(doc):
@@ -82,18 +144,18 @@ def _flat_root(doc):
         "kind": "entry",
         "tag": "Giriş",
         "title": trig.get("value", doc.get("id", "Giriş")),
-        "rows": [{"icon": "clock", "html": f"<b>Tetikleyici:</b> {trig.get('value', '')}"}],
+        "rows": [{"icon": "clock", "html": f"<b>Tetikleyici:</b> {_esc(trig.get('value', ''))}"}],
         "children": [],
     }
     tail = entry  # node whose children we append the next node to
     for st in doc.get("steps", []):
         ch = st.get("channel", "")
-        rows = [{"icon": _CHANNEL_ICON.get(ch, "mail"), "html": f"Bekleme: {_fmt_wait(st.get('wait', ''), st.get('index') == 1)}"}]
+        rows = [{"icon": _CHANNEL_ICON.get(ch, "mail"), "html": f"Bekleme: {_esc(_fmt_wait(st.get('wait', ''), st.get('index') == 1))}"}]
         if st.get("branch_condition"):
-            rows.append({"icon": "filter", "html": f"Koşul: {st['branch_condition']}"})
+            rows.append({"icon": "filter", "html": f"Koşul: {_esc(st['branch_condition'])}"})
         node = {
             "kind": "message",
-            "channel": ch,
+            "channel": _CANVAS_CHANNEL.get(ch, ch),
             "tag": f"Adım {st.get('index')} · {ch}",
             "title": st.get("intent", ""),
             "rows": rows,
@@ -130,35 +192,65 @@ def _v2_root(doc):
         tsec = first_t.get(nid)
         return f"Gün {tsec // jg.DAY}" if tsec is not None else "Zaman: olaya bağlı"
 
+    drawn = set()
+
+    def exit_node(n, disp):
+        reason = n.get("reason") or ""
+        title = disp.get("title") or _EXIT_TITLE.get(reason, reason or "Çıkış")
+        hand = n.get("handoff") or {}
+        if hand.get("to") and not disp.get("title"):
+            title = f"Devir: {hand['to']}"
+        outcome = n.get("outcome")
+        pill = "good" if outcome == "good" else ("neutral" if outcome == "neutral" or hand else "bad")
+        return {"kind": "exit", "exit": pill, "title": title}
+
     def to_node(nid):
         n = by_id[nid]
         disp = n.get("display") or {}
         k = n.get("kind")
-        shared = " · ortak adım" if incoming.get(nid, 0) > 1 else ""
+        is_shared = incoming.get(nid, 0) > 1
+        shared = " · ortak adım" if is_shared else ""
         if k == "entry":
             trig = doc.get("trigger") or {}
             node = {"kind": "entry", "tag": disp.get("tag") or "Giriş",
                     "title": disp.get("title") or trig.get("value", doc.get("id", "")),
-                    "rows": disp.get("rows") or [{"icon": "clock", "html": f"<b>Tetikleyici:</b> {trig.get('value', '')}"}]}
+                    "rows": disp.get("rows") or [{"icon": "clock", "html": f"<b>Tetikleyici:</b> {_esc(trig.get('value', ''))}"}]}
         elif k == "message":
             ch = n.get("channel", "")
-            from journey_render import anchor_text  # noqa: PLC0415
-            node = {"kind": "message", "channel": ch,
-                    "tag": disp.get("tag") or f"{day(nid)} · {ch}{shared}",
+            rows = disp.get("rows")
+            if not rows:
+                rows = [{"icon": _CHANNEL_ICON.get(ch, "mail"), "html": f"Zamanlama: {_esc(anchor_text_tr(n.get('send')))}"}]
+                dl = n.get("delivery") or {}
+                if dl.get("mode") == "next_session":
+                    rows.append({"icon": "clock", "html": "Gösterim: sonraki oturumda"
+                                 + (f", {_esc(_dur_tr(dl['expires_after']))} içinde görülmezse düşer" if dl.get("expires_after") else "")})
+                if dl.get("deadline"):
+                    rows.append({"icon": "clock", "html": f"Son gönderim: {_esc(anchor_text_tr(dl['deadline']))}"})
+                if n.get("purpose") and n.get("purpose") != "marketing":
+                    rows.append({"icon": "gear", "html": f"Amaç: {_esc(n['purpose'])} (pazarlama sıklığına sayılmaz)"})
+                if n.get("recipient_role"):
+                    rows.append({"icon": "user", "html": f"Alıcı: {_esc(n['recipient_role'])}"})
+            node = {"kind": "message", "channel": _CANVAS_CHANNEL.get(ch, ch),
+                    "tag": disp.get("tag") or f"{day(nid)} · {ch.replace('_', '-')}{shared}",
                     "title": disp.get("title") or n.get("intent", ""),
-                    "rows": disp.get("rows") or [{"icon": _CHANNEL_ICON.get(ch, "mail"),
-                                                  "html": f"Zamanlama: {anchor_text(n.get('send'))}"}]}
+                    "rows": rows}
         elif k == "decision":
-            sig = n.get("signal") or {}
+            names, sources = _signal_text(n.get("signal"))
             node = {"kind": "decision", "tag": disp.get("tag") or f"{day(nid)} · Yol ayrımı{shared}",
-                    "title": disp.get("title") or f"{sig.get('name')}?",
-                    "rows": disp.get("rows") or [{"icon": "filter", "html": f"Sinyal: {sig.get('name')} ({sig.get('source')})"}]}
+                    "title": disp.get("title") or f"{names}?",
+                    "rows": disp.get("rows") or [{"icon": "filter", "html": f"Sinyal: {_esc(names)} ({_esc(sources)})"}]}
         else:
-            node = {"kind": "exit", "exit": "good" if n.get("outcome") == "good" else "bad",
-                    "title": disp.get("title") or n.get("reason", "Çıkış")}
+            node = exit_node(n, disp)
         if disp.get("extra"):
             node["extra"] = disp["extra"]
-        kids = [{"label": lab, "node": to_node(tgt)} for lab, tgt in jg.successors(n)]
+        if is_shared and nid in drawn:
+            # a merge node is drawn in full once; later parents get a pointer, so a
+            # graph with several merges doesn't multiply into hundreds of cards
+            node["tag"] = (node.get("tag") or "") + " (yukarıda çizildi)"
+            return node
+        drawn.add(nid)
+        kids = [{"label": _EDGE_LABEL.get(str(lab), lab) if lab is not None else None, "node": to_node(tgt)}
+                for lab, tgt in jg.successors(n)]
         if kids:
             node["children"] = kids
         return node
@@ -210,13 +302,13 @@ def build(template_path, journeys, meta):
     # Header texts — NO DOTALL so the `<title>` inside the SWAPPABLE comment
     # (which has no closing `</title>` on its own line) is never matched.
     if "title" in meta:
-        t, _ = _sub_once(t, r"<title>.*?</title>", f"<title>{meta['title']}</title>")
+        t, _ = _sub_once(t, r"<title>.*?</title>", f"<title>{_esc(meta['title'])}</title>")
     if "eyebrow" in meta:
-        t, _ = _sub_once(t, r'<p class="eyebrow">.*?</p>', f'<p class="eyebrow">{meta["eyebrow"]}</p>')
+        t, _ = _sub_once(t, r'<p class="eyebrow">.*?</p>', f'<p class="eyebrow">{_esc(meta["eyebrow"])}</p>')
     if "h1" in meta:
-        t, _ = _sub_once(t, r"<h1>.*?</h1>", f"<h1>{meta['h1']}</h1>")
+        t, _ = _sub_once(t, r"<h1>.*?</h1>", f"<h1>{_esc(meta['h1'])}</h1>")
     if "lede" in meta:
-        t, _ = _sub_once(t, r'<p class="lede">.*?</p>', f'<p class="lede">{meta["lede"]}</p>')
+        t, _ = _sub_once(t, r'<p class="lede">.*?</p>', f'<p class="lede">{_esc(meta["lede"])}</p>')
 
     # HOLDOUT_TIP / DATA_NOTE — whole line (no DOTALL), so an inner ';' inside
     # the string literal doesn't truncate the match. Only if the template has them.
@@ -232,7 +324,7 @@ def build(template_path, journeys, meta):
     lines = ["const JOURNEYS = ["]
     for i, jj in enumerate(journeys):
         comma = "," if i < len(journeys) - 1 else ""
-        lines.append("  " + json.dumps(jj, ensure_ascii=False) + comma)
+        lines.append("  " + _js_safe(json.dumps(jj, ensure_ascii=False)) + comma)
     lines.append("];")
     block = "\n".join(lines)
     t, n = _sub_once(t, r"const JOURNEYS = \[.*?\n\];", block, flags=re.S)
@@ -291,6 +383,12 @@ def main(argv):
             journeys = json.loads(Path(args.journeys).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as e:
         print(f"error: {e}", file=sys.stderr)
+        return 2
+    ids = [j.get("id") for j in journeys] if isinstance(journeys, list) else []
+    dup = sorted({i for i in ids if ids.count(i) > 1})
+    if dup:
+        print(f"error: duplicate journey id(s) {dup}: the canvas keys its tabs by id, a second tab could never be shown",
+              file=sys.stderr)
         return 2
     if not isinstance(journeys, list) or not journeys:
         print("error: no journeys to build (empty --journeys array or no --from-journeys inputs)", file=sys.stderr)

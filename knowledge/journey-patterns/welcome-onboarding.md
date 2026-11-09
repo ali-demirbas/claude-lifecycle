@@ -3,7 +3,7 @@ name: welcome-onboarding
 stage: activation
 trigger_type: event
 required_events: [sign_up]
-optional_events: [login, tutorial_begin, tutorial_complete, feature_used, purchase, subscription_start, link_click]
+optional_events: [login, tutorial_begin, tutorial_complete, feature_used, purchase, subscription_start, link_click, activation_event, consent_withdrawn]
 required_attributes: []
 optional_attributes: [signup_source, plan_type, onboarding_goal, account_id, user_role, last_completed_step]
 default_channels: [email, in_app]

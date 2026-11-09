@@ -19,7 +19,7 @@ Word choice for SaaS lifecycle copy. The reader is at work, evaluating whether y
 |---|---|---|
 | "5 dakikada ilk raporunuzu oluşturun" / "create your first report in 5 minutes" | "güçlü raporlama özelliklerimizi keşfedin" / "explore our powerful reporting features" | Concrete task + time bound > feature tour language |
 | "denemenizin bitmesine 3 gün var" / "your trial ends in 3 days" | "SON ŞANS! Fırsatı kaçırmayın" / "LAST CHANCE to upgrade!" | A date is information; manufactured panic is off-register for work software |
-| "ödemeniz alınamadı — kartınızı güncelleyin" / "your payment didn't go through — update your card" | "hesabınız askıya alınacak!" / "your account will be suspended!" | Dunning is logistics; threat framing spikes churn |
+| "ödemeniz alınamadı: kartınızı güncelleyin" / "your payment didn't go through: update your card" | "hesabınız askıya alınacak!" / "your account will be suspended!" | Dunning is logistics; threat framing spikes churn |
 | "ekibiniz için: {{teammate_name}} davetinizi bekliyor" / "invite {{teammate_name}} to your workspace" | "işbirliğinin gücünü açığa çıkarın" / "unleash the power of collaboration" | Named next step > abstract benefit poetry |
 | "şunu deneyin:" + one action / "try this:" + one action | "yapabilecekleriniz sınırsız" / "the possibilities are endless" | One clear action per message; vague abundance = no action |
 | "X özelliği artık kullanımınızda" / "X is now available on your plan" | "devrim niteliğinde yeni özellik!" / "game-changing new feature!" | State the change; the reader judges the magnitude |

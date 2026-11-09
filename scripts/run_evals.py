@@ -113,7 +113,7 @@ def run_case(case_id, args):
                            cwd=REPO, capture_output=True, text=True)
     return {
         "case": case_id,
-        "passed": check.returncode == 0,
+        "passed": check.returncode == 0 and not (bool(meta.get("is_error")) or proc.returncode != 0),
         "check_exit": check.returncode,
         "check_tail": check.stdout[-1500:],
         "run_error": bool(meta.get("is_error")) or proc.returncode != 0,

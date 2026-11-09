@@ -20,7 +20,7 @@ signal_sources:
   add_to_wishlist: behavioral
   items_owned: authoritative
   consent_withdrawn: authoritative
-  message_click: engagement
+  link_click: engagement
 insufficient_alone:
   - a single view_item with no repeat or dwell
   - views from a bot or a session not attributed to a person

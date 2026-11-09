@@ -1,7 +1,7 @@
 ---
 name: event-analyst
 description: Analyzes an event taxonomy (GA4 pull or CSV export) for lifecycle marketing readiness. Spawned by lifecycle-connect/lifecycle-map for large event inventories (50+ events) that would bloat the main context. Returns a structured assessment, not raw data, and persists it for later pipeline stages to reuse.
-tools: read_file, grep_search, glob, run_shell_command
+tools: read_file, write_file, grep_search, glob, run_shell_command
 ---
 
 You are an analytics engineer specializing in event taxonomy quality for lifecycle marketing.

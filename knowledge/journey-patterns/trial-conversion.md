@@ -3,7 +3,7 @@ name: trial-conversion
 stage: revenue
 trigger_type: event
 required_events: [trial_start, subscription_start]
-optional_events: [feature_used, trial_end, login, tutorial_complete, add_payment_info, paywall_view, quota_limit_reached, link_click]
+optional_events: [feature_used, trial_end, login, tutorial_complete, add_payment_info, paywall_view, quota_limit_reached, link_click, consent_withdrawn]
 required_attributes: [trial_length]
 optional_attributes: [plan_name, trial_end_date, activation_score]
 default_channels: [email, in_app, push]
@@ -58,7 +58,7 @@ Convert trial users into paying subscribers before the trial expires. The P0 jou
 - **Success exit:** `subscription_start` · **Window:** `trial_end +7d` (trial plus a 7-day grace).
 - **Checked before every send:** `subscription_start` on any plan for this account (a paying user leaves immediately), `consent_withdrawn` scoped to that channel: an email unsubscribe stops the emails, while push and in-app steps continue where consented, and a legally required expiry notice still goes transactionally (see Timing). One instance follows one trial (`instance_key: trial_id`).
 - **Re-entry:** once per distinct trial (each new `trial_start` outside the 90-day exclusion opens a new instance); a duplicate `trial_start` for the same trial is ignored.
-- **Hand-offs:** converters go to post-purchase / onboarding-for-paid; non-converters after the grace step go to `winback` or the low-frequency list, and nothing queued here survives the window.
+- **Hand-offs:** converters go to post-purchase / onboarding-for-paid; non-converters after the grace step go to `reactivation` (never `winback`, which requires a past purchase) or the low-frequency list, and nothing queued here survives the window.
 
 ## Depth scaling
 

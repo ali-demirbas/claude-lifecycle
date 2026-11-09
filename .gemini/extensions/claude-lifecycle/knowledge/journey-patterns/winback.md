@@ -4,7 +4,7 @@ stage: winback
 trigger_type: segment
 journey_class: marketing
 required_events: [purchase, session_start]
-optional_events: [subscription_cancel, subscription_expired, refund, login, add_to_cart, link_click, hard_bounce]
+optional_events: [subscription_cancel, subscription_expired, refund, login, add_to_cart, link_click, hard_bounce, consent_withdrawn]
 required_attributes: []
 optional_attributes: [median_interpurchase_gap, ltv_tier, last_category, consent_age, cancel_reason, access_end_date, incentive_ledger]
 default_channels: [email]
@@ -12,7 +12,7 @@ base_steps: 4
 depth_range: [3, 6]
 applicable_industries: [ecommerce, marketplace, saas, subscription-media, travel, fintech, insurance, edtech, mobile-app]
 mutually_exclusive_with: [churn-prevention]
-signal_sources: {purchase: authoritative, session_start: behavioral, subscription_cancel: authoritative, subscription_expired: authoritative, refund: authoritative, link_click: engagement, hard_bounce: authoritative, cancel_reason: authoritative, access_end_date: authoritative, incentive_ledger: authoritative, median_interpurchase_gap: inferred, ltv_tier: inferred, consent_age: authoritative}
+signal_sources: {purchase: authoritative, session_start: behavioral, subscription_cancel: authoritative, subscription_expired: authoritative, refund: authoritative, link_click: engagement, hard_bounce: authoritative, cancel_reason: authoritative, access_end_date: authoritative, incentive_ledger: authoritative, median_interpurchase_gap: inferred, ltv_tier: inferred, consent_age: authoritative, consent_withdrawn: authoritative}
 insufficient_alone:
   - days since last purchase against one fixed global number
   - a cancellation request while paid access is still running

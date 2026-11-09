@@ -4,7 +4,7 @@ display_name: Insurance (motor, health, home, travel, SME lines)
 funnel: [quote_started, policy_purchased, app_activated]  # acquisition + digital activation; claims and renewal are cohort funnels (body)
 conversion_events: [policy_purchased, policy_renewed]
 activation_definition: app_activated or portal_registered within 14 days of policy_purchased (a policyholder who never opens the app/portal has no claims-readiness and no cross-sell surface).
-churn_signal: no re-engagement (app/portal login, email open) inside the 45 days before policy expiry, or a claim closed without a satisfaction follow-up.
+churn_signal: no re-engagement (app/portal login, bot-filtered link click) inside the 45 days before policy expiry, or a claim closed without a satisfaction follow-up.
 pattern_priorities:
   welcome-onboarding: P0
   abandoned-cart: P0

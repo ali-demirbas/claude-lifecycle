@@ -49,6 +49,34 @@ def _type(node):
     return t or "object"
 
 
+def _constraints(v):
+    """Machine constraints the architect must respect, in the same line as the field."""
+    bits = []
+    if v.get("pattern"):
+        bits.append(f"pattern /{v['pattern']}/")
+    for key, label in (("minimum", "≥"), ("maximum", "≤"), ("exclusiveMinimum", ">"), ("exclusiveMaximum", "<")):
+        if key in v:
+            bits.append(f"{label} {v[key]}")
+    if "maxLength" in v:
+        bits.append(f"len ≤ {v['maxLength']}")
+    if "minLength" in v and v["minLength"] > 1:
+        bits.append(f"len ≥ {v['minLength']}")
+    if "minItems" in v:
+        bits.append(f"items ≥ {v['minItems']}")
+    if "maxItems" in v:
+        bits.append(f"items ≤ {v['maxItems']}")
+    if isinstance(v.get("contains"), dict) and "const" in v["contains"]:
+        bits.append(f"must contain {v['contains']['const']}")
+    items = v.get("items") if isinstance(v.get("items"), dict) else {}
+    if items.get("pattern"):
+        bits.append(f"each /{items['pattern']}/")
+    if v.get("additionalProperties") is False:
+        bits.append("no other fields")
+    if v.get("uniqueItems"):
+        bits.append("unique")
+    return (" [" + "; ".join(bits) + "]") if bits else ""
+
+
 def _conditions(node):
     out = []
     for c in node.get("allOf", []):
@@ -88,7 +116,7 @@ def _object(name, node, lines):
             continue
         flag = " (required)" if k in req else ""
         desc = _first_sentence(v.get("description")) if v.get("description") else ""
-        lines.append(f"  {k}: {_type(v)}{flag}" + (f" — {desc}" if desc else ""))
+        lines.append(f"  {k}: {_type(v)}{flag}{_constraints(v)}" + (f" — {desc}" if desc else ""))
         if v.get("type") == "object" and v.get("properties"):
             sub = []
             _object(f"  {k} fields", v, sub)

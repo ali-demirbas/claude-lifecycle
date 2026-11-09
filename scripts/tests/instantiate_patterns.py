@@ -101,6 +101,7 @@ for path in sorted(glob.glob(os.path.join(PATTERN_DIR, "*.md"))):
         "name": name, "pattern": name, "stage": f.get("stage"), "priority": "P1", "data_tier": "T2", "dqs": 50,
         "objective": "minimal instantiation", "trigger": {"type": "event", "value": "trigger_event"},
         "audience": {"include": "x"}, "events_available": ["trigger_event", "conversion", "consent_withdrawn"],
+        "constraints": {"allowed_channels": [ch]},
         "exit": {"success_event": "conversion", "success_window": "P90D", "exit_conditions": [
             {"event": "conversion", "check": ["entry", "before_each_send"]},
             {"event": "consent_withdrawn", "check": ["before_each_send"]}]},

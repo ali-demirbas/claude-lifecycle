@@ -3,7 +3,7 @@ name: milestone
 stage: retention
 trigger_type: event
 required_events: [milestone_reached]
-optional_events: [purchase, level_up, unlock_achievement, feature_used, login, session_start, reward_redeemed]
+optional_events: [purchase, level_up, unlock_achievement, feature_used, login, session_start, reward_redeemed, consent_withdrawn]
 required_attributes: [milestone_type, milestone_value]
 optional_attributes: [first_purchase_date, streak_length, reward_id, reward_expiry_date]
 default_channels: [email, in_app]

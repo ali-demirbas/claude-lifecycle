@@ -3,7 +3,7 @@ name: cancellation-winddown
 stage: retention
 trigger_type: event
 required_events: [subscription_cancel, subscription_expired]
-optional_events: [subscription_reactivated, subscription_pause, subscription_resumed, payment_failed, data_export, support_ticket_created, cancel_reason_submitted]
+optional_events: [subscription_reactivated, subscription_pause, subscription_resumed, payment_failed, data_export, support_ticket_opened, cancel_reason_submitted]
 required_attributes: [access_end_date]
 optional_attributes: [plan_name, cancel_reason, marketing_consent, resume_date, renewal_price, data_retention_days, outstanding_balance]
 default_channels: [email, push, in_app]
@@ -12,7 +12,7 @@ depth_range: [2, 4]
 applicable_industries: [saas, subscription-media, edtech, mobile-app, fintech, insurance]
 mutually_exclusive_with: []
 journey_class: service
-signal_sources: {subscription_cancel: authoritative, subscription_expired: authoritative, access_end_date: authoritative, subscription_reactivated: authoritative, subscription_pause: authoritative, subscription_resumed: authoritative, resume_date: authoritative, payment_failed: authoritative, marketing_consent: authoritative, support_ticket_created: authoritative, data_export: behavioral, cancel_reason_submitted: behavioral, cancel_reason: behavioral}
+signal_sources: {subscription_cancel: authoritative, subscription_expired: authoritative, access_end_date: authoritative, subscription_reactivated: authoritative, subscription_pause: authoritative, subscription_resumed: authoritative, resume_date: authoritative, payment_failed: authoritative, marketing_consent: authoritative, support_ticket_opened: authoritative, data_export: behavioral, cancel_reason_submitted: behavioral, cancel_reason: behavioral}
 insufficient_alone:
   - a click on the cancel button or a visit to the cancellation page
   - a cancel-reason survey answer
@@ -44,7 +44,7 @@ A **pause variant** runs on the same skeleton: the customer chose a break with a
 | `subscription_pause` / `subscription_resumed` + `resume_date` *(optional)* | authoritative | Pause variant trigger, its anchor and its success exit. |
 | `payment_failed` *(optional)* | authoritative | Pause variant: the restart charge failed, so payment-failure takes over. Main path: an outstanding balance owned by payment recovery. |
 | `marketing_consent` *(optional attr)* | authoritative | Consent state at the moment of cancellation, carried to win-back. A withdrawal recorded in the cancel flow is final. |
-| `support_ticket_created` *(optional)* | authoritative | Measurement: surprise contacts about lost access around the end date. |
+| `support_ticket_opened` *(optional)* | authoritative | Measurement: surprise contacts about lost access around the end date. |
 | `data_export`, `cancel_reason_submitted` *(optional)* | behavioral | Shape content (skip the export reminder for someone who already exported) and reporting. Never branch on the cancel reason to re-pitch. |
 
 ### Not enough on its own
@@ -133,7 +133,7 @@ During a pause, every marketing journey for that subscription is suppressed (usa
 
 ## Measurement
 
-- **Primary outcome:** surprise contacts, meaning `support_ticket_created` about lost access, plus refund or chargeback requests citing it, in the window from `access_end_date` -1d to `access_end_date` +7d, per 100 cancellations. Lower is better. Reactivations before the end date are recorded as a secondary outcome and never used as the target: optimizing this journey for reactivation turns it back into the save attempt it must not be.
+- **Primary outcome:** surprise contacts, meaning `support_ticket_opened` about lost access, plus refund or chargeback requests citing it, in the window from `access_end_date` -1d to `access_end_date` +7d, per 100 cancellations. Lower is better. Reactivations before the end date are recorded as a secondary outcome and never used as the target: optimizing this journey for reactivation turns it back into the save attempt it must not be.
 - **Design: `none_service`.** Withholding the confirmation or the end date from a control is not acceptable. Alternative: pre/post comparison of the surprise-contact rate over equal-length periods before and after launch, with pricing and policy changes noted. The s3 heads-up alone can carry a component holdout if volume supports it; the confirmation and ending notice cannot.
 - **Routine communications both groups keep:** billing-system cancellation receipts, mobile-store cancellation notices, final invoices, statutory insurance cancellation documents.
 - **Contamination risks:** cancel-flow changes shipped in the same period (the flow itself sets expectations), support macros updated alongside, price changes driving a cancellation wave with a different mix of reasons.

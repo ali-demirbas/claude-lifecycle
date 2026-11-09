@@ -20,7 +20,14 @@ Keep it to roughly one page: this is the document a stakeholder reads instead of
 
 ## 1a. Versus previous run *(omit entirely on a brand's first-ever run — never show an empty section)*
 
-<When `output/<project>/dossier.md` already existed before this run overwrote it (see the archiving rule in `skills/lifecycle-journeys/SKILL.md`): reference the archived prior run by its Run ID, e.g. "vs run `20260610-0930`: DQS 45→69 (tracking-plan items E-02, E-04 implemented), 2 new journeys unlocked (churn-prevention, upsell-cross-sell), 1 journey retired (replenishment — pattern no longer eligible)." 2-3 lines, facts only, no re-litigating why the old run's choices were made — that's what the archived dossier itself is for.>
+<When `output/<project>/dossier.md` already existed before this run overwrote it (see the archiving rule in `skills/lifecycle-journeys/SKILL.md`): reference the archived prior run by its Run ID, e.g. "vs run `20260610-093000-a1f3`: DQS 45→69 (tracking-plan items E-02, E-04 implemented), 2 new journeys unlocked (churn-prevention, upsell-cross-sell), 1 journey retired (replenishment — pattern no longer eligible)." 2-3 lines, facts only, no re-litigating why the old run's choices were made — that's what the archived dossier itself is for.>
+
+
+## 1b. Scope and provenance *(one line each; omit a line that doesn't apply)*
+
+- **Scope:** `portfolio` or `single journey (<id>)`; on a single-journey run add "portfolio coverage and other journeys' eligibility were not reviewed".
+- **Assessment:** `fresh` or `cached assessment from run <id> (<date>)`; on a cached one, state that consent, active campaigns and feed freshness were re-checked this run.
+- **Mode:** `interactive` or `non-interactive`; in a non-interactive run list every assumed default here (consent, deadlines, event existence and existing communication load are never assumed: they become open items).
 
 ## 2. Portfolio produced
 
@@ -57,6 +64,6 @@ Which rule sets bound the copy (lexicon, regulated flags), the review result (n 
 | `canvas.html` | user — journey flows |
 | `iletisim-metinleri.html` *(name follows the user's language; EN: `message-copy.html`)* | user — channel copy |
 | `dossier.md` | user — this document |
-| `runs/dossier-<old-run-id>.md` *(when a previous run existed)* | audit trail — the prior run's dossier, archived rather than overwritten; referenced from §1a |
+| `runs/<old-run-id>/` *(when a previous run existed)* | audit trail — the prior run's dossier, manifest, canvas and listed files, archived by `finalize_run.py start`; referenced from §1a |
 | `portfolio.json`, `<journey>.json` | machine — validator & CRM export; shown only when export is explicitly requested |
 | `audiences.sql` / `audiences-traits.json`, `qa-payloads.json` *(when requested)* | machine — data team & CRM QA |

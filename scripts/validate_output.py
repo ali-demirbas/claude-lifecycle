@@ -354,14 +354,27 @@ def check_journey_v2(path, doc, pattern_fm, inventory=None, report=True):
                 F.error(f"longest path has {n} sends, outside {doc.get('pattern')}.md's depth_range [{lo}, {hi}]")
     if res["structure_ok"]:  # counts only marketing-purpose sends, whatever the journey class
         caps = load_default_caps()
+        certain = res.get("freq_certain", {})
+        ppd = res.get("push_per_day", 0)
+        if ppd > 1:
+            msg = f"worst path sends {ppd} push messages inside one day, over the cap of 1 per day"
+            if res.get("push_per_day_certain", 0) > 1 or not res["freq_has_unknown"]:
+                F.error(msg + " (Frequency Cap Violation)")
+            else:
+                F.unverifiable(msg + " (upper bound: some send times are not computable)")
         for ch, v in res["freq"].items():
             cap = caps.get(ch)
             if cap is not None and v > cap:
                 msg = (f"worst path sends {v} {ch} message(s) inside a rolling 7-day window, over the cap of {cap}")
-                if res["freq_has_unknown"]:
-                    F.unverifiable(msg + " (upper bound: some send times are not computable)")
-                else:
+                if certain.get(ch, 0) > cap or not res["freq_has_unknown"]:
                     F.error(msg + " (Frequency Cap Violation)")
+                else:
+                    F.unverifiable(msg + " (upper bound: some send times are not computable)")
+        for ch, v in res.get("freq_reentry", {}).items():
+            cap = caps.get(ch)
+            if cap is not None and v > cap and res["freq"].get(ch, 0) <= cap:
+                F.error(f"two back-to-back instances put {v} {ch} message(s) inside a rolling 7-day window, over the "
+                        f"cap of {cap}: reentry allows a new instance with no cooldown (Frequency Cap Violation)")
     if report:
         _report(path, F)
         if res["structure_ok"] and not any(l == "error" for l, _, _ in F.items):
@@ -1062,6 +1075,11 @@ def check_portfolio(path):
                     cls = jd.get("journey_class", "marketing")
                     res = check_journey_v2(fp, jd, "", inventory=inventory, report=False)
                     analyses[jid] = (jd, res)
+                    for lvl, msg, crit in res["findings"].items:
+                        if lvl == "error":
+                            fail(f"{path}: journey '{jid}' ({f}): {msg}")
+                        elif lvl == "unverifiable" and crit:
+                            unverifiable(f"{path}: journey '{jid}' ({f}): {msg}")
                     if res["structure_ok"]:
                         computed = {k: v for k, v in res["freq"].items() if k != "total"}
                         if res["freq_has_unknown"]:
@@ -1430,6 +1448,9 @@ def main(argv):
             check_canvas(p, template)
     elif mode == "all":
         root = rest[0]
+        if not os.path.isdir(root):
+            print(f"error: {root} is not a directory", file=sys.stderr)
+            sys.exit(2)
         # First pass: collect every journey JSON's id -> path, so the second
         # pass can pair a journey-doc.md with its JSON without assuming a
         # filename convention (portfolio ordering, P0-first naming, etc. all

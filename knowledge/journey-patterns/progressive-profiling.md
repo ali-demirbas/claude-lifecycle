@@ -3,7 +3,7 @@ name: progressive-profiling
 stage: engagement
 trigger_type: segment
 required_events: []
-optional_events: [purchase, session_start, feature_used, in_app_shown, profile_question_dismissed]
+optional_events: [purchase, session_start, feature_used, in_app_shown, profile_question_dismissed, profile_attribute_written, consent_withdrawn]
 required_attributes: [profile_gap]
 optional_attributes: [last_updated_at]
 default_channels: [in_app, email]

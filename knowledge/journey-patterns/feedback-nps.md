@@ -3,7 +3,7 @@ name: feedback-nps
 stage: retention
 trigger_type: event
 required_events: [survey_response]
-optional_events: [purchase, feature_used, trial_end, login, share, invite_sent, support_ticket_opened, follow_up_completed, resolution_confirmed]
+optional_events: [purchase, feature_used, trial_end, login, share, invite_sent, support_ticket_opened, follow_up_completed, resolution_confirmed, consent_withdrawn]
 required_attributes: [survey_score]
 optional_attributes: [survey_comment, experience_type, follow_up_sla]
 default_channels: [email, in_app]
@@ -80,11 +80,11 @@ Two paths: the ask (started by the qualifying experience) and the answer (starte
 | q1 | entry +2d | email (in_app for frequent-session products: shown at the next session, expires after 3d) | The ask, 24–72h after the qualifying experience (long enough to have an opinion): one question, score in the body, nothing else | → d1 |
 | d1 | q1 +4d | — | Decision on `survey_response` (authoritative) between q1 and q1 +4d | occurred → exit (completed; the response starts the answer path) · not_occurred → q2 · unmeasurable → exit (completed) |
 | q2 | d1 +0h at 10:00 user_local | email | One reminder, same question. Then the ask path ends whatever happens | → exit (completed) |
-| d2 | entry +0h | — | Answer path starts on `survey_response`: decision on `survey_score` (authoritative), read at the decision moment (from = to = entry +0h) | 9–10 → p1 · 0–6 → r1 · default (7–8) → t1 · unmeasurable → t1 |
+| d2 | entry +0h | — | Answer path starts on `survey_response`: decision on `survey_score` (authoritative), read at the decision moment (from = to = entry +0h) | promoter → p1 · detractor → r1 · default (passive) → t1 · unmeasurable → t1. Bands follow the scale recorded with the response: NPS 0–10 = 9–10 / 0–6 / 7–8; CSAT 1–5 = 5 / 1–3 / 4; a response whose scale is unknown is unmeasurable, never a detractor |
 | p1 | entry +24h | email | Promoters: thank, then one referral ask (marketing; needs marketing consent on this channel). Hand off to the referral pattern. No public-review ask here: review eligibility never depends on the score | → exit (completed) |
 | t1 | entry +24h | email | Passives, or a response whose score didn't arrive: a short thank-you, no ask | → exit (completed) |
 | r1 | entry +4h | email | Detractors: acknowledge, apologize where warranted, route to human/service recovery. Names a follow-up and its timeframe only if the support system will record it | → d3 |
-| d3 | r1 +2d | — | Decision on `follow_up_completed` (authoritative, support system) between r1 and r1 + the follow-up SLA (default 2 business days, configurable) | occurred → d4 · not_occurred → e1 · unmeasurable → e1 |
+| d3 | r1 + follow_up_sla (default 2 business days, so a Friday acknowledgment is read on Tuesday) | — | Decision on `follow_up_completed` (authoritative, support system) between r1 and r1 + the follow-up SLA (default 2 business days, configurable) | occurred → d4 · not_occurred → e1 · unmeasurable → e1 |
 | e1 | d3 +0h | email | SLA missed: the case is escalated to a team lead internally, and the customer gets an honest update that it is still unresolved and who now owns it | → d4 |
 | d4 | d3 +7d | — | Decision on `resolution_confirmed` (authoritative) between r1 and d3 +7d | occurred → exit (completed) · not_occurred → v1 · unmeasurable → v1 |
 | v1 | d4 +0h at 10:00 user_local | email | Resolution check-in: one question, "is this sorted?". The answer counts only when the survey or support system records it (a click on "yes" in the email is not a recorded answer; scanners click every link). A recorded no reopens the case with the same owner; a recorded yes is `resolution_confirmed` and lifts the marketing suppression | → exit (completed) |

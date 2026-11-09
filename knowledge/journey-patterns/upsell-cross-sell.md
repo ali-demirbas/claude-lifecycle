@@ -3,7 +3,7 @@ name: upsell-cross-sell
 stage: revenue
 trigger_type: segment
 required_events: [purchase, session_start]
-optional_events: [subscription_start, plan_upgraded, order_delivered, feature_used, view_item, add_to_wishlist, trial_end, login, refund, support_ticket_opened, payment_failed]
+optional_events: [subscription_start, plan_upgraded, order_delivered, feature_used, view_item, add_to_wishlist, trial_end, login, refund, support_ticket_opened, payment_failed, consent_withdrawn]
 required_attributes: []
 optional_attributes: [plan_type, ltv_tier, category_history, engagement_score, seat_utilization, usage_vs_limit, limit_reset_date, renewal_date, time_to_first_use]
 default_channels: [email, in_app]

@@ -33,12 +33,16 @@ CHANNEL_TOKENS = {"email": r"e_?mail", "sms": r"sms", "push": r"push", "whatsapp
 def granted_channel(sig):
     """The one channel an authoritative consent grant reopens, or None (not a grant, or no channel named)."""
     name = str(sig.get("name", ""))
-    if sig.get("source") != "authoritative" or not CONSENT_GRANT.search(name) or CONSENT_NEGATIVE.search(name):
+    if sig.get("source") != "authoritative" or sig.get("type") == "click" or not CONSENT_GRANT.search(name) \
+            or CONSENT_NEGATIVE.search(name):
         return None
     if sig.get("channel"):
         return sig["channel"]
     named = [ch for ch, rx in CHANNEL_TOKENS.items() if re.search(rx, name, re.I)]
     return named[0] if len(named) == 1 else None
+PROMO_INTENT = re.compile(r"\b(upsell|cross-?sell|discount|coupon|promo(tion)?|sale|offer|deal|%\s?\d+|\d+\s?%|"
+                          r"indirim|kupon|kampanya|fırsat|teklif)\b", re.I)
+OPEN_NAME = re.compile(r"(^|_)(email_)?open(ed|s)?($|_)|\bopen_rate\b|açıl(dı|ma)", re.I)
 LEGACY_OPEN = re.compile(r"\bopen(ed|s)?\b|\bnot opened\b|açıl|açmad|açmay|okunmad", re.I)
 MARKETING_PURPOSES = {None, "marketing", "reconsent_request"}
 
@@ -105,7 +109,7 @@ def successors(node):
     if k in ("entry", "message"):
         return [(None, node["next"])] if node.get("next") else []
     if k == "decision":
-        out = [(b.get("label") or b.get("when"), b.get("next")) for b in node.get("branches") or []]
+        out = [(b.get("when") or b.get("label"), b.get("next")) for b in node.get("branches") or []]
         if node.get("default"):
             out.append(("default", node["default"]))
         if node.get("unmeasurable"):
@@ -304,11 +308,18 @@ def path_frequency(by_id, tl, window):
             continue
         ch = n.get("channel")
         (known.setdefault(ch, []).append(t) if t is not None else unknown.__setitem__(ch, unknown.get(ch, 0) + 1))
-    res = {}
+    res, certain = {}, {}
     for ch in set(known) | set(unknown):
-        res[ch] = window_max(known.get(ch, []), window) + unknown.get(ch, 0)
+        certain[ch] = window_max(known.get(ch, []), window)
+        res[ch] = certain[ch] + unknown.get(ch, 0)
     all_known = [t for v in known.values() for t in v]
-    res["total"] = window_max(all_known, window) + sum(unknown.values())
+    certain["total"] = window_max(all_known, window)
+    res["total"] = certain["total"] + sum(unknown.values())
+    if "push" in known or "push" in unknown:
+        certain["push_per_day"] = window_max(known.get("push", []), DAY)
+        res["push_per_day"] = certain["push_per_day"] + unknown.get("push", 0)
+    res["_certain"] = certain
+    res["_known"] = known
     return res, bool(unknown)
 
 
@@ -371,7 +382,7 @@ def _analyze_once(doc, inventory=None, window=7 * DAY):
                 F.error(f"node '{n.get('id')}': in-app content is shown at a session, so it needs delivery "
                         f"{{mode: next_session, expires_after}}; later anchors use its scheduled time")
     by_id, ok = build(doc, F)
-    res = {"findings": F, "paths": [], "timelines": [], "freq": {}, "freq_has_unknown": False,
+    res = {"findings": F, "paths": [], "timelines": [], "freq": {}, "freq_certain": {}, "freq_reentry": {}, "freq_has_unknown": False,
            "max_msgs_on_path": 0, "by_id": by_id, "structure_ok": ok}
     if not ok:
         return res
@@ -380,9 +391,22 @@ def _analyze_once(doc, inventory=None, window=7 * DAY):
     sw = dur_seconds((doc.get("exit") or {}).get("success_window"))
     if sw is None and (doc.get("exit") or {}).get("success_window_days"):
         sw = int(doc["exit"]["success_window_days"]) * DAY
-    allowed = set((doc.get("constraints") or {}).get("allowed_channels") or [])
-    withdrawn = set((doc.get("constraints") or {}).get("withdrawn_channels") or [])
+    cons = doc.get("constraints") if isinstance(doc.get("constraints"), dict) else None
+    allowed_declared = cons is not None and isinstance(cons.get("allowed_channels"), list)
+    allowed = set(cons.get("allowed_channels") or []) if allowed_declared else set()
+    withdrawn = set((cons or {}).get("withdrawn_channels") or [])
+    mkt_send_channels = {n.get("channel") for n in by_id.values()
+                         if n.get("kind") == "message" and n.get("purpose") in MARKETING_PURPOSES}
+    if mkt_send_channels and not allowed_declared:
+        F.unverifiable("constraints.allowed_channels is not declared: the channels the user consented to could "
+                       "not be checked against the marketing sends on " + ", ".join(sorted(c for c in mkt_send_channels if c)))
     worst = {}
+    re_ = doc.get("reentry") or {}
+    reentry_gap = None  # seconds between one instance's last send and the next instance's entry
+    if re_.get("policy") in ("each_trigger", "new_instance") and re_.get("on_duplicate_trigger") != "restart":
+        reentry_gap = 0
+    elif re_.get("policy") == "after_cooldown":
+        reentry_gap = dur_seconds(re_.get("cooldown")) or 0
     for p in paths:
         tl = timeline(doc, by_id, p, F)
         res["timelines"].append(tl)
@@ -390,8 +414,25 @@ def _analyze_once(doc, inventory=None, window=7 * DAY):
         res["max_msgs_on_path"] = max(res["max_msgs_on_path"], nmsg)
         fr, unk = path_frequency(by_id, tl, window)
         res["freq_has_unknown"] |= unk
+        certain = fr.pop("_certain", {})
+        known_times = fr.pop("_known", {})
+        if reentry_gap is not None and reentry_gap < window:
+            # a second instance can start `reentry_gap` after the first one's last send:
+            # count both instances' marketing sends in one rolling window
+            last = max((tt for v in known_times.values() for tt in v), default=None)
+            if last is not None:
+                for ch, times in known_times.items():
+                    both = times + [tt + last + reentry_gap for tt in times]
+                    res["freq_reentry"][ch] = max(res["freq_reentry"].get(ch, 0), window_max(both, window))
+                allk = [tt for v in known_times.values() for tt in v]
+                res["freq_reentry"]["total"] = max(res["freq_reentry"].get("total", 0),
+                                                   window_max(allk + [tt + last + reentry_gap for tt in allk], window))
+        res["push_per_day"] = max(res.get("push_per_day", 0), fr.pop("push_per_day", 0))
+        res["push_per_day_certain"] = max(res.get("push_per_day_certain", 0), certain.pop("push_per_day", 0))
         for ch, v in fr.items():
             worst[ch] = max(worst.get(ch, 0), v)
+        for ch, v in certain.items():
+            res["freq_certain"][ch] = max(res["freq_certain"].get(ch, 0), v)
         # sends vs success window, consent per path
         reconsented = set()
         prev_label = {}
@@ -407,13 +448,19 @@ def _analyze_once(doc, inventory=None, window=7 * DAY):
                     reconsented.add(gch)
             if n.get("kind") == "message":
                 ch = n.get("channel")
-                if allowed and ch not in allowed:
+                if allowed_declared and ch not in allowed and n.get("purpose") in MARKETING_PURPOSES:
                     F.error(f"node '{nid}': channel '{ch}' is not in constraints.allowed_channels {sorted(allowed)} "
                             f"(Channel Consent Violation)")
                 if ch in withdrawn and ch not in reconsented:
                     F.error(f"node '{nid}': sends on '{ch}', which the user withdrew; a journey never reopens a "
                             f"closed channel on its own (route through an authoritative consent-granted decision for "
                             f"'{ch}' on this path: signal.channel '{ch}', or the channel in the event name)")
+                cal = (n.get("send") or {}).get("calendar") if isinstance(n.get("send"), dict) else None
+                if ch == "push" and n.get("purpose") in MARKETING_PURPOSES and cal and cal.get("time_of_day"):
+                    hh = int(str(cal["time_of_day"]).split(":")[0]) if str(cal["time_of_day"])[:2].isdigit() else None
+                    if hh is not None and (hh >= 22 or hh < 9):
+                        F.error(f"node '{nid}': marketing push scheduled at {cal['time_of_day']} user-local, inside "
+                                f"the 22:00-09:00 quiet window (Quiet Hours Violation)")
                 t = next((t for i2, _, t in tl if i2 == nid), None)
                 dl = (n.get("delivery") or {}).get("deadline")
                 if dl and t is not None:
@@ -428,6 +475,7 @@ def _analyze_once(doc, inventory=None, window=7 * DAY):
         F.unverifiable("some sends have no computable time; frequency is a conservative upper bound "
                        "(unknown-time sends counted inside every window)", critical=False)
     check_decisions(doc, by_id, F)
+    check_purpose_labels(doc, by_id, F)
     check_review_gating(by_id, F)
     check_exits_and_reentry(doc, by_id, F)
     check_measurement(doc, F)
@@ -453,7 +501,8 @@ def check_decisions(doc, by_id, F):
         members = signal_members(sig)
         types = {m.get("type") for m in members}
         st = next(iter(types)) if len(types) == 1 else ("event" if types & {"event", "click"} else "attribute")
-        if "open" in types:
+        if "open" in types or any(m.get("type") in ("event", "click") and OPEN_NAME.search(str(m.get("name", "")))
+                                  for m in members):
             F.error(f"node '{nid}': branches on an email open. Opens are inflated by mail privacy protection and "
                     f"image proxies and are not a reliable signal, alone or inside a composite; branch on a click "
                     f"or a product event")
@@ -481,6 +530,32 @@ def check_decisions(doc, by_id, F):
 SCORE_SIGNAL = re.compile(r"nps|csat|ces\b|score|rating|satisf|sentiment|memnuniyet|puan", re.I)
 REVIEW_ASK = re.compile(r"review|store rating|rating prompt|app ?store|play ?store|trustpilot|google (my business|maps)|"
                         r"değerlendirme|yorum (yap|bırak|yaz)|puan ver", re.I)
+
+
+def check_purpose_labels(doc, by_id, F):
+    """Caps and consent follow each send's purpose, so the purpose label is itself a
+    compliance claim. In a marketing-class journey every non-marketing label is
+    surfaced for review, and a journey with no marketing-purpose send at all fails."""
+    for n in by_id.values():
+        if n.get("kind") == "message" and n.get("purpose") not in MARKETING_PURPOSES \
+                and PROMO_INTENT.search(str(n.get("intent", ""))):
+            F.error(f"node '{n.get('id')}': purpose '{n.get('purpose')}' but the intent reads as a promotion "
+                    f"({PROMO_INTENT.search(str(n.get('intent', ''))).group(0)!r}); a promotional send is "
+                    f"marketing-purpose whatever its label, and counts toward caps and consent")
+    if doc.get("journey_class") != "marketing":
+        return
+    msgs = [n for n in by_id.values() if n.get("kind") == "message"]
+    if not msgs:
+        return
+    non_mkt = [n for n in msgs if n.get("purpose") not in MARKETING_PURPOSES]
+    if len(non_mkt) == len(msgs):
+        F.error("marketing-class journey where every send is labelled service/transactional: the label switches "
+                "off frequency caps and consent checks, so it is a compliance claim, not a style choice; either "
+                "the class or the purposes are wrong")
+    elif non_mkt:
+        F.unverifiable("marketing-class journey with non-marketing sends excluded from caps and consent: " +
+                       ", ".join(f"{n.get('id')} ({n.get('purpose')})" for n in non_mkt) +
+                       "; confirm each is a genuine service/transactional message", critical=False)
 
 
 def check_review_gating(by_id, F):
@@ -524,7 +599,9 @@ def check_exits_and_reentry(doc, by_id, F):
     mkt_channels = {n.get("channel") for n in by_id.values()
                     if n.get("kind") == "message" and n.get("purpose") in MARKETING_PURPOSES}
     consent_conds = [c for c in conds if CONSENT_EXIT.search(str(c.get("event")))
-                     and "before_each_send" in (c.get("check") or [])]
+                     and "before_each_send" in (c.get("check") or [])
+                     and not (CONSENT_GRANT.search(str(c.get("event"))) and not CONSENT_NEGATIVE.search(str(c.get("event"))))
+                     and c.get("source", "authoritative") == "authoritative"]
     journey_wide = any(c.get("scope", "instance") != "channel" for c in consent_conds)
     covered = {c.get("channel") for c in consent_conds if c.get("scope") == "channel"}
     if mkt_channels and not journey_wide and not mkt_channels <= covered:
@@ -587,6 +664,9 @@ def check_measurement(doc, F):
             F.warn("holdout without a volume note: state what the expected volume can and cannot detect; "
                    "a holdout alone does not make a result statistically reliable")
     elif d in ("none_low_volume", "none_service", "pre_post", "other"):
+        if d == "none_service" and (cls == "marketing" or has_mkt):
+            F.error("measurement design 'none_service' is for service/transactional journeys; marketing-purpose "
+                    "sends need a holdout, or none_low_volume/pre_post/other with reason and alternative")
         if not m.get("reason"):
             F.error(f"measurement design '{d}' needs a reason")
         if d != "none_service" and not m.get("alternative"):

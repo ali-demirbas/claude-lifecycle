@@ -31,7 +31,8 @@ SKIP = {".git", ".gemini", "output", "node_modules"}
 
 def marked_files():
     for path in sorted(ROOT.rglob("*.html")):
-        if SKIP.intersection(path.relative_to(ROOT).parts):
+        parts = path.relative_to(ROOT).parts
+        if SKIP.intersection(parts) or parts[:2] == ("evals", "out"):  # run artifacts are not kit sources
             continue
         text = path.read_text(encoding="utf-8")
         if "/* lab-ui:begin */" in text:

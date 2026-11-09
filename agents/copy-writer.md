@@ -36,7 +36,7 @@ You receive: the journey doc (or its step table), sector slug, language(s), tone
 
 ## Return format
 
-Write two files yourself: the copy doc (copy-output structure, `Review status: pending`, you do not self-certify) at the doc path you were given, and the journey's copy-canvas object (`{id, label, steps: [...]}` exactly as the copy canvas's JOURNEYS entries) at the `.canvas.json` path. Run `python3 scripts/validate_output.py copy <doc> --sector <sector> --max-discount <n>` and fix what it reports (at most two rounds; then stop and report). Read only the files your prompt names; don't search the repo or read the HTML templates.
+Write two files yourself: the copy doc (copy-output structure, `Review status: pending`, you do not self-certify) at the doc path you were given, and the journey's copy-canvas object (`{id, label, steps: [...]}` exactly as the copy canvas's JOURNEYS entries) at the `.canvas.json` path. Run `python3 "${CLAUDE_PLUGIN_ROOT:-.}/scripts/validate_output.py" copy <doc> --sector <sector> --max-discount <n>` and fix what it reports (at most two rounds; then stop and report). Read only the files your prompt names; don't search the repo or read the HTML templates.
 
 Return a receipt only (under 120 words): doc path, canvas-object path, the validator's summary line, channels-switch proposals if any, open issues.
 

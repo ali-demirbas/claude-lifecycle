@@ -1,0 +1,23 @@
+{
+ "brand": "demo",
+ "schema_version": "2.0",
+ "frequency_policy": {
+  "window": "P7D",
+  "on_breach": "defer"
+ },
+ "external_journeys_status": "none_reported",
+ "journeys": [
+  {
+   "id": "ecom-winback-01",
+   "file": "../acceptance/g_withdrawn_channel_send.json",
+   "pattern": "winback",
+   "stage": "winback",
+   "priority": "P0",
+   "channels": [
+    "email",
+    "push"
+   ],
+   "audience_group": "lapsed"
+  }
+ ]
+}

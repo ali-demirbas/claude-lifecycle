@@ -22,7 +22,7 @@ signal_sources:
   support_ticket_opened: authoritative
   repurchase_period_days: inferred
   consent_withdrawn: authoritative
-  message_click: engagement
+  link_click: engagement
 insufficient_alone:
   - a carrier delivery estimate not confirmed by the system of record
   - an order placed but not yet accepted or paid
@@ -60,7 +60,7 @@ Turn one purchase into a relationship: onboarding onto the product bought, a wel
 
 - **Entry:** `purchase` accepted by the system of record, marketing consent on ≥ 1 channel (transactional confirmations happen regardless, outside this journey).
 - **Exclude:** refund initiated, open support ticket on the order, any open complaint (portfolio-wide negative-signal override).
-- **Success exit:** second `purchase` · **Window:** `repurchase_due` +14d (default 45 days from purchase when no repurchase period is known; configurable).
+- **Success exit:** second `purchase` · **Window:** `repurchase_due` +14d (default 44 days from purchase when no repurchase period is known: 30-day default period + 14; configurable).
 - **Checked before each send:** a later `purchase` (success; it also restarts the journey on the new order), and, for this instance's order only (`instance_key: order_id`): `order_cancelled`, `refund`, `support_ticket_opened` on the order. A refund or ticket on an older order doesn't stop this one (an open complaint still applies through the portfolio-wide override). `consent_withdrawn` is scoped to that send's channel: an email unsubscribe stops s1–s3, and s4 still goes by push where push is consented. A low rating is handled by d1/d2 before each sell, not as a journey-wide exit, so it can't silently filter who gets the review request. A first purchase cancelled or fully reversed ends the instance without a further touch.
 - **Re-entry:** per purchase, subject to portfolio frequency caps.
 - **Repeated trigger while active:** a newer order restarts the instance on that order; the older instance exits and its queued sends are dropped (newest order wins).
@@ -89,7 +89,7 @@ Anchor (declared in `time_anchors`): `repurchase_due` = purchase + `repurchase_p
 | d1 | s2 +5d | — | Decision on `low_rating_submitted` for this order (authoritative review/rating record) between entry and s2 +5d | occurred → handoff service recovery · not_occurred → s3 · unmeasurable → s3 |
 | s3 | s2 +5d | email | Cross-sell complements to `order_category`, framed as completing the purchase | → d2 |
 | d2 | repurchase_due -1d | — | Decision on `low_rating_submitted` for this order (authoritative review/rating record) between s2 +5d and repurchase_due -1d | occurred → handoff service recovery · not_occurred → s4 · unmeasurable → s4 |
-| s4 | repurchase_due +0d | push | Second-purchase bridge: replenish, the next step in the category, or new-arrivals deeplink | → end |
+| s4 | repurchase_due +0d | email (push only for users opted into product-update pushes; a 30-day-old purchase is not a recent trigger under push.md) | Second-purchase bridge: replenish, the next step in the category, or new-arrivals deeplink | → end |
 
 s1 is skipped when nothing useful is recorded for the item (no setup, care or usage content); a tips email with no substance is a promotion in disguise. A low rating stops every **sell** step (d1 before s3, d2 before s4) and hands the user to service recovery. It never decides who receives the review request: s2 goes to every eligible buyer whatever their earlier private rating, because asking only the people expected to be positive (review gating) breaks most review platforms' terms and consumer-protection rules in several markets. Eligibility for s2 rests on operational facts only (delivery confirmed, no refund, cancellation or open ticket on the order); confirm the platform's own rules for those too. Neither decision reads a click: a click on s2's review link is not a submitted review, and `review_submitted` comes from the review system.
 

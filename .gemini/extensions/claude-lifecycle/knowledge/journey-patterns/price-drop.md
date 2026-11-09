@@ -21,7 +21,7 @@ signal_sources:
   item_price: authoritative
   previous_price: authoritative
   consent_withdrawn: authoritative
-  message_click: engagement
+  link_click: engagement
 insufficient_alone:
   - a price_drop below the minimum threshold
   - a single view_item older than the recency window
@@ -85,7 +85,7 @@ Hard rule: verify the price at send time. If it rose back, suppress. Never show 
 
 ## Timing and channel fit
 
-- **Clock:** user local time. Push is queued through 22:00–09:00 and released at the window's opening, with the price re-checked at release. Email avoids 00:00–06:00.
+- **Clock:** user local time. Push queued through 22:00–09:00 is released staggered inside 09:00–11:00 (never a 09:00 burst), with the price re-checked at release. Email avoids 00:00–06:00.
 - **Channel fit:** push for speed on a fact with a shelf life; email for the before/after framing and the image. SMS only for a person-set price alert that asked for SMS, with SMS consent.
 - **Fallback:** no push consent → s2 becomes the only send at `entry +1h`, subject to email's quiet window.
 - **Business clock:** if the feed reprices in batches (overnight jobs, fare refreshes), anchor `entry` to the time the new price is live on the site, not to the feed event, so the link never lands on the old price.

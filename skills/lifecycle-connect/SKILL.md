@@ -20,7 +20,7 @@ Establish what data exists and how much journey sophistication it can support. O
 
 ## Step 0 — Reuse an unchanged assessment
 
-For a file input, first run `python3 scripts/run_cache.py lookup output/<project>/_cache --input <file> --sector <sector> [--brand <brand>]`. The key covers the file, the profiling/mapping code, the taxonomy and DQS rules, every pattern and the schema, the sector playbook/lexicon and the brand config. On a hit, reuse its data assessment and `stage-map.json`, and present them as **"cached assessment from run <id>"**, never as freshly validated. Even on a hit, re-check what the cache never holds: current consent and opt-outs per channel, active campaigns and existing journeys, and whether the feed is still current. After `lifecycle-map` finishes a fresh assessment, store it: `run_cache.py store ... --run-id <id> --files data-assessment.md stage-map.json`. Live (T1) pulls are not cached: the data itself moves.
+Runs once the sector is known (brand config, intake, or the user's first answer; Step 1's tier detection doesn't need it). For a file input, run `python3 "${CLAUDE_PLUGIN_ROOT:-.}/scripts/run_cache.py" lookup output/<project>/_cache --input <file> --sector <sector> [--brand <brand>]`. The key covers the file, the profiling/mapping code, the taxonomy and DQS rules, every pattern and the schema, the sector playbook/lexicon and the brand config. On a hit, reuse its data assessment and `stage-map.json`, and present them as **"cached assessment from run <id>"**, never as freshly validated. Even on a hit, re-check what the cache never holds: current consent and opt-outs per channel, active campaigns and existing journeys, and whether the feed is still current. After `lifecycle-map` finishes a fresh assessment, store it: `run_cache.py store ... --run-id <id> --files data-assessment.md stage-map.json`. Live (T1) pulls are not cached: the data itself moves.
 
 ## Step 1 — Identify the source (tier)
 
@@ -87,7 +87,7 @@ Rules:
 
 ## Step 3 — Report
 
-Output the Data Assessment Report with exactly these sections:
+Write the Data Assessment Report to `output/<project>/data-assessment.md` (the file the cache stores and later stages read) and summarize it in the conversation, with exactly these sections:
 1. **Source & tier** — what was connected, date range, property/file identity.
 2. **DQS breakdown table** — component scores + total, and the resulting depth class (≥ 70 branched / 40–69 standard / < 40 simple — the journey engine consumes this), plus the reliability tag from Step 2. One table for single-industry brands; one table per vertical for multi-vertical brands, each labeled with its vertical name.
 3. **Event inventory** — table of events found: name, 90-day count, conversion?, mapped stage left blank (filled by lifecycle-map).

@@ -18,11 +18,11 @@ Word choice for streaming/news/content-subscription CRM copy. The best message i
 | Use | Avoid | Why |
 |---|---|---|
 | "yeni bölüm yayında" / "new episode is out" | "kaçırma!", "herkes bunu izliyor" / "don't miss out!", "everyone's watching" | The content drop IS the news; FOMO framing cheapens it |
-| "{{series_name}} devam ediyor — kaldığın yerden" / "pick up {{series_name}} where you left off" | "içerikler seni bekliyor" / "so much content awaits" | Specific title + position beats vague abundance |
+| "{{series_name}} devam ediyor: kaldığın yerden" / "pick up {{series_name}} where you left off" | "içerikler seni bekliyor" / "so much content awaits" | Specific title + position beats vague abundance |
 | "izlediklerine göre şunu sevebilirsin" / "based on what you watch, you might like" (with real data) | "sana özel seçtik" with no viewing history behind it | Taste language must be earned by data or it reads as spam |
 | "deneme sürümün 3 gün sonra bitiyor" / "your trial ends in 3 days" | "son şansın!", "hemen harekete geç" / "last chance!", "act now" | The date is the urgency; theatrics erode trust before billing |
 | "10 dakikan var mı? Tam sana göre bir bölüm" / "got 10 minutes? there's an episode that fits" | "binlerce saat içerik" / "thousands of hours of content" | Meet the user's moment; catalog-size brags create choice paralysis |
-| "ödemeni alamadık — kartını güncelle" / "we couldn't process your payment — update your card" | "hesabınız askıya alınacaktır!" / "your account will be suspended!" | Payment recovery is service, calm and factual; threats accelerate churn |
+| "ödemeni alamadık: kartını güncelle" / "we couldn't process your payment: update your card" | "hesabınız askıya alınacaktır!" / "your account will be suspended!" | Payment recovery is service, calm and factual; threats accelerate churn |
 | "{{title}} 31 Mayıs'ta kataloğdan ayrılıyor" / "{{title}} leaves on 31 May" (if a real licensed exit) | "yakında gidiyor, acele et" / "leaving soon, hurry" | Real dates are useful information; vague deadlines are manipulation |
 
 ## Urgency rules
@@ -36,7 +36,7 @@ Urgency is allowed only for **real, dated expirations**: trial end date, plan-pr
 | Welcome / onboarding | Enthusiastic host: help them find the first great thing fast; one strong recommendation beats a catalog tour |
 | Trial conversion | Value recap in *their* terms ("bu hafta 4 bölüm izledin") + plain plan facts; no pressure theater |
 | Engagement / new-content drops | Pure editorial: title, one-line hook, play. The recommendation is the whole message |
-| Churn prevention (consumption drop) | Warm, zero guilt: "senin için yeni bir şey var" — never "seni özledik, neden gittin?" |
+| Churn prevention (consumption drop) | Warm, zero guilt: "senin için yeni bir şey var", never "seni özledik, neden gittin?" |
 | Payment failure | Calm, transactional, solution-first; no marketing content at all (keeps transactional status) |
 | Winback | Honest + concrete: what's new since they left, in their taste profile; light self-awareness ok, no desperation |
 

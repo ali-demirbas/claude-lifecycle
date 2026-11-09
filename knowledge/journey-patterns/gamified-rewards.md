@@ -3,7 +3,7 @@ name: gamified-rewards
 stage: engagement
 trigger_type: event
 required_events: [game_played, reward_claimed]
-optional_events: [purchase, game_impression, coupon_redeemed]
+optional_events: [purchase, game_impression, coupon_redeemed, consent_withdrawn]
 required_attributes: []
 optional_attributes: [prize_id, reward_expiry_date, age_verified]
 default_channels: [email, in_app, push]
@@ -91,7 +91,7 @@ Redemption is re-checked before w2, so "only if claimed but not redeemed" needs 
 
 ## Timing and channel fit
 
-- The invite goes at a calendar time on the user's clock, inside quiet hours per [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md); unknown timezone → market timezone.
+- The invite goes at a calendar time on the user's clock, outside quiet hours, per [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md); unknown timezone → market timezone.
 - The won-reward message is near-immediate: the user is mid-experience and expects a record of what they won. Email carries it because it holds the code and terms.
 - The expiry reminder fits push (short, one deadline) with email as fallback; it is calendar-anchored at 10:00 user_local two days before the recorded expiry.
 - No consent on the chosen channel → the next consented channel in the order push > email; no marketing consent at all → no invite and no nudge (the won reward is still delivered in-product).

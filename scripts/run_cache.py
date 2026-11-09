@@ -60,6 +60,8 @@ def components(inputs, sector, brand):
 def key_for(inputs, sector, brand):
     comps = components(inputs, sector, brand)
     parts = {k: _hash_files(v) if v else "none" for k, v in comps.items()}
+    parts["sector_slug"] = sector  # a sector with no playbook file must still get its own key
+    parts["brand_slug"] = brand or "none"
     whole = hashlib.sha256(json.dumps(parts, sort_keys=True).encode()).hexdigest()[:24]
     return whole, parts
 
@@ -85,7 +87,11 @@ def main(argv):
         if not os.path.isfile(meta_p):
             print(json.dumps({"hit": False, "key": key}))
             return 1
-        meta = json.load(open(meta_p, encoding="utf-8"))
+        try:
+            meta = json.load(open(meta_p, encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            print(json.dumps({"hit": False, "key": key, "reason": f"cache entry unreadable: {e}"}))
+            return 1
         files = {f: os.path.join(entry, f) for f in meta["files"] if os.path.isfile(os.path.join(entry, f))}
         if len(files) != len(meta["files"]):
             print(json.dumps({"hit": False, "key": key, "reason": "cache entry incomplete"}))
@@ -97,6 +103,10 @@ def main(argv):
         return 0
     if not a.files or not a.run_id:
         print("store needs --run-id and --files", file=sys.stderr)
+        return 2
+    basenames = [os.path.basename(f) for f in a.files]
+    if len(set(basenames)) != len(basenames):
+        print("store: --files must have distinct basenames", file=sys.stderr)
         return 2
     os.makedirs(entry, exist_ok=True)
     names = []

@@ -18,12 +18,12 @@ Word choice for consumer app and game notifications. The reading context is a lo
 | Use | Avoid | Why |
 |---|---|---|
 | "12 günlük serin devam ediyor 🔥" / "your 12-day streak is alive 🔥" | "Seni özledik!" / "We miss you!" | Real user data > brand neediness; guilt doesn't reopen apps |
-| "Kaldığın yerden: 3. bölüm seni bekliyor" / "Pick up where you left off — level 3 awaits" | "Uygulamamıza geri dön" / "Come back to our app" | Their progress is the hook, not your app |
+| "Kaldığın yerden: 3. bölüm seni bekliyor" / "Pick up where you left off: level 3 awaits" | "Uygulamamıza geri dön" / "Come back to our app" | Their progress is the hook, not your app |
 | "{{friend_name}} skorunu geçti" / "{{friend_name}} just beat your score" | "Yeni bir bildirim var" / "You have a new notification" | Social + specific triggers action; vague meta-messages are noise |
 | "2 dakikan var mı? Bugünkü bulmaca hazır" / "Got 2 minutes? Today's puzzle is ready" | "Harika içerikler seni bekliyor!" / "Amazing content awaits!" | Small concrete ask > empty superlatives |
 | "Etkinlik pazar gece yarısı bitiyor" / "Event ends Sunday midnight" | "SON SAATLER!!! Kaçırma!!!" / "FINAL HOURS!!! Don't miss out!!!" | A real deadline stated once > shouting |
-| "Yeni rozet: Hafta Savaşçısı — nasıl kazanılır?" / "New badge: Week Warrior — see how to earn it" | "Yenilikleri keşfet" / "Check out what's new" | Named reward + curiosity > generic explore prompt |
-| "Serin bozulmak üzere — bugün 1 tur yeter" / "Your streak's about to break — one round today saves it" | "Neden bizi bıraktın?" / "Why did you leave us?" | Loss-framing on *their* asset works; guilt-tripping earns an uninstall |
+| "Yeni rozet: Hafta Savaşçısı: nasıl kazanılır?" / "New badge: Week Warrior: see how to earn it" | "Yenilikleri keşfet" / "Check out what's new" | Named reward + curiosity > generic explore prompt |
+| "Serin bozulmak üzere: bugün 1 tur yeter" / "Your streak's about to break: one round today saves it" | "Neden bizi bıraktın?" / "Why did you leave us?" | Loss-framing on *their* asset works; guilt-tripping earns an uninstall |
 
 ## Urgency rules
 

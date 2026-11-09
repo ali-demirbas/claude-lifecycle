@@ -8,7 +8,7 @@ required_attributes: [renewal_date, auto_renew]
 optional_attributes: [renewal_price, notice_period_days, grace_period_days, plan_name, payment_method_type, quote_valid_until, product_line, delivered_value_summary]
 default_channels: [email, push, sms]
 base_steps: 3
-depth_range: [2, 5]
+depth_range: [2, 6]
 applicable_industries: [insurance, saas, subscription-media, edtech, fintech, mobile-app]
 mutually_exclusive_with: []
 journey_class: service

@@ -43,6 +43,20 @@ Planned as 0.3.0. Not released yet: the acceptance tests pass, and the before/af
   - Journeys built while a correctness fact is still missing are delivered as drafts, separate from journeys ready to implement.
 - **Copy has two named modes:** full, and quick draft (P0 only, one review pass, labelled as a draft). The mode is never switched silently.
 
+### Fixed — third audit, eight independent reviews (`docs/audit/0.3.0-audit3.md`)
+
+60 confirmed findings fixed, each with a regression test unless it is guidance text. The ones that change what the engine lets through:
+
+- **Consent and caps in the validator.** An empty `allowed_channels` list means nothing is consented; a missing one is unverifiable, never a silent pass. The consent exit must be the closing event from the system of record, and a re-grant reopens a channel only as an authoritative event or attribute read, never a click, and only on the branch whose `when` occurred. A marketing journey whose sends are all labelled service fails; a promotional intent under a service or transactional label is marketing whatever its label. A frequency breach that holds on the known send times is an error even when other sends have no computable time; the 1-push-per-day cap is enforced; two back-to-back instances without a cooldown are counted; a marketing push calendar-anchored inside 22:00–09:00 fails; an event named like an open is an open; a marketing journey can't declare `none_service` measurement.
+- **Portfolio mode** now surfaces every member journey's own violations instead of reading only its load.
+- **Canvas.** Journey data can no longer break out of the embedded script block or land unescaped in an HTML row; composite signals, in-app nodes, merges, delivery, deadlines, recipient roles and handoffs render; Turkish labels replace raw enums; the guardrail label no longer collides with the holdout tooltip.
+- **Run bookkeeping.** A validator crash, a failed canvas build or a corrupt journey is a failed run, not a pass; scope ids and run ids are checked; `_meta.json` is archived.
+- **Input gate.** Non-UTF-8 files fail cleanly, every cell is scanned for instruction-like content after Unicode normalization, BigQuery timestamps parse, `;`-delimited exports are read.
+- **Evals.** Escaped quotes in `expected.yaml` decode, so three cases that could never pass now can; an empty run is not a pass.
+- **Install mode.** Script calls use `${CLAUDE_PLUGIN_ROOT:-.}`, so the code gates run when the plugin is installed rather than opened as a repo. The session hook uses the shell form every CLI version accepts.
+- **Instructions.** The canvas is built by `finalize_run.py finish` from a `_meta.json` in the user's language; the dossier is written before `finish` so it is validated; the assessment is written to disk and cached; the dossier records scope, provenance and non-interactive assumptions.
+- **Patterns and knowledge.** Scale-aware NPS/CSAT routing, quiet-hour release without a 09:00 burst, declared exit events everywhere, acknowledged handoffs, corrected windows and arithmetic, no dashes in lexicon example copy, audience SQL trailers the validator requires.
+
 ### Fixed — closure evidence for the external review
 
 The fixes are now proven per finding, not by the suite's pass count. `docs/audit/0.3.0-closure-evidence.md` lists, for every finding, the changed files, the fixed behavior, the regression test and whether that test fails on the pre-fix code. Writing it surfaced gaps, now fixed:

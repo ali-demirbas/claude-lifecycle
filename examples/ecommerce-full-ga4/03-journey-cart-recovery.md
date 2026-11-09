@@ -43,8 +43,6 @@ Recover revenue from abandoned carts; primary KPI is **cart recovery rate** (pur
 | s7 | +P6D after entry | push | Real expiry notice: cart purges on {{cart_expiry_date}} (true system date) | — | step-7 |
 | s8 | +P6DT12H after entry | email | Incentive (max 10%), approval-gated per intake policy: not sent until approved | d3=>= 1500 TL | step-8 |
 
-Branch notes: `d1` splits checkout-abandoners (`s2`) from cart-abandoners (`s3`) on whether `begin_checkout` fired in the first 5 hours; if that can't be measured for a user, they get the generic nudge `s3`. `d2` splits on cart value; a missing value takes the standard route. The two paths are exclusive, so their sends are never counted together: the worst path carries 4 emails + 2 pushes inside 7 days, exactly at the email cap, which is why the portfolio defers lower-priority sends for users in this journey.
-
 ## 6. Measurement (required)
 
 | KPI | Type | Definition | Target |
@@ -71,38 +69,38 @@ Branch notes: `d1` splits checkout-abandoners (`s2`) from cart-abandoners (`s3`)
 
 ```mermaid
 flowchart TD
-    entry(["add_to_cart"])
-    s1["email — Cart reminder: contents + free-shipping threshold, zero pressure"]
-    d1{"begin_checkout?"}
-    s2["push — Checkout continuation: resume payment step, deeplink to checkout"]
-    s3["push — Short cart nudge, deeplink to cart (sent inside quiet-hour limits)"]
-    s4["email — Objection handling: shipping cost, 30-day returns, payment options"]
-    d2{"cart_value?"}
-    s5["email — Social proof on cart items (reviews and purchase counts from real data)"]
-    s6["email — High-value cart: personal styling help offer (human reply-to)"]
-    s7["push — Real expiry notice: cart purges on {{cart_expiry_date}} (true system date)"]
-    d3{"cart_value?"}
-    s8["email — Incentive (max 10%), approval-gated per intake policy: not sent until approved"]
-    done(["completed"])
-    entry --> s1
-    s1 --> d1
-    d1 -->|occurred| s2
-    d1 -->|not_occurred| s3
-    d1 -->|unmeasurable| s3
-    s2 --> s4
-    s3 --> s4
-    s4 --> d2
-    d2 -->|< 1500 TL| s5
-    d2 -->|>= 1500 TL| s6
-    d2 -->|default| s5
-    d2 -->|unmeasurable| s5
-    s5 --> s7
-    s6 --> s7
-    s7 --> d3
-    d3 -->|>= 1500 TL| s8
-    d3 -->|default| done
-    d3 -->|unmeasurable| done
-    s8 --> done
+    n_entry(["add_to_cart"])
+    n_s1["email — Cart reminder: contents + free-shipping threshold, zero pressure"]
+    n_d1{"begin_checkout?"}
+    n_s2["push — Checkout continuation: resume payment step, deeplink to checkout"]
+    n_s3["push — Short cart nudge, deeplink to cart (sent inside quiet-hour limits)"]
+    n_s4["email — Objection handling: shipping cost, 30-day returns, payment options"]
+    n_d2{"cart_value?"}
+    n_s5["email — Social proof on cart items (reviews and purchase counts from real data)"]
+    n_s6["email — High-value cart: personal styling help offer (human reply-to)"]
+    n_s7["push — Real expiry notice: cart purges on {{cart_expiry_date}} (true system date)"]
+    n_d3{"cart_value?"}
+    n_s8["email — Incentive (max 10%), approval-gated per intake policy: not sent until approved"]
+    n_done(["completed"])
+    n_entry --> n_s1
+    n_s1 --> n_d1
+    n_d1 -->|occurred| n_s2
+    n_d1 -->|not_occurred| n_s3
+    n_d1 -->|unmeasurable| n_s3
+    n_s2 --> n_s4
+    n_s3 --> n_s4
+    n_s4 --> n_d2
+    n_d2 -->|< 1500 TL| n_s5
+    n_d2 -->|>= 1500 TL| n_s6
+    n_d2 -->|default| n_s5
+    n_d2 -->|unmeasurable| n_s5
+    n_s5 --> n_s7
+    n_s6 --> n_s7
+    n_s7 --> n_d3
+    n_d3 -->|>= 1500 TL| n_s8
+    n_d3 -->|default| n_done
+    n_d3 -->|unmeasurable| n_done
+    n_s8 --> n_done
 ```
 
 ## 9. Data gaps *(if applicable)*

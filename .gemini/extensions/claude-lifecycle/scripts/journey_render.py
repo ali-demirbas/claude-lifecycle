@@ -144,7 +144,7 @@ def render_step_table(doc):
         for n in msgs:
             reached = via.get(n["id"]) or EMPTY
             rows.append(f"| {n['id']} | {anchor_text(n.get('send'))} | {n.get('channel', '')} | "
-                        f"{n.get('intent', '')} | {reached} | {n.get('copy_ref') or EMPTY} |")
+                        f"{_cell(n.get('intent', ''))} | {_cell(reached)} | {n.get('copy_ref') or EMPTY} |")
         return "\n".join(rows)
     rows = [STEP_HEADER, STEP_SEP]
     for st in doc.get("steps", []):
@@ -159,10 +159,41 @@ def render_step_table(doc):
 
 
 # ------------------------------------------------------------------ §8 mermaid
+def _cell(s):
+    """A markdown table cell: a literal pipe would add a column."""
+    return str(s if s is not None else "").replace("\n", " ").replace("|", "\\|")
+
+
 def _mm_text(s):
     """Sanitize a label for a double-quoted Mermaid node/edge label: collapse
-    newlines and replace the literal double-quote (which would close the label)."""
-    return (s or "").replace("\n", " ").replace('"', "'").strip()
+    newlines, replace the literal double-quote (which would close the label) and
+    the pipe (which delimits an edge label)."""
+    return (s or "").replace("\n", " ").replace('"', "'").replace("|", "/").strip()
+
+
+def signal_title(sig):
+    """'begin_checkout' or 'any of link_click / purchase' for a composite signal."""
+    members = jg.signal_members(sig or {})
+    if not members:
+        return "?"
+    if len(members) == 1:
+        return str(members[0].get("name", "?"))
+    prefix = "any of " if "any_of" in sig else "all of "
+    return prefix + " / ".join(str(m.get("name", "?")) for m in members)
+
+
+def _mm_ids(doc):
+    """Mermaid-safe node ids: `n_` prefix keeps reserved words (`end`) and leading
+    digits legal; sanitizing must stay injective, so a collision falls back to a
+    numbered id."""
+    ids, used = {}, set()
+    for i, n in enumerate(doc.get("nodes") or []):
+        cand = "n_" + re.sub(r"[^A-Za-z0-9_]", "_", str(n.get("id", "")))
+        if cand in used:
+            cand = f"n{i}_" + cand[2:]
+        used.add(cand)
+        ids[n.get("id")] = cand
+    return ids
 
 
 def _node_decl(nid, node):
@@ -190,12 +221,13 @@ def render_mermaid(doc):
     has — a plain, always-valid Mermaid shape."""
     if jg.is_v2(doc):
         decls, edges = [], []
+        ids = _mm_ids(doc)
         for n in doc.get("nodes") or []:
-            nid = re.sub(r"[^A-Za-z0-9_]", "_", n["id"])
+            nid = ids[n["id"]]
             disp = n.get("display") or {}
             k = n.get("kind")
             if k == "decision":
-                title = disp.get("title") or f"{(n.get('signal') or {}).get('name')}?"
+                title = disp.get("title") or f"{signal_title(n.get('signal'))}?"
             elif k == "exit":
                 title = disp.get("title") or n.get("reason")
             elif k == "entry":
@@ -204,7 +236,7 @@ def render_mermaid(doc):
                 title = disp.get("title") or n.get("intent")
             decls.append("    " + _node_decl(nid, {"kind": k, "title": title, "channel": n.get("channel")}))
             for lab, tgt in jg.successors(n):
-                tid = re.sub(r"[^A-Za-z0-9_]", "_", tgt)
+                tid = ids.get(tgt, "n_" + re.sub(r"[^A-Za-z0-9_]", "_", str(tgt)))
                 edges.append(f"    {nid} -->|{_mm_text(lab)}| {tid}" if lab else f"    {nid} --> {tid}")
         return "\n".join(["```mermaid", "flowchart TD"] + decls + edges + ["```"])
     flow = doc.get("flow")

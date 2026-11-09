@@ -3,7 +3,7 @@ name: activation
 stage: activation
 trigger_type: absence
 required_events: [sign_up, tutorial_complete]
-optional_events: [login, feature_used, session_start, first_open, link_click, error_shown, help_page_view, step_retry, support_case_opened, continue_later_selected, help_declined]
+optional_events: [login, feature_used, session_start, first_open, link_click, error_shown, help_page_view, step_retry, support_case_opened, continue_later_selected, help_declined, consent_withdrawn]
 required_attributes: []
 optional_attributes: [signup_source, days_since_signup, blocked_step, open_support_case]
 default_channels: [email, push, in_app]

@@ -27,7 +27,7 @@ Word choice for two-sided marketplace messaging. The platform's product is trust
 
 ## Urgency rules
 
-Urgency must be a real supply/demand fact the system can verify at send time: the item actually sold ("kaçırdın — ama benzer 4 ilan var" is honest and useful), the price actually changed, the listing has a real expiry date, a real number of people saved or viewed it. Never invent or inflate counts, never imply competition that isn't in the data, and never editorialize scarcity on a seller's behalf ("won't last long!"). One urgency fact per message. Re-verify availability at send time — urgency about an already-sold listing is the fastest way to train users to distrust every notification.
+Urgency must be a real supply/demand fact the system can verify at send time: the item actually sold ("kaçırdın, ama benzer 4 ilan var" is honest and useful), the price actually changed, the listing has a real expiry date, a real number of people saved or viewed it. Never invent or inflate counts, never imply competition that isn't in the data, and never editorialize scarcity on a seller's behalf ("won't last long!"). One urgency fact per message. Re-verify availability at send time — urgency about an already-sold listing is the fastest way to train users to distrust every notification.
 
 ## Tone calibration by journey stage
 
