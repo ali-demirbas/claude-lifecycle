@@ -1,0 +1,30 @@
+[
+ {
+  "id": "copy_pair",
+  "label": "copy_pair",
+  "steps": [
+   {
+    "tag": "Step 1 — push",
+    "intent": "",
+    "review": "pending",
+    "variants": [
+     {
+      "label": "Variant A — \"a\"",
+      "fields": [
+       [
+        "Title",
+        "<img src=x onerror=alert(1)>",
+        "21/40"
+       ],
+       [
+        "Body",
+        "Seçtiğin ürünler sepetinde duruyor. İstediğin an devam edebilirsin.",
+        "67/120"
+       ]
+      ]
+     }
+    ]
+   }
+  ]
+ }
+]

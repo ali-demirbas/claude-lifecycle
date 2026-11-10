@@ -9,7 +9,7 @@
 
 | Field | Content | Chars | Limit |
 |---|---|---|---|
-| Subject | Hesabiniz hazir | 15 | ≤ 50 |
+| Subject | Hesabiniz kullanima hazir | 25 | ≤ 50 |
 | CTA | Devam et | 8 | ≤ 20 |
 
 **Reviewer notes:** "yatirim araclarini inceleyebilirsiniz" borderline — fintech.md urgency rule; flagged for sign-off, not banned outright.

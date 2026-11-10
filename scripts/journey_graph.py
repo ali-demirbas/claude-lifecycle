@@ -25,8 +25,8 @@ DUR = re.compile(r"^(-)?P(?!$)(?:(\d+)W|(?:(\d+)D)?(?:T(?=\d)(?:(\d+)H)?(?:(\d+)
 DAY = 86400
 MAX_PATHS = 2000
 CONSENT_EXIT = re.compile(r"consent|unsub|opt_?out|optout|withdraw|izin", re.I)
-CONSENT_GRANT = re.compile(r"consent_?grant|re_?consent|opt_?in|subscribe|izin_?ver", re.I)
-CONSENT_NEGATIVE = re.compile(r"unsub|opt_?out|optout|withdr|revok|denied|declin|reject|iptal|geri_?cek", re.I)
+CONSENT_GRANT = re.compile(r"consent_?grant|re_?consent|opt_?in|subscribe|izin_?ver|izni_?ver|onay_?ver|onaylandı", re.I)
+CONSENT_NEGATIVE = re.compile(r"unsub|opt_?out|optout|withdr|revok|denied|declin|reject|iptal|geri_?[cç]ek|ret\b|_ret$|red_?ed", re.I)
 CHANNEL_TOKENS = {"email": r"e_?mail", "sms": r"sms", "push": r"push", "whatsapp": r"whats_?app|\bwa_", "in_app": r"in_?app"}
 
 
@@ -40,11 +40,18 @@ def granted_channel(sig):
         return sig["channel"]
     named = [ch for ch, rx in CHANNEL_TOKENS.items() if re.search(rx, name, re.I)]
     return named[0] if len(named) == 1 else None
-PROMO_INTENT = re.compile(r"\b(upsell|cross-?sell|discount|coupon|promo(tion)?|sale|offer|deal|%\s?\d+|\d+\s?%|"
-                          r"indirim|kupon|kampanya|fırsat|teklif)\b", re.I)
-OPEN_NAME = re.compile(r"(^|_)(email_)?open(ed|s)?($|_)|\bopen_rate\b|açıl(dı|ma)", re.I)
+PROMO_STRICT = re.compile(r"(\d+\s?%|%\s?\d+|yüzde\s*\d+)\s*(off|indirim\w*|discount|sale|tasarruf)|"
+                          r"\b(save|kazan)\s*(%\s?\d+|\d+\s?%)|\b(promo(tion)?\s*code|coupon\s*code|voucher)\b|"
+                          r"\b(upsell|cross-?sell)\w*|kupon\s*kod\w*|indirim\s*kod\w*|\d+\s*al\s*\d+\s*öde|"
+                          r"yarı\s*fiyat\w*", re.I)
+PROMO_BROAD = re.compile(r"\b(discounts?|coupons?|promo\w*|sales?|offers?|deals?)\b|indirim\w*|kupon\w*|kampanya\w*|"
+                         r"fırsat\w*", re.I)
+OPEN_NAME = re.compile(r"^(e_?mail|mail|message|newsletter|campaign)_?open(ed|s)?$|^open(ed)?$|^opens?_rate$|"
+                       r"^e_?posta_?açıl\w*$|^mail_?açıl\w*$", re.I)
 LEGACY_OPEN = re.compile(r"\bopen(ed|s)?\b|\bnot opened\b|açıl|açmad|açmay|okunmad", re.I)
 MARKETING_PURPOSES = {None, "marketing", "reconsent_request"}
+# knowledge/compliance/consent-and-quiet-hours.md "Quiet hours": (start hour, end hour), user local
+QUIET_HOURS = {"push": (22, 9), "sms": (20, 10), "whatsapp": (20, 10)}
 
 
 def dur_seconds(s):
@@ -316,7 +323,7 @@ def path_frequency(by_id, tl, window):
     certain["total"] = window_max(all_known, window)
     res["total"] = certain["total"] + sum(unknown.values())
     if "push" in known or "push" in unknown:
-        certain["push_per_day"] = window_max(known.get("push", []), DAY)
+        certain["push_per_day"] = window_max(known.get("push", []), 13 * 3600)  # inside one 09:00-22:00 day
         res["push_per_day"] = certain["push_per_day"] + unknown.get("push", 0)
     res["_certain"] = certain
     res["_known"] = known
@@ -360,6 +367,11 @@ def analyze(doc, inventory=None, window=7 * DAY):
     short["findings"] = merged
     for ch, v in long_["freq"].items():
         short["freq"][ch] = max(short["freq"].get(ch, 0), v)
+    for key in ("freq_certain", "freq_reentry"):
+        for ch, v in long_.get(key, {}).items():
+            short[key][ch] = max(short[key].get(ch, 0), v)
+    for key in ("push_per_day", "push_per_day_certain"):
+        short[key] = max(short.get(key, 0), long_.get(key, 0))
     short["freq_has_unknown"] |= long_["freq_has_unknown"]
     return short
 
@@ -402,11 +414,9 @@ def _analyze_once(doc, inventory=None, window=7 * DAY):
                        "not be checked against the marketing sends on " + ", ".join(sorted(c for c in mkt_send_channels if c)))
     worst = {}
     re_ = doc.get("reentry") or {}
-    reentry_gap = None  # seconds between one instance's last send and the next instance's entry
-    if re_.get("policy") in ("each_trigger", "new_instance") and re_.get("on_duplicate_trigger") != "restart":
-        reentry_gap = 0
-    elif re_.get("policy") == "after_cooldown":
-        reentry_gap = dur_seconds(re_.get("cooldown")) or 0
+    re_policy, re_dup = re_.get("policy"), re_.get("on_duplicate_trigger") or "ignore"
+    re_cd = dur_seconds(re_.get("cooldown")) or 0
+    reentry_gap = None if re_policy in (None, "once") else 0
     for p in paths:
         tl = timeline(doc, by_id, p, F)
         res["timelines"].append(tl)
@@ -416,17 +426,28 @@ def _analyze_once(doc, inventory=None, window=7 * DAY):
         res["freq_has_unknown"] |= unk
         certain = fr.pop("_certain", {})
         known_times = fr.pop("_known", {})
-        if reentry_gap is not None and reentry_gap < window:
-            # a second instance can start `reentry_gap` after the first one's last send:
-            # count both instances' marketing sends in one rolling window
-            last = max((tt for v in known_times.values() for tt in v), default=None)
-            if last is not None:
-                for ch, times in known_times.items():
-                    both = times + [tt + last + reentry_gap for tt in times]
-                    res["freq_reentry"][ch] = max(res["freq_reentry"].get(ch, 0), window_max(both, window))
-                allk = [tt for v in known_times.values() for tt in v]
-                res["freq_reentry"]["total"] = max(res["freq_reentry"].get("total", 0),
-                                                   window_max(allk + [tt + last + reentry_gap for tt in allk], window))
+        if reentry_gap is not None:
+            # When can a second instance for the same person start, measured from this one's entry?
+            #   ignore      (default): only after this instance exits, plus any cooldown
+            #   new_instance: as soon as the cooldown has passed, in parallel with this one
+            #   restart     : at any moment; this instance's later sends are cancelled
+            allk = sorted(tt for v in known_times.values() for tt in v)
+            exit_t = next((tt for _, _, tt in reversed(tl) if tt is not None), None)
+            if allk:
+                if re_dup == "restart":
+                    # a restart can't come sooner than the entry cooldown allows
+                    shifts = [(max(s, re_cd), max(s, re_cd)) for s in allk]  # (second start, first cut-off)
+                elif re_dup == "new_instance":
+                    shifts = [(re_cd, None)]
+                else:
+                    shifts = [(max(exit_t if exit_t is not None else allk[-1], re_cd), None)]
+                for start, cut in shifts:
+                    if start >= window + (allk[-1] if allk else 0):
+                        continue
+                    for ch, times in list(known_times.items()) + [("total", allk)]:
+                        first = [x for x in times if cut is None or x <= cut]
+                        both = first + [x + start for x in times]
+                        res["freq_reentry"][ch] = max(res["freq_reentry"].get(ch, 0), window_max(both, window))
         res["push_per_day"] = max(res.get("push_per_day", 0), fr.pop("push_per_day", 0))
         res["push_per_day_certain"] = max(res.get("push_per_day_certain", 0), certain.pop("push_per_day", 0))
         for ch, v in fr.items():
@@ -448,7 +469,7 @@ def _analyze_once(doc, inventory=None, window=7 * DAY):
                     reconsented.add(gch)
             if n.get("kind") == "message":
                 ch = n.get("channel")
-                if allowed_declared and ch not in allowed and n.get("purpose") in MARKETING_PURPOSES:
+                if allowed_declared and ch not in allowed:
                     F.error(f"node '{nid}': channel '{ch}' is not in constraints.allowed_channels {sorted(allowed)} "
                             f"(Channel Consent Violation)")
                 if ch in withdrawn and ch not in reconsented:
@@ -456,11 +477,13 @@ def _analyze_once(doc, inventory=None, window=7 * DAY):
                             f"closed channel on its own (route through an authoritative consent-granted decision for "
                             f"'{ch}' on this path: signal.channel '{ch}', or the channel in the event name)")
                 cal = (n.get("send") or {}).get("calendar") if isinstance(n.get("send"), dict) else None
-                if ch == "push" and n.get("purpose") in MARKETING_PURPOSES and cal and cal.get("time_of_day"):
+                quiet = QUIET_HOURS.get(ch)
+                if quiet and n.get("purpose") in MARKETING_PURPOSES and cal and cal.get("time_of_day"):
                     hh = int(str(cal["time_of_day"]).split(":")[0]) if str(cal["time_of_day"])[:2].isdigit() else None
-                    if hh is not None and (hh >= 22 or hh < 9):
-                        F.error(f"node '{nid}': marketing push scheduled at {cal['time_of_day']} user-local, inside "
-                                f"the 22:00-09:00 quiet window (Quiet Hours Violation)")
+                    start, end = quiet
+                    if hh is not None and (hh >= start or hh < end):
+                        F.error(f"node '{nid}': marketing {ch} scheduled at {cal['time_of_day']} user-local, inside "
+                                f"the {start:02d}:00-{end:02d}:00 quiet window (Quiet Hours Violation)")
                 t = next((t for i2, _, t in tl if i2 == nid), None)
                 dl = (n.get("delivery") or {}).get("deadline")
                 if dl and t is not None:
@@ -536,25 +559,35 @@ def check_purpose_labels(doc, by_id, F):
     """Caps and consent follow each send's purpose, so the purpose label is itself a
     compliance claim. In a marketing-class journey every non-marketing label is
     surfaced for review, and a journey with no marketing-purpose send at all fails."""
+    flagged = set()
     for n in by_id.values():
-        if n.get("kind") == "message" and n.get("purpose") not in MARKETING_PURPOSES \
-                and PROMO_INTENT.search(str(n.get("intent", ""))):
-            F.error(f"node '{n.get('id')}': purpose '{n.get('purpose')}' but the intent reads as a promotion "
-                    f"({PROMO_INTENT.search(str(n.get('intent', ''))).group(0)!r}); a promotional send is "
-                    f"marketing-purpose whatever its label, and counts toward caps and consent")
+        if n.get("kind") != "message" or n.get("purpose") in MARKETING_PURPOSES:
+            continue
+        intent = str(n.get("intent", ""))
+        m = PROMO_STRICT.search(intent)
+        if m:
+            flagged.add(n.get("id"))
+            F.error(f"node '{n.get('id')}': purpose '{n.get('purpose')}' but the intent is a promotion "
+                    f"({m.group(0)!r}); a promotional send is marketing-purpose whatever its label, and counts "
+                    f"toward caps and consent")
+        elif PROMO_BROAD.search(intent):
+            flagged.add(n.get("id"))
+            F.unverifiable(f"node '{n.get('id')}': purpose '{n.get('purpose')}' but the intent mentions "
+                           f"'{PROMO_BROAD.search(intent).group(0)}'; confirm it is not a promotion", critical=False)
     if doc.get("journey_class") != "marketing":
         return
     msgs = [n for n in by_id.values() if n.get("kind") == "message"]
     if not msgs:
         return
     non_mkt = [n for n in msgs if n.get("purpose") not in MARKETING_PURPOSES]
+    noted = [n for n in non_mkt if n.get("id") not in flagged]
     if len(non_mkt) == len(msgs):
         F.error("marketing-class journey where every send is labelled service/transactional: the label switches "
                 "off frequency caps and consent checks, so it is a compliance claim, not a style choice; either "
                 "the class or the purposes are wrong")
-    elif non_mkt:
+    elif noted:
         F.unverifiable("marketing-class journey with non-marketing sends excluded from caps and consent: " +
-                       ", ".join(f"{n.get('id')} ({n.get('purpose')})" for n in non_mkt) +
+                       ", ".join(f"{n.get('id')} ({n.get('purpose')})" for n in noted) +
                        "; confirm each is a genuine service/transactional message", critical=False)
 
 

@@ -348,7 +348,9 @@ FR3=/tmp/lc_finalize3; rm -rf "$FR3"; mkdir -p "$FR3"
 cp "$DIR/../../examples/ecommerce-full-ga4/05-journey-cart-recovery.json" "$FR3/ecom-abandoned-cart-01.json"
 cp "$DIR/../../examples/ecommerce-full-ga4/03-journey-cart-recovery.md" "$FR3/ecom-abandoned-cart-01.md"
 echo '{broken' > "$FR3/_meta.json"
+cp "$FX/good_dossier.md" "$FR3/dossier.md"
 python3 "$DIR/../finalize_run.py" start "$FR3" --scope ecom-abandoned-cart-01 >/dev/null
+cp "$FX/good_dossier.md" "$FR3/dossier.md"
 expect 1 "S04 a failed canvas build fails the run instead of passing without a canvas" python3 "$DIR/../finalize_run.py" finish "$FR3" --max-discount 10
 expect 0 "S04 ...manifest status is failed"                                        python3 -c "import json,sys;sys.exit(0 if json.load(open('$FR3/run-manifest.json'))['status']=='failed' else 1)"
 expect 2 "S17 finalize_run start rejects an id with a path separator"              python3 "$DIR/../finalize_run.py" start /tmp/lc_fin_bad --scope ../outside-01
@@ -374,6 +376,25 @@ for n in d['nodes']:
 mm=jr.render_mermaid(d); tb=jr.render_step_table(d)
 sys.exit(0 if ' n_end' in mm or 'n_end(' in mm or 'n_end[' in mm else (0 if 'A \\\\| B offer' in tb else 1))"
 
+echo "== audit 5: copy rules, copy canvas, run bookkeeping =="
+A5="$FX/audit5"
+for f in A01_yuzde A04_yari A05_2al1ode A11_range_limit A12_all_unparseable A13_subject_min A14_two_cta A16_push_emoji A18_sms_no_optout_bitly A20_dash_in_prose_fallback A24_var_no_fallback_TR_adim A28_fallback_fieldlabel_bypass B01_inapp_Body_plain F06_md_html_payload_copy; do
+expect 1 "copy rule caught: $f"                                              python3 "$VO" copy "$A5/$f.md" --max-discount 10 --sector ecommerce
+done
+for f in A00_base D02_escaped_pipe D07_fallback_system_safe_var; do
+expect 0 "valid copy passes: $f"                                             python3 "$VO" copy "$A5/$f.md" --max-discount 10 --sector ecommerce
+done
+expect 0 "the shipped copy example passes with every row checked"            python3 "$VO" copy "$DIR/../../examples/ecommerce-full-ga4/04-copy-cart-recovery.md" --max-discount 10 --sector ecommerce
+CC=/tmp/lc_cc_rt.json; rm -f "$CC"
+expect 0 "copy_canvas.py derives the canvas object from the reviewed doc"    python3 "$DIR/../copy_canvas.py" "$DIR/../../examples/ecommerce-full-ga4/04-copy-cart-recovery.md" --out "$CC"
+expect 0 "...and it matches the doc by construction"                        python3 "$VO" copy-canvas "$DIR/../../examples/ecommerce-full-ga4/04-copy-cart-recovery.md" "$CC"
+expect 1 "a canvas field carrying HTML fails the copy-canvas check"          python3 "$VO" copy-canvas "$UX/copy_pair.md" "$UX/copy_pair_html.canvas.json"
+expect 0 "copy_canvas.py escapes HTML in field text"                        python3 -c "
+import sys;sys.path.insert(0,'$DIR/..');import copy_canvas as c
+print(c._field_html('<b>x</b> {{first_name}}'));sys.exit(0 if '&lt;b&gt;' in c._field_html('<b>x</b>') and 'class=\"variable\"' in c._field_html('{{a}}') else 1)"
+expect 2 "validate_output rejects a non-numeric --max-discount"              python3 "$VO" copy "$A5/A00_base.md" --max-discount abc
+expect 0 "a validator crash reads as FAIL, not a traceback"                 bash -c "echo '{broken' > /tmp/lc_crash.json; python3 '$VO' portfolio /tmp/lc_crash.json | grep -q '^FAIL'"
+
 echo "== speed: scripted eligibility and run finalization =="
 SX="$FX/speed"
 expect_contains "eligibility: mapped + usable events -> eligible"            "eligible             P0 abandoned-cart" python3 "$DIR/../eligibility.py" "$SX/smap_cart_ok.json" --pattern abandoned-cart
@@ -385,11 +406,13 @@ expect_contains "eligibility: T3 is playbook-recommended"                    "pl
 FR=/tmp/lc_finalize; rm -rf "$FR"; mkdir -p "$FR"
 cp "$DIR/../../examples/ecommerce-full-ga4/05-journey-cart-recovery.json" "$FR/ecom-abandoned-cart-01.json"
 cp "$DIR/../../examples/ecommerce-full-ga4/03-journey-cart-recovery.md" "$FR/ecom-abandoned-cart-01.md"
+cp "$FX/good_dossier.md" "$FR/dossier.md"
 expect 0 "finalize start opens a single-journey run"                         python3 "$DIR/../finalize_run.py" start "$FR" --scope ecom-abandoned-cart-01 --mode single
 expect 3 "finalize finish: unknown existing journeys -> delivered as unverified" python3 "$DIR/../finalize_run.py" finish "$FR" --max-discount 10
 expect 0 "finalize finish built the canvas and hashed the files"             python3 -c "import json,sys;m=json.load(open('$FR/run-manifest.json'));sys.exit(0 if m['canvas']=='built' and all(len(f['sha256'])==64 for f in m['files']) and m['scope']['mode']=='single' else 1)"
 expect 0 "finalize start archives the previous run"                          python3 "$DIR/../finalize_run.py" start "$FR" --scope ecom-abandoned-cart-01 --mode single
 expect 0 "...the archived run kept its manifest and canvas"                  bash -c "ls $FR/runs/*/run-manifest.json $FR/runs/*/canvas.html"
+cp "$FX/good_dossier.md" "$FR/dossier.md"
 cp "$DIR/../../examples/ecommerce-full-ga4/03-journey-cart-recovery.md" "$FR/ecom-abandoned-cart-01.md"
 python3 - "$FR/ecom-abandoned-cart-01.json" "$DIR/../../examples/ecommerce-full-ga4/05-journey-cart-recovery.json" <<'PY'
 import json,sys

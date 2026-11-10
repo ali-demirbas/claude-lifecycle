@@ -83,11 +83,24 @@ def _js_safe(s):
     return s.replace("</", "<\\/")
 
 
+def _js_value(v):
+    """A tooltip constant from _meta.json. Plain text (the documented form) becomes an
+    escaped JS string; a value already written as JS (`tip("…", "…")` or a quoted
+    literal, the older form) is kept, so existing meta files still build."""
+    s = str(v).strip()
+    if re.fullmatch(r"tip\(.*\)", s, re.S) or re.fullmatch(r'"(?:[^"\\]|\\.)*"', s):
+        return _js_safe(s)
+    if isinstance(v, dict) and {"title", "body"} <= set(v):
+        return f"tip({_js_safe(json.dumps(v['title'], ensure_ascii=False))}, {_js_safe(json.dumps(v['body'], ensure_ascii=False))})"
+    return _js_safe(json.dumps(s, ensure_ascii=False))
+
+
 def _dur_tr(iso):
     """'P1D' -> '1 gün', 'PT1H' -> '1 saat', 'P1DT12H' -> '1 gün 12 saat'."""
-    m = re.fullmatch(r"-?P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?", iso or "")
-    if not m or not iso or iso in ("P0D", "PT0H", "PT0M"):
-        return "hemen" if iso in ("P0D", "PT0H", "PT0M") else (iso or "?")
+    m = re.fullmatch(r"-?P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:\d+S)?)?", iso or "")
+    zero = ("P0D", "PT0H", "PT0M", "PT0S")
+    if not m or not iso or iso in zero:
+        return "hemen" if iso in zero else (iso or "?")
     parts = [f"{v} {_UNIT_TR[u]}" for v, u in zip(m.groups(), "WDHM") if v and int(v)]
     return " ".join(parts) or "hemen"
 
@@ -194,6 +207,19 @@ def _v2_root(doc):
 
     drawn = set()
 
+    size_memo = {}
+
+    def subtree_size(nid, depth=0):
+        if nid in size_memo:
+            return size_memo[nid]
+        if depth > 60:
+            return 10 ** 6
+        s = 1 + sum(subtree_size(tgt, depth + 1) for _, tgt in jg.successors(by_id[nid]))
+        size_memo[nid] = s
+        return s
+
+    too_big = subtree_size(doc["start"]) > 120  # cards; beyond this the canvas stops being readable
+
     def exit_node(n, disp):
         reason = n.get("reason") or ""
         title = disp.get("title") or _EXIT_TITLE.get(reason, reason or "Çıkış")
@@ -243,14 +269,14 @@ def _v2_root(doc):
             node = exit_node(n, disp)
         if disp.get("extra"):
             node["extra"] = disp["extra"]
-        if is_shared and nid in drawn:
-            # a merge node is drawn in full once; later parents get a pointer, so a
-            # graph with several merges doesn't multiply into hundreds of cards
-            node["tag"] = (node.get("tag") or "") + " (yukarıda çizildi)"
+        if is_shared and nid in drawn and too_big:
+            # only when full redrawing would explode (many merges): later parents get a pointer
+            node["tag"] = (node.get("tag") or "") + " (diğer dalda devam ediyor)"
             return node
         drawn.add(nid)
-        kids = [{"label": _EDGE_LABEL.get(str(lab), lab) if lab is not None else None, "node": to_node(tgt)}
-                for lab, tgt in jg.successors(n)]
+        shown = {b.get("next"): b.get("label") for b in n.get("branches") or [] if b.get("label")}
+        kids = [{"label": shown.get(tgt) or (_EDGE_LABEL.get(str(lab), lab) if lab is not None else None),
+                 "node": to_node(tgt)} for lab, tgt in jg.successors(n)]
         if kids:
             node["children"] = kids
         return node
@@ -313,9 +339,9 @@ def build(template_path, journeys, meta):
     # HOLDOUT_TIP / DATA_NOTE — whole line (no DOTALL), so an inner ';' inside
     # the string literal doesn't truncate the match. Only if the template has them.
     if "holdout_tip" in meta and "const HOLDOUT_TIP" in t:
-        t, _ = _sub_once(t, r"const HOLDOUT_TIP = .*", f"const HOLDOUT_TIP = {meta['holdout_tip']};")
+        t, _ = _sub_once(t, r"const HOLDOUT_TIP = .*", f"const HOLDOUT_TIP = {_js_value(meta['holdout_tip'])};")
     if "data_note" in meta and "const DATA_NOTE" in t:
-        t, _ = _sub_once(t, r"const DATA_NOTE = .*", f"const DATA_NOTE = {meta['data_note']};")
+        t, _ = _sub_once(t, r"const DATA_NOTE = .*", f"const DATA_NOTE = {_js_value(meta['data_note'])};")
 
     # JOURNEYS — multi-line, one journey object per line, closed by a bare `];`
     # line. json.dumps produces valid JS string literals (double-quoted); a

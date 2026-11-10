@@ -42,7 +42,7 @@ One sentence: what business outcome this journey drives, and the single primary 
 
 ## 5. Steps (required)
 
-Generated, never hand-written: `python3 "${CLAUDE_PLUGIN_ROOT:-.}/scripts/journey_render.py" <id>.json --section table` renders this table from the journey JSON's node graph.
+Generated, never hand-written: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/journey_render.py" <id>.json --section table` renders this table from the journey JSON's node graph.
 
 | Node | When | Channel | Message intent | Reached via | Copy ref |
 |------|------|---------|----------------|-------------|----------|
@@ -79,7 +79,7 @@ Rules behind the table (they live in the JSON):
 
 ## 8. Flow diagram (required)
 
-Generated: `python3 "${CLAUDE_PLUGIN_ROOT:-.}/scripts/journey_render.py" <id>.json --section mermaid` (straight from the node graph, branches and merges included).
+Generated: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/journey_render.py" <id>.json --section mermaid` (straight from the node graph, branches and merges included).
 
 ## 9. Open items and data gaps *(if applicable)*
 

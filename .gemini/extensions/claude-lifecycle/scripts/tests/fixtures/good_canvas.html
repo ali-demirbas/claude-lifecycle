@@ -475,7 +475,7 @@ const JOURNEYS = [
 const UI = {
   intent: 'Niyet',
   fallback: 'Fallback',
-  review: { pass: 'Geçti', fix: 'Not ile geçti', legal: 'Hukuki inceleme' },
+  review: { pass: 'Geçti', notes: 'Not ile geçti', legal: 'Hukuki inceleme', pending: 'İncelenmedi' },
   over: (a, l) => `Gerçek uzunluk ${a}, limit ${l}: limit aşımı`,
   mismatch: (d, a) => `Beyan edilen ${d}, gerçek uzunluk ${a}`,
   channel: { email: 'Email', push: 'Push', sms: 'SMS', inapp: 'In-app', whatsapp: 'WhatsApp', human: 'İnsan' }
@@ -543,9 +543,10 @@ function escapeHtml(s) {
 }
 
 function badgeHtml(review) {
-  if (review === 'fix') return `<span class="lab-badge lab-t-watch">${ICONS.alert}${UI.review.fix}</span>`;
+  if (review === 'notes' || review === 'fix') return `<span class="lab-badge lab-t-watch">${ICONS.alert}${UI.review.notes}</span>`;
   if (review === 'legal') return `<span class="lab-badge lab-t-warn">${ICONS.scale}${UI.review.legal}</span>`;
-  return `<span class="lab-badge lab-t-good">${ICONS.check}${UI.review.pass}</span>`;
+  if (review === 'pass') return `<span class="lab-badge lab-t-good">${ICONS.check}${UI.review.pass}</span>`;
+  return `<span class="lab-badge lab-t-neutral">${ICONS.alert}${UI.review.pending}</span>`;
 }
 
 function stepHtml(s) {

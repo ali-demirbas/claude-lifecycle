@@ -68,7 +68,7 @@ Guardrail breaches (unsubscribe/complaint over ceiling) override everything — 
 
 ## Step 4 — Write the memory
 
-Three files under `output/<brand>/` (gitignored; linked from the brand config):
+Three files under `output/<project>/` (gitignored; linked from the brand config):
 
 1. **`results-log.md`** — append one row per verdict: date, journey id, measurement design, window, participants and conversions per arm (assigned, not just delivered), absolute and relative lift (or the design's operational outcomes), iROI where defined, verdict, decision taken by user.
 2. **`failed-strategies.md`** — append an entry for (a) **powered failures** (power gate passed, lift negative/zero) or (b) **guardrail-class absolute signals** (complaint, suppression trigger, unsubscribe spike) which are exempt from the sample gate but must be labeled `guardrail-class` with the n stated honestly. Format: `segment | journey/pattern | strategy label (from copy metadata) | what failed | evidence class | status`. This is a **do-not-repropose list**: `lifecycle-journeys` and `copy-writer` must check it and not offer the same strategy to the same segment again. Entries carry evidence so a human can overrule; the log recommends, it doesn't legislate.

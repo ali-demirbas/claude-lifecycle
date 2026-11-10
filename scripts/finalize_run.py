@@ -84,13 +84,15 @@ def cmd_start(a):
     os.makedirs(a.outdir, exist_ok=True)
     old, mpath = load_manifest(a.outdir)
     if old:
-        old_id = old.get("run_id", "")
-        if not RUN_ID_RE.match(str(old_id)):
-            print(f"error: previous manifest has a malformed run_id {old_id!r}; not archiving into it", file=sys.stderr)
-            return 2
+        old_id = str(old.get("run_id", ""))
+        if not RUN_ID_RE.match(old_id):
+            # a manifest from before the run-id format: archive it under a safe name instead of refusing
+            old_id = "legacy-" + (re.sub(r"[^A-Za-z0-9-]", "-", old_id).strip("-")[:40] or
+                                  hashlib.sha256(json.dumps(old, sort_keys=True).encode()).hexdigest()[:8])
         dest = os.path.join(a.outdir, "runs", old_id)
         os.makedirs(dest, exist_ok=True)
         listed = [f["path"] for f in old.get("files", [])] + ["dossier.md", "canvas.html", "_meta.json",
+                                                              "iletisim-metinleri.html", "message-copy.html",
                                                               "run-manifest.json"]
         listed = [p for p in listed if not os.path.isabs(p) and ".." not in p.split("/")]
         moved = 0
@@ -157,9 +159,10 @@ def cmd_finish(a):
                     failures.append(f"{jid}: doc lacks the '## 5. Steps' / '## 8. Flow diagram' headings the "
                                     f"template requires; the mechanical sections could not be rendered")
                 open(mp, "w", encoding="utf-8").write(md)
-            ccode, _, cprobs = run_validator("consistency", mp, jp)
-            if ccode == 1:
-                failures.extend(f"{jid}: {p}" for p in cprobs)
+            if code != 1:  # a failed journey's doc was not re-rendered; its consistency verdict would only mislead
+                ccode, _, cprobs = run_validator("consistency", mp, jp)
+                if ccode == 1:
+                    failures.extend(f"{jid}: {p}" for p in cprobs)
         except Exception as e:  # noqa: BLE001  a render crash is a failed run, not a traceback
             failures.append(f"{jid}: rendering the doc failed: {type(e).__name__}: {e}")
         files.append(mp)
@@ -200,6 +203,13 @@ def cmd_finish(a):
         code, _, probs = run_validator("dossier", dpath)
         (failures if code == 1 else unverified if code == 3 else []).extend(f"dossier: {p}" for p in probs)
         files.append(dpath)
+    else:
+        failures.append("dossier: dossier.md is missing; write it before finish so it is validated and hashed")
+    copies = [cp for cp in sorted(glob.glob(os.path.join(a.outdir, "_copy", "*.md")))
+              if os.path.basename(cp)[:-3] in scope]
+    if copies and (a.max_discount is None or not a.sector):
+        failures.append("copy: finish needs --max-discount and --sector when copy is in scope; without them the "
+                        "discount ceiling and the sector's banned words are not checked")
     for cp in sorted(glob.glob(os.path.join(a.outdir, "_copy", "*.md"))):
         jid = os.path.basename(cp)[:-3]
         if jid not in scope:
@@ -209,12 +219,31 @@ def cmd_finish(a):
         code, _, probs = run_validator(*args)
         (failures if code == 1 else unverified if code == 3 else []).extend(f"copy {jid}: {p}" for p in probs)
         files.append(cp)
+    for name in ("iletisim-metinleri.html", "message-copy.html"):
+        cc = os.path.join(a.outdir, name)
+        if os.path.isfile(cc):
+            ccode, _, cprobs = run_validator("canvas", cc, "--template", os.path.join(ROOT, "templates", "copy-canvas.html"))
+            if ccode == 1:
+                failures.extend(f"{name}: {p}" for p in cprobs)
+            files.append(cc)
+    for cj in sorted(glob.glob(os.path.join(a.outdir, "_copy", "*.canvas.json"))):
+        jid = os.path.basename(cj)[: -len(".canvas.json")]
+        md = os.path.join(a.outdir, "_copy", f"{jid}.md")
+        if jid in scope and os.path.isfile(md):
+            ccode, _, cprobs = run_validator("copy-canvas", md, cj)
+            if ccode == 1:
+                failures.extend(f"copy canvas {jid}: {p}" for p in cprobs)
+            files.append(cj)
     canvas = "skipped (validation failed)" if failures else "not built"
+    stale = os.path.join(a.outdir, "canvas.html")
+    if failures and os.path.isfile(stale):
+        os.replace(stale, stale + ".stale")  # never leave a previous canvas next to a failed run
     if not failures:
         meta_path = os.path.join(a.outdir, "_meta.json")
         if not os.path.isfile(meta_path):
             json.dump({"title": "Lifecycle journeys", "eyebrow": "Journey canvas", "h1": "Journeys",
-                       "lede": "Generated journeys for review."}, open(meta_path, "w", encoding="utf-8"))
+                       "lede": f"{len(scope)} journey(s) for review.", "holdout_tip": "",
+                       "data_note": ""}, open(meta_path, "w", encoding="utf-8"))
         out = os.path.join(a.outdir, "canvas.html")
         r = subprocess.run([sys.executable, os.path.join(HERE, "build_canvas.py"), "--template",
                             os.path.join(ROOT, "templates", "canvas.html"), "--from-journeys",

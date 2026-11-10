@@ -29,9 +29,10 @@ TS_MAX = datetime(2100, 1, 1, tzinfo=timezone.utc).timestamp()
 # \s+ (not a literal space) so a double space, tab, or a CSV-quoted embedded
 # newline between words doesn't slip past the phrase match.
 INJECTION = re.compile(
-    r"ignore(\s+\S+){0,3}\s+(instructions|rules|directives|prompts?)|system\s+prompt|"
-    r"(new|updated)\s+instructions|^\s*(system|assistant)\s*:|reveal\s+(your\s+)?(instructions|rules)|"
-    r"you\s+are\s+now|disregard|forget\s+(all\s+)?(prior|previous)\s+(directives|instructions)|"
+    r"ignore(\s+(all|any|every|the|your|my|previous|prior|above|earlier|preceding|these|those))+\s+"
+    r"(instructions|rules|directives|prompts?)|system\s+prompt|reveal\s+your\s+(system\s+)?(instructions|prompt)|"
+    r"you\s+are\s+now\s+(an?\s+)?(assistant|ai|admin|administrator|system|root|unrestricted|jailbroken|in\s+\w+\s+mode)|"
+    r"disregard(\s+(all|any|the|your|previous|prior|above|earlier))+\s+(instructions|rules|directives|prompts?)|forget\s+(all\s+)?(prior|previous)\s+(directives|instructions)|"
     r"override\s+(system\s+)?rules|act\s+as\s+(admin|system)|reveal\s+(your\s+)?(prompt|system\s+prompt)|"
     r"from\s+now\s+on\s+you\s+must|<script|javascript:|on(error|load)\s*=|data:text/html|"
     r"do\s+not\s+follow|"
@@ -96,6 +97,7 @@ def parse_ts(v):
         return None
 
 
+INJECTION_TEXT = re.compile(r"(new|updated)\s+instructions\s*:\s*(ignore|you|from\s+now|act|disregard|forget)|^\s*(system|assistant)\s*:\s*(you|ignore|from|act)", re.I)
 ZERO_WIDTH = re.compile(r"[\u200b-\u200f\u2060\ufeff\u00ad]")
 HOMOGLYPHS = str.maketrans("аеіорсухАЕІОРСУХ", "aeiopcyxAEIOPCYX")  # Cyrillic look-alikes used to dodge keyword scans
 
@@ -107,6 +109,9 @@ def norm(s):
 
 
 def check(path):
+    if path in ("-h", "--help"):
+        print(__doc__)
+        return
     print(f"== input: {path}")
     try:
         f = open(path, encoding="utf-8-sig", newline="")
@@ -127,10 +132,6 @@ def check(path):
             return
         except UnicodeDecodeError as e:
             fail(f"{path}: not UTF-8 ({e.reason} at byte {e.start}); re-export the file as UTF-8 before scoring")
-            return
-        if all_rows and len(all_rows[0]) == 1 and re.search(r"[;\t|]", all_rows[0][0]):
-            fail(f"{path}: the header is one cell containing a separator ({all_rows[0][0][:60]!r}); the delimiter "
-                 f"was not recognised, re-export with commas")
             return
         if not all_rows:
             fail(f"{path}: empty file")
@@ -154,6 +155,10 @@ def check(path):
         if hdr_i:
             warn(f"{path}: {hdr_i} preamble row(s) before header (aggregate-report export shape) — skipped")
         header = all_rows[hdr_i]
+        if len(header) == 1 and re.search(r"[;\t|]", header[0]):
+            fail(f"{path}: the header is one cell containing a separator ({header[0][:60]!r}); the delimiter "
+                 f"was not recognised, re-export with commas")
+            return
 
         # header hygiene — only NAMED duplicates are ambiguous data; padded
         # blank columns (common in report exports) stay a warning
@@ -199,7 +204,7 @@ def check(path):
                 if re.fullmatch(r"-\d+(\.\d+)?", c):
                     numericish[i] = numericish.get(i, 0) + 1
                     neg += 1
-                if c and INJECTION.search(norm(c)):
+                if c and (INJECTION.search(norm(c)) or (i in text_cols and INJECTION_TEXT.search(norm(c)))):
                     if len(inj_samples) < 5:
                         inj_samples.append((rows, header[i], c[:80]))
 

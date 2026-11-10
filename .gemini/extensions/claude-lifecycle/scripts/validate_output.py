@@ -47,13 +47,20 @@ CHANNELS = {"email", "push", "sms", "in_app", "whatsapp"}
 ISO_WAIT = re.compile(r"^P(?!$)(?:\d+W|(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?)$")
 ID_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*-[0-9]{2}$")
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
-EMDASH = re.compile(r"[—–]")  # em dash, en dash
-VARIANT_HEAD = re.compile(r"^### Variant\b.*$", re.M)
+EMDASH = re.compile(r"[—–―‒]|&mdash;|&ndash;")  # em, en, horizontal bar, figure dash (and their entities)
+VARIANT_HEAD = re.compile(r"^### (?:Variant|Varyant)\b.*$", re.M)
 VARIANT_JSON_FENCE = re.compile(r"```json\s*\n(.*?)\n```", re.S)
 REVIEW_STATUS_RE = re.compile(r"\*\*Review status:\*\*\s*(.+)$", re.M)
 # A template metadata field line: `**<Label>:** ...` at line start — the
 # grammar every step-bookkeeping field in templates/copy-output.md follows.
 FIELD_LABEL = re.compile(r"^\*\*[^*\n]+:\*\*", re.M)
+# the step-bookkeeping lines the template places after the Fallback (they end it)
+META_LABEL = re.compile(r"^\*\*(Personalization variables used|Reviewer notes|Kullanılan değişkenler|"
+                        r"Kişiselleştirme değişkenleri|İnceleme notları|Reviewer notları):\*\*", re.M | re.I)
+EMOJI = re.compile("[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F900-\U0001F9FF\u2B50\u2B55\u203C\u2049]")
+SHORTENER = re.compile(r"\b(bit\.ly|tinyurl\.com|goo\.gl|t\.co|ow\.ly|is\.gd|buff\.ly|cutt\.ly|rebrand\.ly)/", re.I)
+SMS_OPTOUT = re.compile(r"\b(stop|ret|iptal|unsubscribe|opt[- ]?out|çıkış|cikis)\b|almamak için|çıkmak için", re.I)
+UNSAFE_HTML = re.compile(r"<\s*(script|img|iframe|svg|object|embed|style|link|meta)\b|\bon[a-z]+\s*=|javascript:", re.I)
 REVIEWER_NOTES_RE = re.compile(r"\*\*Reviewer notes:\*\*\s*(.*)$", re.M)
 # push's optional rich-media line (templates/copy-output.md): not a chars-table
 # row (a URL has no meaningful character ceiling), so it's parsed separately.
@@ -69,7 +76,11 @@ QUOTED_TERM = re.compile(r'"([^"]+)"')
 # trailing-%% alternative stops "45.5%" from being mis-split (a bare \d{1,3}
 # scan finds "5%" inside it and silently drops the "45." prefix).
 DISCOUNT = re.compile(r"(?:%\s*(\d{1,3}(?:[.,]\d+)?)|(?<![\d.,])(\d{1,3}(?:[.,]\d+)?)\s*%)", re.U)
-DISCOUNT_CTX = re.compile(r"indirim|discount|off\b|sale", re.I | re.U)
+DISCOUNT_CTX = re.compile(r"indirim|discount|off\b|sale|kupon|coupon|fırsat|kampanya|save|tasarruf|percent", re.I | re.U)
+# word-form discounts: "yüzde 40", "40 percent", "save 40", "yarı fiyatına" (50), "2 al 1 öde" ((2-1)/2)
+DISCOUNT_WORD = re.compile(r"yüzde\s*(\d{1,3})|(\d{1,3})\s*percent", re.I)
+HALF_PRICE = re.compile(r"yarı\s*fiyat|half[- ]price", re.I)
+BUY_N_PAY_M = re.compile(r"(\d+)\s*al\s*(\d+)\s*öde|buy\s*(\d+)\s*(?:,\s*)?pay\s*(?:for\s*)?(\d+)", re.I)
 
 # Fallback only — used if the compliance file is missing or its table can't be
 # parsed. The real source of truth is load_default_caps() below, which reads
@@ -209,6 +220,11 @@ def check_journey(path):
                 fail(f"{path}: schema: ...and {len(errs) - 8} more schema violation(s) not shown (fix the above and re-run to see the rest)")
             if not errs:
                 ok("schema valid")
+            else:
+                # semantic checks assume the schema's shapes; running them on a malformed
+                # document only turns a clear FAIL list into a traceback
+                print("  (semantic checks skipped until the schema errors above are fixed)")
+                return
         except (ImportError, AttributeError):
             # AttributeError: an old jsonschema without Draft202012Validator —
             # degrade to the structural check instead of crashing (see
@@ -273,12 +289,13 @@ def check_journey(path):
 
     # 3. constraints vs steps (compliance-class: hard fail)
     cons = doc.get("constraints") or {}
+    allowed_declared = isinstance(cons.get("allowed_channels"), list)
     allowed = set(cons.get("allowed_channels") or [])
     for step in doc.get("steps", []):
         ch = step.get("channel")
         if ch not in CHANNELS:
             fail(f"{path}: step {step.get('index')}: unknown channel '{ch}'")
-        elif allowed and ch not in allowed:
+        elif allowed_declared and ch not in allowed:
             fail(
                 f"{path}: step {step.get('index')}: channel '{ch}' not in "
                 f"constraints.allowed_channels {sorted(allowed)} — Channel Consent Violation",
@@ -345,6 +362,9 @@ def check_journey_v2(path, doc, pattern_fm, inventory=None, report=True):
     events, frequency. Returns the analysis dict so portfolio mode can reuse it."""
     res = jg.analyze(doc, inventory=inventory, window=_caps_window())
     F = res["findings"]
+    prim = [k for k in doc.get("kpis") or [] if isinstance(k, dict) and k.get("type") == "primary"]
+    if len(prim) != 1:
+        F.error(f"journey has {len(prim)} primary KPI(s); exactly one is required (the success measure)")
     if pattern_fm:
         range_m = re.search(r"^depth_range:\s*\[\s*(\d+)\s*,\s*(\d+)\s*\]", pattern_fm, re.M)
         n = res["max_msgs_on_path"]
@@ -358,10 +378,12 @@ def check_journey_v2(path, doc, pattern_fm, inventory=None, report=True):
         ppd = res.get("push_per_day", 0)
         if ppd > 1:
             msg = f"worst path sends {ppd} push messages inside one day, over the cap of 1 per day"
-            if res.get("push_per_day_certain", 0) > 1 or not res["freq_has_unknown"]:
-                F.error(msg + " (Frequency Cap Violation)")
+            if res.get("push_per_day_certain", 0) > 1:
+                F.error(msg + " (Frequency Cap Violation: two marketing pushes less than 13h apart can only land on "
+                        "the same day inside the 09:00-22:00 window)")
             else:
-                F.unverifiable(msg + " (upper bound: some send times are not computable)")
+                F.unverifiable(msg + " (within 24h; whether they share a calendar day depends on the send clock)",
+                               critical=False)
         for ch, v in res["freq"].items():
             cap = caps.get(ch)
             if cap is not None and v > cap:
@@ -427,7 +449,9 @@ def print_timeline(path):
 
 
 # ------------------------------------------------------------------- copy
-ROW = re.compile(r"^\|\s*([^|]+?)\s*\|\s*(.+?)\s*\|\s*(\d+)\s*\|\s*[≤<=]*\s*(\d+)\s*\|\s*$")
+# | Field | Content | Chars | Limit |, Limit as "≤ 50" or a range "20–50" (min–max)
+ROW = re.compile(r"^\|\s*([^|]+?)\s*\|\s*(.+?)\s*\|\s*(\d+)\s*\|\s*[≤<=]*\s*(?:(\d+)\s*[–—-]\s*)?(\d+)\s*\|\s*$")
+TABLE_ROW = re.compile(r"^\|(.+)\|\s*$")
 # "## Step 1 — email (`step-1`)" / "## Adım 1 · Email · +1sa" — channel is the
 # Field ceilings are channel-specific (push != in-app != email), so every
 # row's channel must be known before its limit can be checked. The channel is
@@ -444,16 +468,18 @@ ROW = re.compile(r"^\|\s*([^|]+?)\s*\|\s*(.+?)\s*\|\s*(\d+)\s*\|\s*[≤<=]*\s*(\
 # end, after the title, so a title that merely mentions a channel word
 # ("Push izni hatırlatma — email") resolves to the trailing real channel.
 STEP_HEAD = re.compile(r"^## (?:Step|Adım)\b", re.M)
-CHANNEL_TOKEN = re.compile(r"\b(email|push|sms|in[_-]app|inapp|whatsapp)\b", re.I)
-CHANNEL_ALIASES = {"in-app": "in_app", "inapp": "in_app", "app-push": "push"}
+CHANNEL_TOKEN = re.compile(r"\b(email|e-?mail|e-?posta|push|bildirim|sms|in[_-]app|inapp|uygulama içi|whatsapp)\b", re.I)
+CHANNEL_ALIASES = {"in-app": "in_app", "inapp": "in_app", "app-push": "push", "e-mail": "email", "eposta": "email",
+                   "e-posta": "email", "bildirim": "push", "uygulama içi": "in_app"}
 
 
 def channel_of_heading(line):
     """Resolve a step heading's channel from the closed vocabulary, or None."""
-    hits = CHANNEL_TOKEN.findall(line)
+    hits = CHANNEL_TOKEN.findall(re.sub(r"`[^`]*`", "", line))  # a step id like `push-retry` is not the channel
     if not hits:
         return None
-    tok = hits[-1].lower().replace("-", "_")
+    tok = hits[-1].lower()
+    tok = CHANNEL_ALIASES.get(tok, tok).replace("-", "_")
     return CHANNEL_ALIASES.get(tok, tok)
 
 # Canonical per-field ceilings, one dict per channel — parsed LIVE from each
@@ -478,6 +504,7 @@ LIMIT_KEY_ALIASES = {
 }
 
 _channel_limits_cache = None
+_channel_mins = {}
 
 
 def load_channel_limits():
@@ -515,6 +542,9 @@ def load_channel_limits():
             if not mx:
                 continue
             chan_limits[LIMIT_KEY_ALIASES.get(key, key)] = int(mx.group(1))
+            mn = re.search(r"min:\s*(\d+)", body)
+            if mn:
+                _channel_mins.setdefault(channel, {})[LIMIT_KEY_ALIASES.get(key, key)] = int(mn.group(1))
         limits[channel] = chan_limits
     _channel_limits_cache = limits
     return limits
@@ -522,7 +552,8 @@ def load_channel_limits():
 
 # Turkish field names -> canonical (channel-agnostic) English field name.
 FIELD_ALIASES = {
-    "konu": "subject", "ön izleme": "preheader", "gövde": "body",
+    "konu": "subject", "ön izleme": "preheader", "önizleme": "preheader", "gövde": "body", "metin": "body",
+    "subject line": "subject", "buttons": "button", "butonlar": "button", "buton metni": "cta",
     "başlık": "title", "buton": "cta", "birincil buton": "primary cta",
     "ikincil buton": "secondary cta", "gövde (banner)": "body (banner)",
     "gövde (modal)": "body (modal)",
@@ -566,6 +597,10 @@ def canonical_limit(field, channel=None, content=""):
         # for both button slots, which is every channel today.
         if f in ("primary cta", "secondary cta"):
             return chan_limits.get("cta")
+        if ch == "in_app" and f == "body":
+            return chan_limits.get("body (modal)") or chan_limits.get("body (banner)")
+        if ch == "whatsapp" and f == "cta":
+            return chan_limits.get("button")
         return None
     # Channel unparsed/unknown: don't guess by scanning every channel's
     # dict — that's exactly the cross-channel mismatch this function exists
@@ -637,6 +672,49 @@ def banned_terms_for(sector, channel):
     return terms
 
 
+# variables the triggering event itself carries (templates/copy-output.md § Fallback): they can't be
+# absent independently of the send, unlike profile attributes such as {{first_name}}
+TRIGGER_SAFE_VARS = {"invoice_number", "invoice_id", "order_id", "order_number", "tracking_number", "amount_due",
+                     "due_date", "grace_end_date", "policy_number", "item_name", "otp_code", "verification_code"}
+
+
+def _system_safe(var, block):
+    """A fallback may keep a variable the trigger itself supplies (templates/copy-output.md):
+    accepted only when the step marks it `system-safe` / `sistem-güvenli` by name."""
+    if var.strip() in TRIGGER_SAFE_VARS:
+        return True
+    return bool(re.search(rf"\{{\{{{re.escape(var)}\}}\}}[^\n]*(system[- ]safe|sistem[- ]güvenli)|"
+                          rf"(system[- ]safe|sistem[- ]güvenli)[^\n]*\{{\{{{re.escape(var)}\}}\}}", block, re.I))
+
+
+def _word_discounts(line):
+    vals = [float(m.group(1) or m.group(2)) for m in DISCOUNT_WORD.finditer(line)
+            if DISCOUNT_CTX.search(line[max(0, m.start() - 40): m.end() + 40])]
+    if HALF_PRICE.search(line):
+        vals.append(50.0)
+    for m in BUY_N_PAY_M.finditer(line):
+        n, k = (int(m.group(1)), int(m.group(2))) if m.group(1) else (int(m.group(3)), int(m.group(4)))
+        if n > k > 0:
+            vals.append(round((n - k) / n * 100, 1))
+    return vals
+
+
+def _journey_discount_cap(copy_path):
+    """The journey JSON next to the copy (output/<project>/<id>.json for _copy/<id>.md) carries
+    constraints.max_discount_pct so the ceiling holds even when no flag is passed."""
+    jid = os.path.splitext(os.path.basename(copy_path))[0]
+    for cand in (os.path.join(os.path.dirname(copy_path), "..", f"{jid}.json"),
+                 os.path.join(os.path.dirname(copy_path), f"{jid}.json")):
+        try:
+            d = json.load(open(cand, encoding="utf-8"))
+            v = (d.get("constraints") or {}).get("max_discount_pct")
+            if v is not None:
+                return float(v)
+        except (OSError, ValueError, AttributeError):
+            continue
+    return None
+
+
 def check_copy(path, max_discount=None, sector=None):
     print(f"== copy: {path}")
     try:
@@ -649,8 +727,15 @@ def check_copy(path, max_discount=None, sector=None):
     # carry a "### Fallback" section — otherwise a missing variable ships as
     # literal "Merhaba {{first_name}}". (Reviewer judges quality; code checks
     # presence, which is exactly the class of miss models make.)
-    step_re = re.compile(r"^## Step\b", re.M)
-    fallback_heading_re = re.compile(r"^### Fallback\b.*$", re.M)
+    step_re = STEP_HEAD
+    fallback_heading_re = re.compile(r"^### (?:Fallback|Yedek)\b.*$", re.M)
+    if max_discount is None:
+        max_discount = _journey_discount_cap(path)
+        if max_discount is None:
+            warn(f"{path}: no discount ceiling (--max-discount, or the journey's constraints.max_discount_pct): "
+                 f"the discount check did not run")
+    if not sector:
+        warn(f"{path}: no --sector: the sector's banned words were not checked")
     next_heading_re = re.compile(r"^#{2,3} ", re.M)
     steps = step_re.split(text)[1:] if step_re.search(text) else []
     starts = [m.start() for m in step_re.finditer(text)]
@@ -683,10 +768,25 @@ def check_copy(path, max_discount=None, sector=None):
             # was variable-free). Metadata lines are step bookkeeping, not
             # sendable fallback content: stop fb_body at the first bold
             # field-label line.
-            lbl = FIELD_LABEL.search(fb_body)
+            lbl = META_LABEL.search(fb_body)
             if lbl:
                 fb_body = fb_body[: lbl.start()]
-            fb_vars = re.findall(r"\{\{([^}]+)\}\}", fb_body)
+            fb_line0 = line_no + block[: fb.start()].count("\n")
+            for k, fl in enumerate(fb_body.splitlines()):
+                if fl.strip().startswith("|---") or not fl.strip():
+                    continue
+                rm = ROW.match(fl)
+                if rm:
+                    fl = rm.group(2)  # table rows are checked as rows below; only their content is copy
+                    if EMDASH.search(fl) or UNSAFE_HTML.search(fl):
+                        continue
+                elif fl.lstrip().startswith("|"):
+                    continue
+                if EMDASH.search(fl):
+                    fail(f"{path}:{fb_line0 + k}: Fallback text contains an em/en dash — banned in customer copy")
+                if UNSAFE_HTML.search(fl):
+                    fail(f"{path}:{fb_line0 + k}: Fallback text contains HTML/script markup — never allowed in copy")
+            fb_vars = [v for v in re.findall(r"\{\{([^}]+)\}\}", fb_body) if not _system_safe(v, block)]
             if fb_vars:
                 fb_line = line_no + block[: fb.start()].count("\n")
                 fail(
@@ -721,7 +821,46 @@ def check_copy(path, max_discount=None, sector=None):
         # hypothesis strings; lifecycle-results reads these labels verbatim
         # when scoring test outcomes, so a malformed or empty one silently
         # breaks that downstream scoring, not just this doc's completeness.
-        for vm in VARIANT_HEAD.finditer(block):
+        variants = list(VARIANT_HEAD.finditer(block))
+        if len(variants) < 2 and not re.search(r"single[- ]variant|tek varyant", block, re.I):
+            warn(f"{path}:{line_no}: step has {len(variants)} variant(s); copy normally carries Variant A and B "
+                 f"(different angles) — state why a step is single-variant",
+                 src="templates/copy-output.md (Variants A/B differ in angle)")
+        step_channel = channel_of_heading(text[starts[idx]:].split("\n", 1)[0])
+        for vi, vm in enumerate(variants):
+            v_end = variants[vi + 1].start() if vi + 1 < len(variants) else (fb.start() if fb and fb.start() > vm.start() else len(block))
+            vblock = block[vm.end():v_end]
+            vrows = [ROW.match(ln) for ln in vblock.splitlines()]
+            vrows = [r for r in vrows if r and r.group(1).strip().lower() not in ("field", "alan")]
+            ctas = [r for r in vrows if re.match(r"(primary\s+)?(cta|buton|button)\b", tr_fold(r.group(1)).strip())]
+            if step_channel == "email" and len(ctas) > 1:
+                fail(f"{path}:{line_no + block[:vm.start()].count(chr(10))}: email variant has {len(ctas)} CTA rows; "
+                     f"exactly one primary CTA (Double CTA Violation)", src="knowledge/channels/email.md rule 3")
+            for r in vrows:
+                fld, content = tr_fold(r.group(1)).strip(), r.group(2)
+                n_emoji = len(EMOJI.findall(content))
+                where = f"{path}:{line_no + block[:vm.start()].count(chr(10))}"
+                if step_channel == "sms" and n_emoji:
+                    fail(f"{where}: SMS '{r.group(1)}' contains emoji — none allowed (Emoji Violation)",
+                         src="knowledge/channels/sms.md")
+                if step_channel == "push" and (n_emoji > 1 or EMOJI.match(content.strip())):
+                    fail(f"{where}: push '{r.group(1)}' has {n_emoji} emoji or starts with one — max 1, never first "
+                         f"(Emoji Violation)", src="knowledge/channels/push.md")
+                if step_channel == "email" and fld in ("subject", "konu") and n_emoji > 1:
+                    fail(f"{where}: email subject has {n_emoji} emoji — max 1 (Emoji Violation)",
+                         src="knowledge/channels/email.md rule 7")
+                if step_channel == "email" and re.match(r"(cta|buton)", fld) and n_emoji:
+                    fail(f"{where}: email CTA contains emoji — none in CTA (Emoji Violation)",
+                         src="knowledge/channels/email.md rule 7")
+                if UNSAFE_HTML.search(content):
+                    fail(f"{where}: '{r.group(1)}' contains HTML/script markup — never allowed in copy")
+                if step_channel == "sms" and SHORTENER.search(content):
+                    fail(f"{where}: SMS uses a generic link shortener ({SHORTENER.search(content).group(1)}) — "
+                         f"use the brand's own domain (Shortener Violation)", src="knowledge/channels/sms.md")
+            if step_channel == "sms" and vrows and not any(SMS_OPTOUT.search(r.group(2)) for r in vrows):
+                fail(f"{path}:{line_no + block[:vm.start()].count(chr(10))}: SMS variant has no opt-out instruction "
+                     f"(Missing Opt-out Violation)", src="knowledge/channels/sms.md")
+        for vm in variants:
             v_line = line_no + block[: vm.start()].count("\n")
             after = block[vm.end():]
             fence = VARIANT_JSON_FENCE.match(after.lstrip("\n"))
@@ -781,11 +920,19 @@ def check_copy(path, max_discount=None, sector=None):
                      src="templates/copy-output.md § step heading contract")
             continue
         m = ROW.match(line)
+        if not m and channel is not None and TABLE_ROW.match(line) and not re.match(r"^\|\s*-", line):
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if cells and tr_fold(cells[0]) not in ("field", "alan") and len(cells) >= 3:
+                fail(f"{path}:{i}: copy row not parseable (expected | Field | Content | Chars | Limit |, numbers in the "
+                     f"last two cells): {line.strip()[:80]} — the row's counts, ceilings and banned words were not checked",
+                     src="templates/copy-output.md § table rules")
         if m:
-            field, content, declared, limit = m.group(1), m.group(2), int(m.group(3)), int(m.group(4))
+            field, content, declared, limit = m.group(1), m.group(2), int(m.group(3)), int(m.group(5))
+            minimum = int(m.group(4)) if m.group(4) else None
             if field.lower() in ("field", "alan"):
                 continue
             rows += 1
+            content = re.sub(r"<br\s*/?>", "", content).replace("\\|", "|")  # count what the recipient reads
             actual = len(content)
             # 5a. declared count must be the truth, not an estimate
             if actual != declared:
@@ -797,6 +944,14 @@ def check_copy(path, max_discount=None, sector=None):
             # 5b. limit — declared, then canonical (inflated Limit columns don't help)
             if actual > limit:
                 fail(f"{path}:{i}: '{field}' is {actual} chars, limit {limit} — Limit Violation",
+                     src=channel_rule_src(channel))
+            fkey = FIELD_ALIASES.get(tr_fold(field).strip(), tr_fold(field).strip())
+            canon_min = _channel_mins.get(channel or "", {}).get(fkey) if channel else None
+            load_channel_limits()
+            canon_min = _channel_mins.get(channel or "", {}).get(fkey) if channel else None
+            floor = max(x for x in (minimum, canon_min, 0) if x is not None)
+            if floor and actual < floor and "{{" not in content:
+                fail(f"{path}:{i}: '{field}' is {actual} chars, under the minimum {floor} — Length Violation",
                      src=channel_rule_src(channel))
             canon = canonical_limit(field, channel, content)
             if canon is not None and channel == "sms" and tr_fold(field).strip() in ("body", "metin", "gövde", "govde"):
@@ -841,6 +996,11 @@ def check_copy(path, max_discount=None, sector=None):
         # The %NN figure must sit NEAR a discount word (±40 chars) — a line like
         # "İndirim: yok ... push izinli oran %40" mentions a percentage that is
         # not a discount, and line-level matching flagged exactly that in a live run.
+        if max_discount is not None and not in_code:
+            for val in _word_discounts(line):
+                if val > max_discount:
+                    fail(f"{path}:{i}: offers about %{val:g} off ({line.strip()[:60]}), brand limit is %{max_discount:g} "
+                         f"— Discount Limit Violation", src="brand config incentive_policy / --max-discount")
         if max_discount is not None and DISCOUNT_CTX.search(line):
             for m2 in DISCOUNT.finditer(line):
                 lo, hi = max(0, m2.start() - 40), m2.end() + 40
@@ -856,7 +1016,7 @@ def check_copy(path, max_discount=None, sector=None):
     if rows:
         ok(f"{rows} copy table rows recounted")
     else:
-        warn(f"{path}: no copy tables found to verify")
+        fail(f"{path}: no copy rows could be parsed — nothing in this doc was checked")
 
 
 # --------------------------------------------------------- consistency
@@ -1283,28 +1443,61 @@ def _strings(obj):
 
 
 def check_copy_canvas(md_path, canvas_json_path):
-    """The reviewed markdown is the source of truth; the copy-canvas object must
-    carry exactly its customer-facing texts, so a reviewer FIX can't leave the
-    canvas showing the pre-fix wording (and vice versa)."""
+    """The reviewed markdown is the source of truth. The canvas object must show, step by
+    step and variant by variant, exactly the fields scripts/copy_canvas.py derives from it
+    (same order, same texts, same counts, the doc's own review status). Build the object
+    with copy_canvas.py and this always holds; a hand-written one fails on any drift."""
     print(f"== copy canvas: {canvas_json_path} vs {md_path}")
-    md = open(md_path, encoding="utf-8").read()
-    md_texts = {m.group(2).strip() for m in (ROW.match(ln) for ln in md.splitlines()) if m
-                and m.group(1).strip().lower() not in ("field", "alan")}
+    here = os.path.dirname(os.path.abspath(__file__))
+    if here not in sys.path:
+        sys.path.insert(0, here)
+    try:
+        import copy_canvas  # noqa: PLC0415
+        expected = copy_canvas.derive(md_path)
+    except Exception as e:  # noqa: BLE001
+        fail(f"{md_path}: unreadable copy doc ({type(e).__name__}: {e})")
+        return
     try:
         data = json.load(open(canvas_json_path, encoding="utf-8"))
     except Exception as e:  # noqa: BLE001
         fail(f"{canvas_json_path}: invalid JSON ({e})")
         return
-    js = {s.strip() for s in _strings(data)}
-    missing = sorted(t for t in md_texts if t not in js)
-    for t in missing[:5]:
-        fail(f"{canvas_json_path}: reviewed text missing from the canvas object: '{t[:80]}'")
-    # canvas texts that look like copy (sentence-length) but aren't in the reviewed doc
-    extra = sorted(s for s in js if len(s) > 25 and " " in s and s not in md_texts and not s.startswith("{"))
-    for t in extra[:5]:
-        fail(f"{canvas_json_path}: canvas shows text that isn't in the reviewed doc: '{t[:80]}'")
-    if not missing and not extra:
-        ok(f"{len(md_texts)} reviewed texts match the canvas object")
+    journeys = data if isinstance(data, list) else [data]
+    got = next((j for j in journeys if isinstance(j, dict) and j.get("id") == expected["id"]), None)
+    if got is None:
+        fail(f"{canvas_json_path}: no journey with id '{expected['id']}' (the copy doc's id)")
+        return
+    def norm(s):
+        return re.sub(r"<code class=\"variable\">(\{\{[^}]+\}\})</code>", r"\1", str(s)).strip()
+    problems = 0
+    es, gs = expected["steps"], got.get("steps") or []
+    if len(es) != len(gs):
+        fail(f"{canvas_json_path}: {len(gs)} step(s) on the canvas, {len(es)} in the reviewed doc")
+        problems += 1
+    for n, (e_s, g_s) in enumerate(zip(es, gs), 1):
+        if g_s.get("review") not in (e_s["review"], "fix" if e_s["review"] == "notes" else None):
+            fail(f"{canvas_json_path}: step {n} shows review '{g_s.get('review')}', the doc says '{e_s['review']}'")
+            problems += 1
+        ev, gv = e_s["variants"], g_s.get("variants") or []
+        if len(ev) != len(gv):
+            fail(f"{canvas_json_path}: step {n} has {len(gv)} variant(s) on the canvas, {len(ev)} in the doc")
+            problems += 1
+            continue
+        for k, (e_v, g_v) in enumerate(zip(ev, gv)):
+            ef = [(f[0], norm(f[1]), f[2]) for f in e_v["fields"]]
+            gf = [(f[0], norm(f[1]), str(f[2]) if len(f) > 2 else "") for f in (g_v.get("fields") or [])
+                  if isinstance(f, (list, tuple)) and len(f) >= 2]
+            if ef != gf:
+                diff = next(((a, b) for a, b in zip(ef, gf) if a != b), (ef[len(gf):len(gf) + 1] or [None])[0:1] + [None])
+                fail(f"{canvas_json_path}: step {n} variant {chr(65 + k)} differs from the reviewed doc "
+                     f"(first difference: doc {diff[0]!r} vs canvas {diff[1]!r})")
+                problems += 1
+            for f in g_v.get("fields") or []:
+                if isinstance(f, (list, tuple)) and len(f) >= 2 and UNSAFE_HTML.search(str(f[1])):
+                    fail(f"{canvas_json_path}: step {n} carries HTML/script markup in a field")
+                    problems += 1
+    if not problems:
+        ok(f"{sum(len(v['fields']) for s in es for v in s['variants'])} reviewed fields match the canvas object")
 
 
 # --------------------------------------------------------- dossier / audience
@@ -1395,13 +1588,23 @@ def main(argv):
     max_discount = None
     if "--max-discount" in rest:
         i = rest.index("--max-discount")
-        max_discount = float(rest[i + 1])
+        try:
+            max_discount = float(rest[i + 1])
+        except (IndexError, ValueError):
+            print("usage: --max-discount needs a number (the brand's maximum discount, in percent)", file=sys.stderr)
+            return 2
         rest = rest[:i] + rest[i + 2 :]
     sector = None
     if "--sector" in rest:
         i = rest.index("--sector")
+        if i + 1 >= len(rest) or rest[i + 1].startswith("--"):
+            print("usage: --sector needs a sector slug", file=sys.stderr)
+            return 2
         sector = rest[i + 1]
         rest = rest[:i] + rest[i + 2 :]
+    for p in rest:
+        if mode not in ("all",) and not p.startswith("--") and not os.path.exists(p):
+            fail(f"{p}: file not found")
 
     if mode == "journey":
         show_timeline = "--timeline" in rest
@@ -1456,7 +1659,13 @@ def main(argv):
         # filename convention (portfolio ordering, P0-first naming, etc. all
         # vary run to run — the id inside each file is the only stable key).
         journey_json_by_id = {}
-        for dirpath, _dirs, files in os.walk(root):
+        skip_dirs = {"runs", "exports", "_cache", "_bundle", "_audit5"}
+
+        def walk(r):
+            for dirpath, dirs, files in os.walk(r):
+                dirs[:] = [d for d in dirs if d not in skip_dirs]  # archived runs are not this run's deliverables
+                yield dirpath, dirs, files
+        for dirpath, _dirs, files in walk(root):
             for fn in sorted(files):
                 if not fn.endswith(".json") or fn == "portfolio.json":
                     continue
@@ -1466,10 +1675,11 @@ def main(argv):
                         peek = json.load(f)
                 except Exception:  # noqa: BLE001
                     continue
-                if isinstance(peek, dict) and ("steps" in peek or "nodes" in peek) and "kpis" in peek and "id" in peek:
+                if isinstance(peek, dict) and ("steps" in peek or "nodes" in peek) and "id" in peek:
                     journey_json_by_id[peek["id"]] = p
 
-        for dirpath, _dirs, files in os.walk(root):
+        tpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "templates")
+        for dirpath, _dirs, files in walk(root):
             for fn in sorted(files):
                 p = os.path.join(dirpath, fn)
                 if fn == "portfolio.json":
@@ -1478,6 +1688,10 @@ def main(argv):
                     check_dossier(p)
                 elif fn in ("audiences.sql", "audiences-traits.json"):
                     check_audiences(p)
+                elif fn == "canvas.html":
+                    check_canvas(p, os.path.join(tpl_dir, "canvas.html"))
+                elif fn in ("iletisim-metinleri.html", "message-copy.html"):
+                    check_canvas(p, os.path.join(tpl_dir, "copy-canvas.html"))
                 elif fn.endswith(".json"):
                     # Shape-check before routing to the journey schema — an
                     # unrelated JSON artifact dropped in output/ (a DQS
@@ -1489,7 +1703,7 @@ def main(argv):
                             peek = json.load(f)
                     except Exception:  # noqa: BLE001
                         peek = None
-                    if isinstance(peek, dict) and ("steps" in peek or "nodes" in peek) and "kpis" in peek:
+                    if isinstance(peek, dict) and ("steps" in peek or "nodes" in peek):
                         check_journey(p)
                     else:
                         warn(f"{p}: skipped in 'all' mode — not journey-shaped (no steps/kpis)")
@@ -1555,4 +1769,11 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except SystemExit:
+        raise
+    except Exception as e:  # noqa: BLE001  a crash must read as a failure with a cause, never as a traceback
+        print(f"FAIL: validator could not process the input: {type(e).__name__}: {e}")
+        print("OUTPUT VALIDATION FAILED — 1 violation(s). Stop and report; do not self-correct compliance violations.")
+        sys.exit(1)

@@ -1,1 +1,30 @@
-{"id": "x", "label": "x", "steps": [{"tag": "Adım 1", "intent": "x", "review": "pass", "variants": [{"label": "A", "fields": [["Başlık", "Sepetin seni bekliyor", "21/40"], ["Metin", "Seçtiğin ürünler hâlâ sepetinde, son şans kaçırma bunu.", "67/120"]]}]}]}
+[
+ {
+  "id": "copy_pair",
+  "label": "copy_pair",
+  "steps": [
+   {
+    "tag": "Step 1 — push",
+    "intent": "",
+    "review": "pending",
+    "variants": [
+     {
+      "label": "Variant A — \"a\"",
+      "fields": [
+       [
+        "Title",
+        "Sepetin seni bekliyor (eski metin)",
+        "21/40"
+       ],
+       [
+        "Body",
+        "Seçtiğin ürünler sepetinde duruyor. İstediğin an devam edebilirsin.",
+        "67/120"
+       ]
+      ]
+     }
+    ]
+   }
+  ]
+ }
+]

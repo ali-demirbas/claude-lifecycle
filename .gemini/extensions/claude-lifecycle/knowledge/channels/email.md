@@ -26,7 +26,7 @@ The default lifecycle channel: cheap, rich formatting, tolerant of longer waits.
 
 ## Spam-trigger words (banned in subject/preheader)
 
-free!!!, guaranteed, act now, winner, 100% free, no cost, ÜCRETSİZ (caps), KAZANDINIZ, "RE:"/"FWD:" fakery, currency symbols repeated (₺₺₺/$$$), all-caps words, > 1 exclamation mark.
+"free!!!", "guaranteed", "act now", "winner", "100% free", "no cost", "ÜCRETSİZ" (caps), "KAZANDINIZ", "RE: "/"FWD: " fakery at the start of a subject, currency symbols repeated ("₺₺₺"/"$$$"), all-caps words, > 1 exclamation mark.
 
 ## Structure guidance
 

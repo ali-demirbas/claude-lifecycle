@@ -51,7 +51,7 @@ When the verdict gates a real decision (budget, headcount, killing a program), t
 2. **Findings table** — severity (Critical/High/Medium/Low) | journey | finding | fix. Critical = revenue leaking or compliance risk.
 3. **Coverage map** — same stage table as the portfolio template §3.
 4. **Recommended actions** — ordered; each one maps to a concrete next step (`run /lifecycle journeys for the missing P0s`, `re-run copy for flow X`, and when the user has performance data: `run /lifecycle results to score these against holdouts`).
-5. **Audit trail** — when a brand config exists, check `output/<brand>/audit-history.md` (create it if absent, same convention as `results-log.md`): a Critical/High finding matching one from the prior run's log (same journey + same dimension) is flagged `repeat finding, open since <date>` instead of reported as new; a prior Critical/High that doesn't reappear gets one line `resolved since last audit`. Append this run's Critical/High findings before closing out. No brand config (ad hoc/anonymous audit) → skip this step and note once that findings aren't being tracked across runs.
+5. **Audit trail** — when a brand config exists, check `output/<project>/audit-history.md` (create it if absent, same convention as `results-log.md`): a Critical/High finding matching one from the prior run's log (same journey + same dimension) is flagged `repeat finding, open since <date>` instead of reported as new; a prior Critical/High that doesn't reappear gets one line `resolved since last audit`. Append this run's Critical/High findings before closing out. No brand config (ad hoc/anonymous audit) → skip this step and note once that findings aren't being tracked across runs.
 
 ## Common Pitfalls
 
