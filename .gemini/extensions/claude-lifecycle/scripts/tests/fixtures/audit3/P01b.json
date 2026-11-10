@@ -9,7 +9,7 @@
  "journeys": [
   {
    "id": "ecom-winback-01",
-   "file": "../acceptance/g_withdrawn_channel_send.json",
+   "file": "g_withdrawn_channel_send.json",
    "pattern": "winback",
    "stage": "winback",
    "priority": "P0",
@@ -17,7 +17,10 @@
     "email",
     "push"
    ],
-   "audience_group": "lapsed"
+   "audience_group": "lapsed",
+   "est_msgs_per_week": {
+    "email": 1
+   }
   }
  ]
 }

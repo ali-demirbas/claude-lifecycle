@@ -6,6 +6,7 @@ rule_refs:
   - skills/lifecycle-results/SKILL.md (Step 3 - guardrail breaches, unsubscribe/complaint over ceiling, override everything; recommend pause even on positive lift)
   - skills/lifecycle-results/SKILL.md (Step 4 - failed-strategies log accepts guardrail-class absolute signals, exempt from the sample-size gate)
 run:
+  stage: results
   copy: false
 assertions:
   required_anywhere: [guardrail, durdur]

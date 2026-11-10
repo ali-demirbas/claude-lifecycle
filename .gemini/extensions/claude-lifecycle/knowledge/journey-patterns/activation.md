@@ -3,7 +3,7 @@ name: activation
 stage: activation
 trigger_type: absence
 required_events: [sign_up, tutorial_complete]
-optional_events: [login, feature_used, session_start, first_open, link_click, error_shown, help_page_view, step_retry, support_case_opened, continue_later_selected, help_declined, consent_withdrawn]
+optional_events: [login, feature_used, session_start, link_click, error_shown, help_page_view, step_retry, support_case_opened, continue_later_selected, help_declined, consent_withdrawn]
 required_attributes: []
 optional_attributes: [signup_source, days_since_signup, blocked_step, open_support_case]
 default_channels: [email, push, in_app]
@@ -56,8 +56,9 @@ Rescue users who signed up but never reached the activation event within N days.
 - **Exclude:** activated users; accounts younger than N days (still welcome-onboarding's job, rescue variant only); users who unsubscribed during welcome; anyone with an open support case for the same issue (both variants; the automated offer is the one that does not know the current state).
 - **Success exit:** `tutorial_complete` · **Window:** 14 days from entry (rescue); until the stuck step completes or the cascade ends (struggle variant).
 - **Checked before every send:** `tutorial_complete`, `consent_withdrawn` scoped to that channel (an email unsubscribe stops the emails, not a consented push or the in-app tier), `support_case_opened`, `continue_later_selected`, `help_declined`. "Continue later" and a decline are exits, not pauses: the offer is not repeated in the same terms afterwards.
-- **Re-entry:** rescue runs once ever; afterwards the user moves to a low-frequency digest, not another rescue. The struggle variant may re-enter after a configurable cooldown (default 7 days) for a later struggle inside the same open, unactivated instance. A repeated trigger while an instance is active is ignored.
+- **Re-entry:** rescue runs once ever (the frontmatter `reentry: once` is the rescue journey's policy); afterwards the user moves to a low-frequency digest, not another rescue. The struggle variant is generated as **its own journey** (id `activation-struggle`), because one journey carries one `reentry`: `instance_key` = the id of the open onboarding or trial instance it runs inside, `reentry: {policy: after_cooldown, cooldown: P7D, on_duplicate_trigger: ignore}` (cooldown configurable), so a later struggle inside the same open, unactivated instance can re-enter after the cooldown. In both journeys a repeated trigger while an instance is active is ignored.
 - **Hand-offs:** a user who opens a support case goes to support, and every queued send is dropped. A rescued user goes to the engagement patterns.
+- **Inbound from:** [account-onboarding](account-onboarding.md) (failed account activation; carries `account_id`, `user_role`, the stalled step and whether a CSM owns the account, and its queued sends are suppressed) and [reactivation](reactivation.md) (a returning dormant non-customer who never entered this journey; carries `reactivation_reason` and the return session, with reactivation's queued sends suppressed).
 
 ## Depth scaling
 
@@ -85,7 +86,7 @@ Resumption framing: when the blocker is a half-finished flow (a started import, 
 
 For a blocker that is tedious rather than confusing (importing a list, connecting an integration), s4 can go further: a concierge move where a human completes the blocked step *for* the user within a stated service time, then explains how, so the user can self-serve next time. It is a real operational commitment, not a copy choice: propose it only when the business can staff it, and only for the single highest-value blocker.
 
-### In-flow struggle variant (3 touches)
+### In-flow struggle variant (3 touches, generated as the separate `activation-struggle` journey)
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|

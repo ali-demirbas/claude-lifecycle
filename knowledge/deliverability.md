@@ -12,7 +12,7 @@ A journey with perfect copy and perfect timing sends nothing if the domain lands
 | Requirement | Threshold | Applies to |
 |---|---|---|
 | SPF **or** DKIM | required | every sender |
-| SPF **and** DKIM **and** DMARC (From-domain aligned) | required | bulk senders (> 5,000 msgs/day to Gmail) |
+| SPF **and** DKIM **and** DMARC (From-domain aligned) | required | bulk senders (5,000 or more msgs/day to Gmail) |
 | TLS in transit | required | every sender |
 | Valid forward + reverse DNS (PTR) | required | every sender |
 | DKIM key length | ≥ 1024 bits | senders to personal Gmail |

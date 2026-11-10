@@ -17,13 +17,13 @@ Word choice for SaaS lifecycle copy. The reader is at work, evaluating whether y
 
 | Use | Avoid | Why |
 |---|---|---|
-| "5 dakikada ilk raporunuzu oluşturun" / "create your first report in 5 minutes" | "güçlü raporlama özelliklerimizi keşfedin" / "explore our powerful reporting features" | Concrete task + time bound > feature tour language |
-| "denemenizin bitmesine 3 gün var" / "your trial ends in 3 days" | "SON ŞANS! Fırsatı kaçırmayın" / "LAST CHANCE to upgrade!" | A date is information; manufactured panic is off-register for work software |
-| "ödemeniz alınamadı: kartınızı güncelleyin" / "your payment didn't go through: update your card" | "hesabınız askıya alınacak!" / "your account will be suspended!" | Dunning is logistics; threat framing spikes churn |
-| "ekibiniz için: {{teammate_name}} davetinizi bekliyor" / "invite {{teammate_name}} to your workspace" | "işbirliğinin gücünü açığa çıkarın" / "unleash the power of collaboration" | Named next step > abstract benefit poetry |
-| "şunu deneyin:" + one action / "try this:" + one action | "yapabilecekleriniz sınırsız" / "the possibilities are endless" | One clear action per message; vague abundance = no action |
-| "X özelliği artık kullanımınızda" / "X is now available on your plan" | "devrim niteliğinde yeni özellik!" / "game-changing new feature!" | State the change; the reader judges the magnitude |
-| "kurulumda takıldıysanız yanıtlayın, yardımcı olalım" / "stuck? reply and we'll help" | "başarınız bizim önceliğimiz" / "your success is our top priority" | Offer help concretely; priority claims are filler |
+| "5 dakikada ilk raporunuzu oluşturun" / "create your first report in 5 minutes" | "Güçlü raporlama özelliklerimizi keşfedin" / "explore our powerful reporting features" | Concrete task + time bound > feature tour language |
+| "Denemenizin bitmesine 3 gün var" / "your trial ends in 3 days" | "SON ŞANS! Fırsatı kaçırmayın" / "LAST CHANCE to upgrade!" | A date is information; manufactured panic is off-register for work software |
+| "Ödemeniz alınamadı: kartınızı güncelleyin" / "your payment didn't go through: update your card" | "Hesabınız askıya alınacak!" / "your account will be suspended!" | Dunning is logistics; threat framing spikes churn |
+| "Ekibiniz için: {{teammate_name}} davetinizi bekliyor" / "invite {{teammate_name}} to your workspace" | "İşbirliğinin gücünü açığa çıkarın" / "unleash the power of collaboration" | Named next step > abstract benefit poetry |
+| "Şunu deneyin:" + one action / "try this:" + one action | "Yapabilecekleriniz sınırsız" / "the possibilities are endless" | One clear action per message; vague abundance = no action |
+| "X özelliği artık kullanımınızda" / "X is now available on your plan" | "Devrim niteliğinde yeni özellik!" / "game-changing new feature!" | State the change; the reader judges the magnitude |
+| "Kurulumda takıldıysanız yanıtlayın, yardımcı olalım" / "stuck? reply and we'll help" | "Başarınız bizim önceliğimiz" / "your success is our top priority" | Offer help concretely; priority claims are filler |
 
 ## Urgency rules
 
@@ -36,14 +36,14 @@ Urgency is allowed **only** for real, dated deadlines the system knows: trial ex
 | Welcome / onboarding | Coach mode: one task per message, short, imperative, zero sales language |
 | Trial conversion | Factual value recap ("you did X, Y with your trial") + plain price/date info; no pressure vocabulary |
 | Payment failure | Neutral, blame-free logistics ("cards expire, it happens") with the fix link first |
-| Churn prevention | Curious and humble ("kullanımınız azaldı, bir şey mi değişti?"); never guilt, never "we miss you" theatrics in B2B |
+| Churn prevention | Curious and humble ("Kullanımınız azaldı, bir şey mi değişti?"); never guilt, never "we miss you" theatrics in B2B |
 | Feature adoption / upsell | Peer recommendation grounded in their usage ("you're hitting the limit of X"); upsell only names a real observed constraint |
 | Winback | Lead with what changed since they left (shipped features, fixed gaps), not with discounts |
 
 ## TR / EN notes
 
 - TR: "siz" for all B2B and fintech-adjacent tools; "sen" acceptable for developer tools and B2C prosumer apps with a young user base — confirm via intake, never mix within one journey.
-- TR: prefer native verb phrases ("oturum açın", "dışa aktarın") over anglicisms ("login olun", "export edin") in email; UI-term matching may override in in-app copy — match the product's own interface language.
+- TR: prefer native verb phrases ("Oturum açın", "Dışa aktarın") over anglicisms ("login olun", "export edin") in email; UI-term matching may override in in-app copy — match the product's own interface language.
 - EN: sentence-case subject lines; write to the reader's job outcome, not the feature name ("Get your weekly report automatically" > "Introducing Scheduled Reports").
 - Dates in trial/renewal copy follow the account's locale format; always include the weekday for deadlines ("Friday, June 12" / "12 Haziran Cuma").
 

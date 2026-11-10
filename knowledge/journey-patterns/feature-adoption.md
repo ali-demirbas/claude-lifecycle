@@ -3,7 +3,7 @@ name: feature-adoption
 stage: engagement
 trigger_type: segment
 required_events: [feature_used]
-optional_events: [login, session_start, search, tutorial_complete, subscription_start, feature_opened, cancellation_intent, consent_withdrawn]
+optional_events: [login, session_start, search, tutorial_complete, feature_opened, cancellation_intent, consent_withdrawn]
 required_attributes: [target_feature]
 optional_attributes: [plan_name, engagement_score, feature_eligibility, usage_rhythm_days, risk_case_open]
 default_channels: [in_app, email, push]

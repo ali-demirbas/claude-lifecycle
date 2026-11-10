@@ -395,6 +395,12 @@ print(c._field_html('<b>x</b> {{first_name}}'));sys.exit(0 if '&lt;b&gt;' in c._
 expect 2 "validate_output rejects a non-numeric --max-discount"              python3 "$VO" copy "$A5/A00_base.md" --max-discount abc
 expect 0 "a validator crash reads as FAIL, not a traceback"                 bash -c "echo '{broken' > /tmp/lc_crash.json; python3 '$VO' portfolio /tmp/lc_crash.json | grep -q '^FAIL'"
 
+expect 0 "the published journey demo matches the current template"         python3 "$VO" canvas "$DIR/../../docs/demo/journey-canvas.html" --template "$DIR/../../templates/canvas.html"
+expect 0 "the published copy demo matches the current template"            python3 "$VO" canvas "$DIR/../../docs/demo/message-copy.html" --template "$DIR/../../templates/copy-canvas.html"
+echo '{"title":"J","eyebrow":"E","h1":"H","lede":"1 journey","lang":"en","holdout_tip":"x","data_note":"y"}' > /tmp/lc_en_meta.json
+rm -f /tmp/lc_en_canvas.html
+expect 0 "an English run gets an English canvas UI"                        bash -c "python3 '$DIR/../build_canvas.py' --template '$DIR/../../templates/canvas.html' --from-journeys '$DIR/../../examples/ecommerce-full-ga4/05-journey-cart-recovery.json' --meta /tmp/lc_en_meta.json --out /tmp/lc_en_canvas.html >/dev/null && grep -q 'html lang=\"en\"' /tmp/lc_en_canvas.html && grep -q \"entryPin: 'Entry'\" /tmp/lc_en_canvas.html && ! grep -q '\"Giriş\"' /tmp/lc_en_canvas.html"
+
 echo "== speed: scripted eligibility and run finalization =="
 SX="$FX/speed"
 expect_contains "eligibility: mapped + usable events -> eligible"            "eligible             P0 abandoned-cart" python3 "$DIR/../eligibility.py" "$SX/smap_cart_ok.json" --pattern abandoned-cart

@@ -63,7 +63,7 @@ Beyond product events, the entry signature should also watch the softer early wa
 ## Entry / exit
 
 - **Entry:** active subscription, rolling 30-day usage (`login` or `feature_used` count) down materially versus the prior period (a starting definition of "materially" is ≥ 30% down; recalibrate per business once enough churned-vs-recovered history exists to check the number against outcomes), or a `cancellation_intent` signal on an unexpired term, while the user is still occasionally active. One instance per `subscription_id` (the account's subscription for B2B).
-- **Risk tiers escalate on corroboration only.** Tier 1 (light, in-app/value content) needs one qualifying signal. Tier 2 (human check-in) and tier 3 (approved save offer) each need independent signals agreeing, and each escalation re-reads the underlying usage, payment and support state rather than trusting the score that ordered the queue. No incentive appears before tier 3.
+- **Risk tiers escalate on corroboration only.** Tier 1 (light, in-app/value content) needs one qualifying signal. Tier 2 (human check-in) and tier 3 (approved save offer) each need independent signals agreeing (usage decline plus an unresolved `support_ticket_opened`, for example), and each escalation re-reads the underlying usage, payment and support state rather than trusting the score that ordered the queue. No incentive appears before tier 3.
 - **Exclude:** a confirmed `subscription_cancel` already recorded for this subscription ([cancellation-winddown](cancellation-winddown.md) owns it), fully silent past the lapse threshold ([winback](winback.md) owns them), accounts < 30 days old (activation owns them), `payment_failed` open (dunning owns them), users under the portfolio negative-signal override, and accounts with an open issue already owned by a person (that owner speaks for the brand).
 - **Risk × value gating:** low-value at-risk users get a light touch or nothing. Chasing every at-risk user regardless of value spends budget and channel goodwill on relationships that were never worth the cost of saving. Value gates the spend; it never stands in for evidence of risk.
 - **Success exit:** `usage_recovered` or `subscription_renewed` · **Window:** 30 days.
@@ -90,7 +90,7 @@ Beyond product events, the entry signature should also watch the softer early wa
 | s3 | d1 +0h | email | Workflow tip or short case study matched to `plan_type` / use pattern | → d2 |
 | d2 | s3 +7d | — | Decision on all_of(`cancellation_intent` (behavioral), usage still below baseline via `usage_trend_30d` (behavioral)) between entry and s3 +7d. Intent plus a second, independent signal opens the offer tier; a confirmed `subscription_cancel` never reaches this decision because it exits the instance first | occurred → s4b · not_occurred → s4 · unmeasurable → s4 |
 | s4 | d2 +0h | email | Human check-in: support, success call, or reply-to-this; asks what's wrong, offers nothing | → d3 |
-| s4b | d2 +0h | email | Cancel-intent save: the approved offer, timed against `renewal_date`, plus the same human route. Re-checks `subscription_cancel` immediately before sending; if the cancellation was confirmed meanwhile, it is not sent | → d3 |
+| s4b | d2 +0h, deadline renewal_date -14d (runway rule below) | email | Cancel-intent save: the approved offer, timed against `renewal_date` (runway rule below), plus the same human route. Re-checks `subscription_cancel` immediately before sending; if the cancellation was confirmed meanwhile, it is not sent | → d3 |
 | d3 | entry +30d | — | Decision on `usage_recovered` (behavioral, derived) between d2 and entry +30d; the watch buffer, no sends in this window | occurred → exit (completed) · not_occurred → d4 · unmeasurable → exit (expired, neutral) |
 | d4 | d3 +0h | — | Decision on any_of(`login` (behavioral), `session_start` (behavioral)) within the trailing lapse threshold ending at d3 | occurred → exit (expired, still present) · not_occurred → exit (handoff → winback, suppress queued) · unmeasurable → exit (expired) |
 
@@ -100,7 +100,14 @@ Anomaly-entry framing: when entry was a sharp break in the user's own pattern (a
 
 - **In-app** fits s1: it reaches the user while they are still occasionally present, costs no inbox attention, and points at the next action in context. It has no quiet-hours constraint because it renders on the user's own session; it waits at most 3 days for that session, then is skipped.
 - **Email** carries the recap, tip and check-in: content worth reading at the user's pace. Send in the user's daytime (avoid 00:00–06:00 user local); a human check-in that leads to a call follows the business clock and staffing, not the user's.
-- **Save offer (s4b)** is anchored to the term: it must land before `renewal_date` with time to act (default `renewal_date -14d` or earlier; configurable), never after the cancellation has taken effect.
+- **Save offer (s4b)** is anchored to the term: it must land before `renewal_date` with time to act (default `renewal_date -14d` or earlier; configurable), never after the cancellation has taken effect. A generated journey declares `renewal_date` in `time_anchors` with a `range` of [earliest, latest] distance from entry (the renewal can be days or most of a term away when the user enters); the real date is read from the system of record at send time.
+- **Runway compression for s4b** (renewal close at d2):
+
+| `renewal_date` at d2 | s4b |
+|---|---|
+| 14 days or more away | sends at d2 +0h (on or before `renewal_date -14d`) |
+| inside 14 days, at least 3 days away (configurable) | sends at d2 +0h; the offer states the real renewal date |
+| under 3 days away, or already passed | skipped; [renewal-reminder](renewal-reminder.md)'s notices own the last days, and s4 (human check-in) goes instead |
 - **Fallback:** no in-app surface or no session in the window → s1 content folds into s2. No email consent → in-app only, and the human check-in goes through the account owner or support queue if one exists. Push is deliberately not a default: unprompted pushes to a softening user read as pressure.
 
 ## Frequency and overlap

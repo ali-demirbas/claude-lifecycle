@@ -166,10 +166,46 @@ def cmd_finish(a):
         except Exception as e:  # noqa: BLE001  a render crash is a failed run, not a traceback
             failures.append(f"{jid}: rendering the doc failed: {type(e).__name__}: {e}")
         files.append(mp)
+    # the journey may not claim more than this run's own data assessment supports
+    smap_p = os.path.join(a.outdir, "stage-map.json")
+    smap = {}
+    if os.path.isfile(smap_p):
+        try:
+            smap = json.load(open(smap_p, encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            failures.append("stage-map.json is unreadable")
+    else:
+        unverified.append("stage-map.json missing: the journeys' DQS, tier and depth could not be checked against "
+                          "this run's data assessment")
+    run_dqs, run_tier = smap.get("dqs"), smap.get("tier")
+    depth_rank = {"simple": 0, "standard": 1, "branched": 2}
+    allowed_depth = (None if run_dqs is None else "branched" if run_dqs >= 70 else "standard" if run_dqs >= 40
+                     else "simple")
+    if smap.get("volume_capped") and allowed_depth == "branched":
+        allowed_depth = "standard"  # DQS hard rule: low volume caps depth at standard
+    for jid in scope:
+        jp = os.path.join(a.outdir, f"{jid}.json")
+        try:
+            d = json.load(open(jp, encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if run_dqs is not None and isinstance(d.get("dqs"), (int, float)) and d["dqs"] > run_dqs:
+            failures.append(f"{jid}: claims DQS {d['dqs']}, this run's assessment scored {run_dqs}")
+        if run_tier and d.get("data_tier") and str(run_tier).split("-")[0] != d["data_tier"]:
+            failures.append(f"{jid}: claims tier {d['data_tier']}, this run's data is {run_tier}")
+        if allowed_depth and d.get("depth_class") in depth_rank and \
+                depth_rank[d["depth_class"]] > depth_rank[allowed_depth]:
+            failures.append(f"{jid}: depth '{d['depth_class']}' exceeds what this run's data supports "
+                            f"('{allowed_depth}')")
+        if smap.get("volume_capped") and (d.get("measurement") or {}).get("design") == "holdout":
+            unverified.append(f"{jid}: holdout design on a low-volume run; state what the volume can detect or use "
+                              f"none_low_volume with an alternative")
     # registry: mechanical fields from the journey files, judgment fields kept
     ppath = os.path.join(a.outdir, "portfolio.json")
     reg = json.load(open(ppath, encoding="utf-8")) if os.path.isfile(ppath) else {}
     reg.setdefault("schema_version", "2.0")
+    if not reg.get("brand"):
+        reg.setdefault("project", os.path.basename(os.path.abspath(a.outdir)))
     reg.setdefault("frequency_policy", {"window": "P7D", "on_breach": "defer"})
     reg.setdefault("external_journeys_status", "unknown")
     reg["scope"] = manifest["scope"]["mode"]

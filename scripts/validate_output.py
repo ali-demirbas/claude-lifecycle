@@ -299,7 +299,7 @@ def check_journey(path):
             fail(
                 f"{path}: step {step.get('index')}: channel '{ch}' not in "
                 f"constraints.allowed_channels {sorted(allowed)} — Channel Consent Violation",
-                src="brand config channels_live (knowledge/brands/<brand>.md) → portfolio constraints",
+                src="brand config channels_live (output/brands/<brand>.md) → portfolio constraints",
             )
         w = step.get("wait", "")
         if w and not ISO_WAIT.match(w):
@@ -1011,7 +1011,7 @@ def check_copy(path, max_discount=None, sector=None):
                     fail(
                         f"{path}:{i}: mentions %{val:g} discount, brand limit is "
                         f"%{max_discount:g} — Discount Limit Violation",
-                        src="brand config incentive_policy (knowledge/brands/<brand>.md) / --max-discount",
+                        src="brand config incentive_policy (output/brands/<brand>.md) / --max-discount",
                     )
     if rows:
         ok(f"{rows} copy table rows recounted")
@@ -1182,10 +1182,23 @@ def check_portfolio(path):
         return
 
     js = doc.get("journeys", [])
-    if not js:
+    if not isinstance(js, list) or not js:
         fail(f"{path}: no journeys in registry")
         return
     v2p = doc.get("schema_version") == "2.0"
+    if v2p:
+        try:
+            import jsonschema  # type: ignore
+            ps = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "templates",
+                                             "portfolio.schema.json"), encoding="utf-8"))
+            perrs = list(jsonschema.Draft202012Validator(ps).iter_errors(doc))
+            for e in perrs[:8]:
+                fail(f"{path}: schema: {'/'.join(map(str, e.path))}: {e.message}", src="templates/portfolio.schema.json")
+            if perrs:
+                print("  (registry checks skipped until the schema errors above are fixed)")
+                return
+        except (ImportError, OSError, AttributeError):
+            pass
     if doc.get("scope") == "single":
         unverifiable(f"{path}: single-journey run: other journeys' eligibility and portfolio coverage were not "
                      f"reviewed (frequency is still checked against declared existing journeys)", critical=False)
@@ -1195,6 +1208,16 @@ def check_portfolio(path):
     ids = [j.get("id") for j in js]
     for dup in {i for i in ids if ids.count(i) > 1}:
         fail(f"{path}: duplicate journey id '{dup}'")
+    consented = doc.get("allowed_channels")
+    if isinstance(consented, list):
+        for j in js:
+            off = sorted(set(j.get("channels") or []) - set(consented))
+            if off:
+                fail(f"{path}: journey '{j.get('id')}' sends on {off}, which the brand can't send on or users haven't "
+                     f"consented to (allowed_channels {sorted(consented)}) — Channel Consent Violation")
+    elif v2p:
+        unverifiable(f"{path}: no allowed_channels in the registry: the brand's consented channels were not checked "
+                     f"across the portfolio", critical=False)
 
     verticals_present = [j.get("vertical") for j in js if j.get("vertical")]
     if verticals_present and len(verticals_present) < len(js):
@@ -1210,7 +1233,16 @@ def check_portfolio(path):
             unverifiable(f"{path}: frequency window {policy.get('window')} — caps are defined per rolling 7 days; "
                          f"other windows are not computed")
 
-    caps = {**load_default_caps(), **(doc.get("caps") or {})}
+    defaults = load_default_caps()
+    caps = dict(defaults)
+    for ch, v in (doc.get("caps") or {}).items() if isinstance(doc.get("caps"), dict) else []:
+        if not isinstance(v, (int, float)) or v < 0:
+            fail(f"{path}: caps.{ch} must be a non-negative number, got {v!r}")
+        elif ch in defaults and v > defaults[ch]:
+            fail(f"{path}: caps.{ch} = {v} loosens the compliance default {defaults[ch]}; a registry may only "
+                 f"tighten caps (CLAUDE.md rule 8)")
+        else:
+            caps[ch] = min(v, defaults.get(ch, v))
     loads, analyses = {}, {}
     for j in js:
         jid = j.get("id")
@@ -1278,13 +1310,26 @@ def check_portfolio(path):
             groups[g][ch] = groups[g].get(ch, 0) + n
 
     status = doc.get("external_journeys_status")
+    known_groups = {g for g, _ in loads.values()}
+    if status == "declared" and not (doc.get("external_journeys") or []):
+        unverifiable(f"{path}: external_journeys_status is 'declared' but no existing journey is listed; global "
+                     f"frequency is not verified")
     if status == "declared":
         for e in doc.get("external_journeys") or []:
+            if not isinstance(e, dict):
+                fail(f"{path}: external_journeys entries must be objects, got {e!r}")
+                continue
             name = e.get("name", "?")
             msgs = e.get("msgs")
             if not isinstance(msgs, dict):
                 unverifiable(f"{path}: existing journey '{name}' has no message counts; global frequency not verified")
                 continue
+            bad = {k: v for k, v in msgs.items() if k not in CHANNELS or not isinstance(v, int) or v < 0}
+            if bad:
+                fail(f"{path}: existing journey '{name}' msgs {bad}: keys must be channels {sorted(CHANNELS)} and "
+                     f"values whole numbers ≥ 0")
+                msgs = {k: v for k, v in msgs.items() if k not in bad}
+            known_groups |= set(e.get("audience_groups") or ["all"])
             if e.get("window", "P7D") != "P7D":
                 unverifiable(f"{path}: existing journey '{name}' counted per {e.get('window')}, not per 7 days")
                 continue
@@ -1315,9 +1360,29 @@ def check_portfolio(path):
                  f"— Frequency Cap Violation{breach_note}",
                  src="knowledge/compliance/consent-and-quiet-hours.md § Default frequency caps")
 
+    if "all" in groups and len(groups) > 1:
+        # a journey or existing series for "all" reaches every member of every other group
+        base = groups.pop("all")
+        for g, sums in groups.items():
+            for ch, n in base.items():
+                sums[ch] = (sums.get(ch, 0) + n) if ch != "_journeys" else sums["_journeys"] + n
     for g, sums in groups.items():
         check_caps(f"audience group '{g}'", sums)
     overlaps = doc.get("audience_overlaps") or []
+    if not isinstance(overlaps, list) or any(not isinstance(c, list) or len(c) < 2 for c in overlaps):
+        fail(f"{path}: audience_overlaps must be a list of group lists, each naming ≥ 2 groups "
+             f"(e.g. [[\"new_signups\", \"cart_abandoners\"]]), got {overlaps!r}")
+        overlaps = [c for c in overlaps if isinstance(c, list) and len(c) >= 2] if isinstance(overlaps, list) else []
+    for combo in overlaps:
+        unknown = [g for g in combo if g not in groups and g not in known_groups]
+        if unknown:
+            fail(f"{path}: audience_overlaps names unknown group(s) {unknown}; groups are {sorted(groups)}")
+    if len(groups) > 1 and not overlaps and "audience_overlaps" not in doc:
+        # nothing says these audiences are disjoint (an explicit [] does): assume one person can be in all of them (conservative)
+        unverifiable(f"{path}: {len(groups)} audience groups and no audience_overlaps: assuming they can all coincide "
+                     f"for one person; declare the real overlaps (or that groups are disjoint) to narrow this",
+                     critical=False)
+        overlaps = [sorted(groups)]
     overlap_sums = {}
     for combo in overlaps:
         merged = {"_journeys": []}
@@ -1337,9 +1402,6 @@ def check_portfolio(path):
             for ch, n in camp.items():
                 merged[ch] = merged.get(ch, 0) + n
             check_caps(f"campaign week — {label}", merged)
-    if len(groups) > 1 and not overlaps:
-        warn(f"{path}: {len(groups)} audience groups but no audience_overlaps declared — cross-group frequency "
-             f"(one user in several groups at once) is UNCHECKED")
 
     # handoffs between journeys: target exists, no uncontrolled return loops
     edges = {}
@@ -1378,7 +1440,7 @@ def _canvas_skeleton(text):
     """Neutralize the swappable regions (JOURNEYS array, HOLDOUT_TIP/DATA_NOTE
     constants, <title>, eyebrow/h1/lede) — everything else must match the
     template byte-for-byte (CLAUDE.md rule 2's copy-then-edit mechanism)."""
-    out, in_j = [], False
+    out, in_j, in_ui = [], False, False
     for ln in text.splitlines():
         s = ln.strip()
         if in_j:
@@ -1386,9 +1448,18 @@ def _canvas_skeleton(text):
                 in_j = False
                 out.append("@JOURNEYS@")
             continue
+        if in_ui:
+            if ln.startswith("};"):
+                in_ui = False
+                out.append("@UI@")
+            continue
         if s.startswith("const JOURNEYS"):
             in_j = True
             continue
+        if ln.startswith("const UI = {"):
+            in_ui = True  # interface words: swapped per output language (templates/ui-en.json)
+            continue
+        ln = re.sub(r'<html lang="[a-z-]+"', '<html lang="@"', ln)
         if s.startswith("const HOLDOUT_TIP") or s.startswith("const DATA_NOTE"):
             out.append("@CONST@")
             continue

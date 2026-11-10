@@ -10,13 +10,15 @@ Journeys are generated **assuming consent is checked per channel per step** — 
 
 ## Consent baseline by regime
 
-| Regime | Applies to | Email | SMS/WhatsApp | Push |
+| Regime | Applies to | Email | SMS/WhatsApp | Push (delivery permission + commercial-message consent) |
 |---|---|---|---|---|
-| KVKK + Turkish Commercial Electronic Message law (İYS) | Türkiye | Prior opt-in, İYS-registered | Prior opt-in, İYS-registered | OS opt-in |
-| GDPR + ePrivacy | EU/EEA | Opt-in (soft opt-in for existing customers in some states) | Opt-in | OS opt-in |
-| CAN-SPAM | US email | Opt-out model, but honor unsubscribes ≤ 10 days | — | — |
+| KVKK + Turkish Commercial Electronic Message law (İYS) | Türkiye | Prior opt-in, recorded in İYS (the consent registry) | Prior opt-in, recorded in İYS; the SMS sender ID (originator) is registered separately through the operator, and that registration is not consent | OS opt-in for delivery, plus commercial-message consent for any marketing push (ETK); transactional push needs the OS opt-in only |
+| GDPR + ePrivacy | EU/EEA | Opt-in (soft opt-in for existing customers in some states) | Opt-in | OS opt-in for delivery, plus marketing consent for promotional push |
+| CAN-SPAM | US email | Opt-out model: honor unsubscribes within 10 business days, and include the sender's valid physical postal address | — | — |
 | TCPA | US SMS | — | Prior express written consent; calls/texts additionally restricted to 08:00–21:00 recipient local time ("quiet hours" — this repo's SMS/WhatsApp default below already sits inside that window) | — |
-| CASL | Canada | Opt-in (express or implied) + sender identification info + working unsubscribe honored ≤ 10 business days | Same three requirements as Email | OS opt-in |
+| CASL | Canada | Opt-in (express or implied) + sender identification info + working unsubscribe honored ≤ 10 business days | Same three requirements as Email | OS opt-in for delivery; a promotional push is a commercial electronic message, so the Email requirements apply too |
+
+The OS permission prompt only lets the device show a notification. It is not marketing consent (see `knowledge/channels/push.md`): a user can allow notifications and still have no commercial-message consent, so a marketing push checks both, and a transactional push checks the OS permission only.
 
 Design consequence: **never assume US-style opt-out for TR/EU/Canada audiences.** When market is unknown, default to the strictest (opt-in everywhere) and note it. This table is not exhaustive — UK (PECR/UK GDPR, materially similar to the EU row post-Brexit), Brazil (LGPD), Australia (Spam Act 2003) and others aren't separately listed. The opt-in-everywhere default covers the *consent* question for an unlisted market but not regime-specific *procedural* mandates (CASL's identification requirement, for example, isn't satisfied by consent alone) — treat any `markets:` value not in this table as a signal to flag "confirm with counsel," not as silently covered.
 
@@ -53,7 +55,7 @@ A channel the user closed (unsubscribed, opted out, withdrew consent) stays clos
 | Channel | Default quiet hours (user local) |
 |---|---|
 | Push | 22:00–09:00 (mandatory) |
-| SMS / WhatsApp | 20:00–10:00 + no Sundays (TR İYS practice: avoid 24:00–08:00 at minimum; stricter default chosen deliberately) |
+| SMS / WhatsApp | 20:00–10:00 + no Sundays (this repo's default practice, not a statutory window; deliberately stricter than common TR market practice) |
 | Email | none, but avoid 00:00–06:00 sends for engagement reasons |
 
 Quiet hours are evaluated in the **user's timezone when known**. Unknown user timezone → the market timezone from intake (`markets:`). Multiple markets with unknown user timezones → the strictest interpretation: a send must be inside allowed hours in **every** target market's local time, which narrows the window rather than widening it.

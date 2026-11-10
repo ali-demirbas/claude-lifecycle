@@ -3,9 +3,9 @@ name: lifecycle
 argument-hint: "[connect|map|journeys|copy|audit|export|audience|qa|results]"
 description: Lifecycle marketing engine router. Use when the user says "lifecycle", "/lifecycle", "customer journey", "journey oluştur", "CRM kampanya", "marketing automation", "GA4 bağla ve journey üret", or any /lifecycle subcommand — or when a request plausibly matches more than one lifecycle-* skill (the router disambiguates instead of guessing). Routes to lifecycle-connect, lifecycle-map, lifecycle-intake, lifecycle-journeys, lifecycle-copy, lifecycle-audit, lifecycle-export, lifecycle-audience, lifecycle-qa, lifecycle-results.
 metadata:
-  version: 0.2.0
+  version: 0.3.0
   category: router
-  updated: 2026-10-09
+  updated: 2026-11-10
 ---
 
 # Lifecycle — Router
@@ -47,7 +47,7 @@ Phrasing that turns out genuinely ambiguous more than once is worth contributing
 connect → map → (intake if needed) → journeys → copy → export (on request)
 ```
 
-0. **Check for an existing brand config first:** if `${CLAUDE_PLUGIN_ROOT}/knowledge/brands/` has a file for this company, load it before asking anything — it pre-fills intake and carries the inheritance chain (CLAUDE.md rule 8).
+0. **Check for an existing brand config first:** if `output/brands/` in the working folder has a file for this company, load it before asking anything — it pre-fills intake and carries the inheritance chain (CLAUDE.md rule 8).
 1. **Determine the data tier before anything else.**
    - GA4 MCP tools available (`mcp__ga4__*` or similar)? → Tier 1. Confirm which property to use.
    - User has a CSV/export file? → Tier 2.

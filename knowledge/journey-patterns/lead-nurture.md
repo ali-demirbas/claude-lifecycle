@@ -3,7 +3,7 @@ name: lead-nurture
 stage: acquisition
 trigger_type: event
 required_events: [generate_lead, sign_up]
-optional_events: [trial_start, purchase, file_download, session_start, view_item, link_click, lead_qualified, consent_withdrawn]
+optional_events: [trial_start, purchase, file_download, session_start, link_click, lead_qualified, consent_withdrawn]
 required_attributes: []
 optional_attributes: [lead_source, lead_score, content_topic, lead_status, marketing_consent]
 default_channels: [email]
@@ -55,7 +55,7 @@ The window is bounded at entry and closes on time whether or not nurture worked.
 - **Checked before every send:** `sign_up`, `consent_withdrawn` (email marketing consent; since the journey is email-only it stops every marketing send, while the s1 delivery of a requested asset is transactional), `lead_qualified` as recorded in the CRM (a click on a pricing link is not a qualification). The lead's state is re-read from the system of record before each send; a recorded progression ends the window instead of spending the next touch on it.
 - **Re-entry:** a new `generate_lead` with a new reason may open a new instance after the cooldown (configurable, default 90 days). A second download inside an active window is ignored: it neither restarts nor extends the window.
 - **Sunset:** a lead that reaches the window's end without converting moves to the low-frequency newsletter list (if they opted in to it), not to a re-entry loop. Nurture pressure on a cold lead produces complaints, not conversions.
-- **Hand-offs:** `sign_up` → welcome-onboarding; `lead_qualified` → sales owner. Both suppress every queued send of this journey.
+- **Hand-offs:** `sign_up` → welcome-onboarding; `lead_qualified` → sales owner. Both suppress every queued send of this journey. A lead whose window expires without engagement, with no new `generate_lead` reason to re-enter on, goes to [unengaged-sunset](unengaged-sunset.md) (carrying the lead source, consent state and last engagement date) instead of another nurture cycle.
 
 ## Consent note (this pattern's sharpest legal edge)
 

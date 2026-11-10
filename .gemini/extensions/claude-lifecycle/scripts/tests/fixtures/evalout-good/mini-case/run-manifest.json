@@ -1,0 +1,10 @@
+{
+ "run_id": "20261110-000000-abcd",
+ "status": "passed",
+ "scope": {
+  "mode": "portfolio",
+  "journeys": [
+   "saas-trial-conversion-01"
+  ]
+ }
+}

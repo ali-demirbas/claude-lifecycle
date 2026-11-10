@@ -521,7 +521,8 @@
             "carries": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               }
             }
           }
@@ -736,7 +737,8 @@
     "pattern": {
       "type": "string",
       "minLength": 1,
-      "description": "Slug of a file in knowledge/journey-patterns/, e.g. abandoned-cart. JSON Schema can't check filesystem existence — scripts/validate_output.py check_journey cross-references this against the actual knowledge/journey-patterns/<pattern>.md files, the same class of check scripts/validate.sh already runs for industries/pattern_priorities."
+      "description": "Slug of a file in knowledge/journey-patterns/, e.g. abandoned-cart. JSON Schema can't check filesystem existence — scripts/validate_output.py check_journey cross-references this against the actual knowledge/journey-patterns/<pattern>.md files, the same class of check scripts/validate.sh already runs for industries/pattern_priorities.",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
     },
     "vertical": {
       "type": "string",
@@ -816,7 +818,8 @@
         "entry_conditions": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           }
         },
         "reentry_policy": {
@@ -838,7 +841,8 @@
         "exclude": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           }
         },
         "estimated_volume": {
@@ -868,7 +872,8 @@
         "other_exits": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           }
         },
         "success_window": {
@@ -1054,7 +1059,8 @@
     "data_gaps": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "description": "Missing events/attributes that would improve this journey"
     },
@@ -1128,7 +1134,8 @@
     "events_available": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "description": "Event/attribute names confirmed in the mapped inventory. Every event the journey reads must be listed; without this list event existence is reported unverifiable."
     },
@@ -1238,7 +1245,8 @@
               "type": "array",
               "minItems": 1,
               "items": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               },
               "description": "Which new communications the control group does NOT receive"
             }
@@ -1267,7 +1275,8 @@
         "contamination_risks": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           }
         },
         "volume_note": {

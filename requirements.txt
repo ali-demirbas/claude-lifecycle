@@ -2,3 +2,5 @@
 # Without it (or with an older version lacking Draft202012Validator) the
 # validator degrades to a structural required-fields check — it does not crash.
 jsonschema>=4.18
+# Python 3.9+ (zoneinfo). On Windows, IANA time zones also need: tzdata
+tzdata; platform_system == "Windows"

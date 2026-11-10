@@ -4,7 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
-Planned as 0.3.0. Not released yet: the acceptance tests pass, and the before/after scenario comparison is still to run. What changes for users is below. Migrating existing outputs: [docs/migration-0.3.0.md](docs/migration-0.3.0.md). Every fixed defect, with where it lived and the test that catches it: [docs/audit/0.3.0-findings.md](docs/audit/0.3.0-findings.md).
+## [0.3.0] - 2026-11-10
+
+What changes for users is below. Migrating existing outputs: [docs/migration-0.3.0.md](docs/migration-0.3.0.md). Every fixed defect, with where it lived and the test that catches it: [docs/audit/0.3.0-findings.md](docs/audit/0.3.0-findings.md).
 
 ### Changed — journeys are now checked for timing, frequency and exits, not just shape
 
@@ -42,6 +44,16 @@ Planned as 0.3.0. Not released yet: the acceptance tests pass, and the before/af
   - Safe preferences take stated defaults.
   - Journeys built while a correctness fact is still missing are delivered as drafts, separate from journeys ready to implement.
 - **Copy has two named modes:** full, and quick draft (P0 only, one review pass, labelled as a draft). The mode is never switched silently.
+
+### Fixed — fifth audit, seven independent reviews (`docs/audit/0.3.0-audit5.md`)
+
+- The previous fix round broke install mode (`${CLAUDE_PLUGIN_ROOT:-.}` is not substituted by the CLI) and over-reached in places (open and promotion detection, back-to-back reentry, the canvas merge stub, tooltips, the input gate); all corrected.
+- Copy checks cover range limits, minimums, word-form discounts, Turkish headings, emoji, SMS opt-out and shorteners, HTML; the copy canvas is generated from the reviewed doc.
+- A portfolio registry schema; caps can only tighten; overlaps are validated and assumed when undeclared; registry-level consented channels.
+- `finish` checks each journey against the run's own data assessment and needs the dossier; `all` skips archives and checks the canvases.
+- Evals reject stale outputs and unknown keys; results cases run the results skill.
+- English runs get an English canvas; brand configs live in `output/brands/`; a working install via `.claude-plugin/marketplace.json`.
+- Knowledge: some 60 pattern, compliance, taxonomy, SQL and measurement corrections.
 
 ### Fixed — third audit, eight independent reviews (`docs/audit/0.3.0-audit3.md`)
 
@@ -465,3 +477,5 @@ Deterministic validation layer (third external-review round, critically filtered
 - Docs: architecture, DQS rubric, adding-an-industry guide, CRM export mapping (removed in a later release).
 - End-to-end examples for all three data tiers.
 - `scripts/validate.sh` + GitHub Actions CI.
+
+[0.3.0]: https://github.com/ali-demirbas/claude-lifecycle/compare/v0.2.0...v0.3.0

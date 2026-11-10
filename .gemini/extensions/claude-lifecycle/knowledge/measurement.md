@@ -34,7 +34,7 @@ iROI                     = (incremental_contribution − incremental_cost) ÷ in
 - Worked check: N_treatment = 10,000, p_T − p_C = 0.01, contribution 500 per conversion, incremental cost 10,000 → 100 incremental conversions, 50,000 incremental contribution, iROI = (50,000 − 10,000) ÷ 10,000 = 4.
 - A rollout estimate ("if we send to everyone") uses its own N (the population it would reach) and is labelled a **projection**, never reported as the measured result.
 
-Report both relative and absolute lift; **decide on absolute** (a huge relative lift on a tiny base can still be worthless). For a holdout-measured marketing journey, iROI is the go/no-go number.
+Report both relative and absolute lift; **decide on absolute** (a huge relative lift on a tiny base can still be worthless). For a holdout-measured marketing journey, iROI is the go/no-go number (keep needs iROI ≥ 0). **When iROI is undefined (incremental cost 0), the keep rule is incremental contribution > 0 with a confidence interval that excludes zero**; an undefined iROI is never read as a pass or a fail on its own.
 
 ## Sample-size honesty
 
@@ -73,7 +73,7 @@ Early results also regress to the mean and are prone to the novelty effect (a ch
 | Activation / engagement | 7–14 days |
 | Winback, renewal, considered purchase | 30–90 days, matched to the product's cycle |
 
-Round up to whole weeks, not just the trigger-latency minimum above — day-of-week traffic and behavior patterns vary enough that a 5-day window and a 7-day window of the same journey can read differently for reasons that have nothing to do with the journey.
+**Whole-week rounding rule:** a measurement read window is read at the next whole week, e.g. a 30-day window is read at 35 days and a 3-day window at 7. This applies to the read window only: a pattern's success window that is bounded by the offer itself (a back-in-stock or price-drop alert valid for 72 hours, a 3-day browse window) keeps its own length for the exit decision, and only the measurement read rounds up. Round up, not just to the trigger-latency minimum above — day-of-week traffic and behavior patterns vary enough that a 5-day window and a 7-day window of the same journey can read differently for reasons that have nothing to do with the journey.
 
 ## Two-tier metrics (enforced in journey-doc §6)
 

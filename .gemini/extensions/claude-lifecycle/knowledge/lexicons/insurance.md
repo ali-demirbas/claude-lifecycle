@@ -17,17 +17,17 @@ Word choice for a product people buy hoping never to use. The governing rule: **
 
 | Use | Avoid | Why |
 |---|---|---|
-| "teklifiniz 48 saat geçerli" / "your quote is valid for 48 hours" | "bu fiyatı bir daha göremezsiniz!" / "you'll never see this price again!" | Factual validity window vs manufactured scarcity |
-| "poliçeniz [tarih] tarihinde sona eriyor" / "your policy expires on [date]" | "yarın kazaya uğrarsanız ne olur?" / "what happens if you crash tomorrow?" | Real calendar fact vs fear-based hypothetical |
-| "hasar sürecinizi uygulamadan takip edebilirsiniz" / "you can track your claim in the app" | "hasarınız garanti ödenir" / "your claim is guaranteed to be paid" | Process description vs outcome promise no one can make in advance |
-| "kapsamınızı gözden geçirebilirsiniz" / "you can review your coverage" | "bu eksiklikle büyük risk alıyorsunuz" / "you're taking a huge risk with this gap" | Informational nudge vs alarmist framing of the customer's own choices |
-| "taksit ödemeniz gerçekleşmedi; kartınızı güncelleyebilirsiniz" / "your installment payment didn't go through; you can update your card" | "poliçeniz iptal edilmek üzere!" / "your policy is about to be cancelled!" | Neutral logistics vs alarm language that trains users to ignore real notices |
-| "hasarınız için yanınızdayız" / "we're here for your claim" | "hayatınızın en kötü gününde bile size güveniyoruz" / "even on the worst day of your life, trust us" | Supportive plain statement vs exploiting a hypothetical tragedy for copy |
-| "ihtiyacınıza göre ek teminat ekleyebilirsiniz" / "you can add coverage based on your needs" | "bu paketi almazsanız pişman olursunuz" / "you'll regret it if you don't buy this package" | Feature/option framing vs regret-based pressure |
+| "Teklifiniz 48 saat geçerli" / "your quote is valid for 48 hours" | "Bu fiyatı bir daha göremezsiniz!" / "you'll never see this price again!" | Factual validity window vs manufactured scarcity |
+| "Poliçeniz [tarih] tarihinde sona eriyor" / "your policy expires on [date]" | "Yarın kazaya uğrarsanız ne olur?" / "what happens if you crash tomorrow?" | Real calendar fact vs fear-based hypothetical |
+| "Hasar sürecinizi uygulamadan takip edebilirsiniz" / "you can track your claim in the app" | "Hasarınız garanti ödenir" / "your claim is guaranteed to be paid" | Process description vs outcome promise no one can make in advance |
+| "Kapsamınızı gözden geçirebilirsiniz" / "you can review your coverage" | "Bu eksiklikle büyük risk alıyorsunuz" / "you're taking a huge risk with this gap" | Informational nudge vs alarmist framing of the customer's own choices |
+| "Taksit ödemeniz gerçekleşmedi; kartınızı güncelleyebilirsiniz" / "your installment payment didn't go through; you can update your card" | "Poliçeniz iptal edilmek üzere!" / "your policy is about to be cancelled!" | Neutral logistics vs alarm language that trains users to ignore real notices |
+| "Hasarınız için yanınızdayız" / "we're here for your claim" | "Hayatınızın en kötü gününde bile size güveniyoruz" / "even on the worst day of your life, trust us" | Supportive plain statement vs exploiting a hypothetical tragedy for copy |
+| "İhtiyacınıza göre ek teminat ekleyebilirsiniz" / "you can add coverage based on your needs" | "Bu paketi almazsanız pişman olursunuz" / "you'll regret it if you don't buy this package" | Feature/option framing vs regret-based pressure |
 
 ## Urgency rules
 
-Default: urgency is **allowed only on real, system-known dates** — renewal date, grace-period end, a document deadline, a quote's true expiry. State the date once, neutrally, no exclamation marks: "poliçeniz 12 Ağustos'ta sona eriyor" not "SÜRENİZ DOLUYOR!". Never attach urgency to an imagined future event (accident, illness, theft, disaster) — that is fear-selling, the sector's single most damaging pattern, and it degrades trust in every message that follows it, including genuine claims communication.
+Default: urgency is **allowed only on real, system-known dates** — renewal date, grace-period end, a document deadline, a quote's true expiry. State the date once, neutrally, no exclamation marks: "Poliçeniz 12 Ağustos'ta sona eriyor" not "SÜRENİZ DOLUYOR!". Never attach urgency to an imagined future event (accident, illness, theft, disaster) — that is fear-selling, the sector's single most damaging pattern, and it degrades trust in every message that follows it, including genuine claims communication.
 
 ## Tone calibration by journey stage
 

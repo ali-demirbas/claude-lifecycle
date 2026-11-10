@@ -17,27 +17,27 @@ Word choice for two-sided marketplace messaging. The platform's product is trust
 
 | Use | Avoid | Why |
 |---|---|---|
-| "kaydettiğin ilan hâlâ satışta" / "the listing you saved is still available" | "harika fırsat seni bekliyor!" / "an amazing deal awaits!" | Availability is the fact that matters; hype is noise |
-| "bu ilanı bugün 12 kişi görüntüledi" (real count) / "12 people viewed this today" | "yoğun ilgi var, acele et!" / "huge interest, hurry!" | Real demand data > manufactured pressure |
-| "fiyat düştü: {{old_price}} → {{new_price}}" / "price dropped: {{old_price}} → {{new_price}}" | "kelepir! kaçmaz!" / "a steal! grab it!" | The delta is the message; editorializing someone else's listing erodes neutrality |
-| "aramana uyan 3 yeni ilan var" / "3 new listings match your search" | "binlerce ürün seni bekliyor" / "thousands of items await you" | Matched, countable supply > vague abundance |
-| "satıcıyla aranızdaki yazışmayı platformda tutmanı öneririz" / "we recommend keeping the conversation on the platform" | "tamamen güvenli, hiçbir risk yok" / "totally safe, zero risk" | Concrete safety practice > absolute safety claims the platform can't honor |
-| "alışverişin nasıl geçti? değerlendirmen 1 dakika sürer" / "how did it go? your review takes 1 minute" | "bize 5 yıldız ver!" / "give us 5 stars!" | Ask for honest reviews, never for a rating — coached reviews poison the trust loop |
-| "ilanın süresi 3 gün içinde doluyor" (seller, real expiry) / "your listing expires in 3 days" | "ilanını kaybetmek üzeresin!" / "you're about to lose your listing!" | Procedural fact vs alarm framing |
+| "Kaydettiğin ilan hâlâ satışta" / "the listing you saved is still available" | "Harika fırsat seni bekliyor!" / "an amazing deal awaits!" | Availability is the fact that matters; hype is noise |
+| "Bu ilanı bugün 12 kişi görüntüledi" (real count) / "12 people viewed this today" | "Yoğun ilgi var, acele et!" / "huge interest, hurry!" | Real demand data > manufactured pressure |
+| "Fiyat düştü: {{old_price}} → {{new_price}}" / "price dropped: {{old_price}} → {{new_price}}" | "Kelepir! Kaçmaz!" / "a steal! grab it!" | The delta is the message; editorializing someone else's listing erodes neutrality |
+| "Aramana uyan 3 yeni ilan var" / "3 new listings match your search" | "Binlerce ürün seni bekliyor" / "thousands of items await you" | Matched, countable supply > vague abundance |
+| "Satıcıyla aranızdaki yazışmayı platformda tutmanı öneririz" / "we recommend keeping the conversation on the platform" | "Tamamen güvenli, hiçbir risk yok" / "totally safe, zero risk" | Concrete safety practice > absolute safety claims the platform can't honor |
+| "Alışverişin nasıl geçti? Değerlendirmen 1 dakika sürer" / "how did it go? your review takes 1 minute" | "Bize 5 yıldız ver!" / "give us 5 stars!" | Ask for honest reviews, never for a rating — coached reviews poison the trust loop |
+| "İlanın süresi 3 gün içinde doluyor" (seller, real expiry) / "your listing expires in 3 days" | "İlanını kaybetmek üzeresin!" / "you're about to lose your listing!" | Procedural fact vs alarm framing |
 
 ## Urgency rules
 
-Urgency must be a real supply/demand fact the system can verify at send time: the item actually sold ("kaçırdın, ama benzer 4 ilan var" is honest and useful), the price actually changed, the listing has a real expiry date, a real number of people saved or viewed it. Never invent or inflate counts, never imply competition that isn't in the data, and never editorialize scarcity on a seller's behalf ("won't last long!"). One urgency fact per message. Re-verify availability at send time — urgency about an already-sold listing is the fastest way to train users to distrust every notification.
+Urgency must be a real supply/demand fact the system can verify at send time: the item actually sold ("Kaçırdın, ama benzer 4 ilan var" is honest and useful), the price actually changed, the listing has a real expiry date, a real number of people saved or viewed it. Never invent or inflate counts, never imply competition that isn't in the data, and never editorialize scarcity on a seller's behalf ("won't last long!"). One urgency fact per message. Re-verify availability at send time — urgency about an already-sold listing is the fastest way to train users to distrust every notification.
 
 ## Tone calibration by journey stage
 
 | Journey type | Tone shift |
 |---|---|
 | Welcome / onboarding | Practical orientation: how to search, save, and contact safely; establish the platform as a fair referee from message one |
-| Saved-listing follow-up | Status report, zero pressure ("hâlâ satışta", "fiyatı değişti") — the fact carries the message |
+| Saved-listing follow-up | Status report, zero pressure ("Hâlâ satışta", "Fiyatı değişti") — the fact carries the message |
 | Browse abandonment / new matches | Concise digest voice; lead with the count and best match, easy to scan and dismiss |
-| Post-purchase / review ask | Warm, brief, both-sided fairness ("değerlendirmen diğer alıcılara yol gösterir"); never incentivize a *positive* rating |
-| Winback | Need-based re-entry ("yine araba mı bakıyorsun?") keyed to past category — helpful memory, not neediness |
+| Post-purchase / review ask | Warm, brief, both-sided fairness ("Değerlendirmen diğer alıcılara yol gösterir"); never incentivize a *positive* rating |
+| Winback | Need-based re-entry ("Yine araba mı bakıyorsun?") keyed to past category — helpful memory, not neediness |
 | Seller-side | Peer-professional, data-backed coaching ("5+ fotoğraflı ilanlar daha çok yanıt alıyor" only if the platform's own data supports it) |
 
 ## TR / EN notes

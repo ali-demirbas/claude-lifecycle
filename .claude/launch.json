@@ -4,7 +4,7 @@
     {
       "name": "output-preview",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8377", "--directory", "output/anadolu-ev-yasam"],
+      "runtimeArgs": ["-m", "http.server", "8377", "--directory", "output"],
       "port": 8377
     },
     {

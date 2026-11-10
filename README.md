@@ -45,18 +45,22 @@ Full walkthrough with design decisions: [docs/architecture.md](docs/architecture
 
 ## Quickstart
 
-```bash
-# as a Claude Code plugin (marketplace or local)
-/plugin install claude-lifecycle
+Inside Claude Code, add this repo as a plugin marketplace and install the plugin:
 
-# or clone and use as a project
-git clone https://github.com/ali-demirbas/claude-lifecycle && cd claude-lifecycle && claude
-
-# or install individual skills with the skills CLI (https://skills.sh)
-npx skills add ali-demirbas/claude-lifecycle --all
+```text
+/plugin marketplace add ali-demirbas/claude-lifecycle
+/plugin install claude-lifecycle@claude-lifecycle
 ```
 
-Already have [ab-test-playbook](https://github.com/ali-demirbas/ab-test-playbook) too? Add [claude-skills](https://github.com/ali-demirbas/claude-skills) once instead of each repo separately: `/plugin marketplace add ali-demirbas/claude-skills`.
+Or run it from a local clone without installing (the scripts need Python 3.9+ and `pip install -r requirements.txt`):
+
+```bash
+git clone https://github.com/ali-demirbas/claude-lifecycle
+claude --plugin-dir ./claude-lifecycle
+```
+
+Installing single skills with a skills CLI copies the skill text only, without the scripts, knowledge and templates the skills call, so use the plugin.
+
 
 Using [Gemini CLI](https://github.com/google-gemini/gemini-cli) instead? `.gemini/extensions/claude-lifecycle/` ships the same skills, rules and agents, generated from the same source files by `scripts/build_gemini.py`:
 
@@ -79,9 +83,12 @@ No data at all? `"/lifecycle journeys, my sector is fintech, no data"` works too
 
 | Tier | You have | You get |
 |---|---|---|
-| **T1** | GA4 connected (MCP) | Behavioral triggers, multi-branch journeys (7–12 steps where data supports it), volume-aware conflict review |
-| **T2** | CSV / analytics export | Behavioral triggers, limited branching (4–7 steps) |
-| **T3** | Just your industry | Playbook-driven starter portfolio (3–5 step flows) + a tracking plan to graduate to T1 |
+| **T1** | GA4 or another analytics tool connected | Behavioral triggers, volume-aware conflict review; depth follows the Data Quality Score |
+| **T2** | Row-level CSV / analytics export (one row per event or user) | Behavioral triggers; depth follows the Data Quality Score |
+| **T2-aggregate** | A report or dashboard export (totals per period, funnel step, channel) | Event and funnel scoring, journeys designed as drafts: no per-user targeting until identity is confirmed |
+| **T3** | Just your industry | Playbook-driven starter portfolio + a tracking plan to graduate to T1 |
+
+Depth comes from the Data Quality Score, not the tier: under 40 simple, 40–69 standard, 70+ branched, and low volume caps it at standard ([docs/data-quality-score.md](docs/data-quality-score.md)).
 
 ## What's inside
 
@@ -92,7 +99,7 @@ No data at all? `"/lifecycle journeys, my sector is fintech, no data"` works too
 | [`knowledge/journey-patterns/`](knowledge/journey-patterns/) | 29 patterns (lead-nurture, abandoned-cart, trial-conversion, churn-prevention, winback, renewal-reminder, cancellation-winddown, unengaged-sunset, …), each with a required-event signature, anchored timing, exit checks before every send and DQS-tied depth scaling ([contract](docs/pattern-contract.md)) |
 | [`knowledge/industries/`](knowledge/industries/) | 9 sector playbooks: funnel, event expectations, pattern priorities, timing. [Add yours](docs/adding-an-industry.md): it's a content PR, not code |
 | [`knowledge/lexicons/`](knowledge/lexicons/) | Sector word choice: use/avoid tables, urgency rules, banned lists, regulated-context flag, plus [`locales/`](knowledge/lexicons/locales/) language overlays (per-language voice, emotion calibration, market red lines) |
-| [`knowledge/brands/`](knowledge/brands/) | Company config layer: per-brand tone, incentive policy, channels; rules inherit Company → Sector → Global, strictest compliance wins |
+| [`knowledge/brands/`](knowledge/brands/) | Company config layer (template here; each brand's file is written to `output/brands/` in your working folder, never into the plugin): per-brand tone, incentive policy, channels; rules inherit Company → Sector → Global, strictest compliance wins |
 | [`knowledge/channels/`](knowledge/channels/) | Hard rules for email, push, SMS, in-app, WhatsApp: limits, spam lists, consent, quiet hours |
 | [`templates/`](templates/) | Mandatory output formats + [`journey.schema.json`](templates/journey.schema.json), the CRM-agnostic journey definition |
 | [`examples/`](examples/) | Full end-to-end outputs for each tier |

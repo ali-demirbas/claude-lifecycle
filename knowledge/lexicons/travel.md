@@ -11,19 +11,19 @@ last_reviewed: 2026-07-16
 
 # Travel Lexicon
 
-Word choice for OTA/airline/hotel CRM copy. Travel copy gets to dream a little — a destination line may evoke ("Ege'de eylül sakinliği") — but every number must be brutally factual: prices, dates, seat counts, and availability come from live data or they don't appear. The sector's credibility problem is manufactured scarcity ("2 seats left!" on every fare, forever); a brand that only says "son 2 koltuk" when it is literally true owns a message competitors have burned. Quote itineraries back precisely ({{origin}}→{{destination}}, {{dates}}): specificity is respect for a high-stakes purchase.
+Word choice for OTA/airline/hotel CRM copy. Travel copy gets to dream a little — a destination line may evoke ("Ege'de eylül sakinliği") — but every number must be brutally factual: prices, dates, seat counts, and availability come from live data or they don't appear. The sector's credibility problem is manufactured scarcity ("2 seats left!" on every fare, forever); a brand that only says "Son 2 koltuk" when it is literally true owns a message competitors have burned. Quote itineraries back precisely ({{origin}}→{{destination}}, {{dates}}): specificity is respect for a high-stakes purchase.
 
 ## Use / avoid
 
 | Use | Avoid | Why |
 |---|---|---|
-| "İstanbul→Barselona, 12-19 Ağustos araman hâlâ geçerli" / "your Istanbul→Barcelona search, 12-19 Aug, is still live" | "hayalindeki tatil seni bekliyor" / "your dream vacation awaits" | Quote the actual search; generic wanderlust is noise |
-| "aradığın rota şu an ₺4.230'dan başlıyor" / "fares on your route now start at $189" (live data) | "inanılmaz fiyatlar!", "fiyatlar uçuyor" / "unbelievable prices!" | The number is the message; adjectives dilute it |
-| "bu tarihte son 3 oda kaldı" (real inventory) / "3 rooms left for your dates" | "tükenmek üzere!" with no data / "selling fast!" | Real counts convert AND preserve trust; fake scarcity destroys both |
-| "fiyat düştü: takip ettiğin uçuş şimdi ₺3.980" / "price drop: the flight you're watching is now €142" | "fırsatı kaçırma, hemen al" / "grab it before it's gone" | A fare drop needs no decoration — data IS the urgency |
-| "yolculuğuna 5 gün kaldı: online check-in açıldı" / "5 days to your trip: check-in is open" | "unutmayın!", "önemli hatırlatma!!" | Countdown-to-departure framing is naturally engaging; alarm tone is for disruptions only |
-| "Eylülde Ege: az kalabalık, hâlâ deniz" / "September on the Aegean: fewer crowds, warm sea" | "cennet gibi", "büyüleyici deneyim" / "paradise awaits", "magical experience" | Evocative = concrete sensory facts; brochure superlatives are wallpaper |
-| "iptal koşulları: 48 saate kadar ücretsiz" / "free cancellation until 48h before" | "içiniz rahat olsun" / "book with total peace of mind" | The policy is the reassurance; state it |
+| "İstanbul→Barselona, 12-19 Ağustos araman hâlâ geçerli" / "your Istanbul→Barcelona search, 12-19 Aug, is still live" | "Hayalindeki tatil seni bekliyor" / "your dream vacation awaits" | Quote the actual search; generic wanderlust is noise |
+| "Aradığın rota şu an ₺4.230'dan başlıyor" / "fares on your route now start at $189" (live data) | "İnanılmaz fiyatlar!", "Fiyatlar uçuyor" / "unbelievable prices!" | The number is the message; adjectives dilute it |
+| "Bu tarihte son 3 oda kaldı" (real inventory) / "3 rooms left for your dates" | "Tükenmek üzere!" with no data / "selling fast!" | Real counts convert AND preserve trust; fake scarcity destroys both |
+| "Fiyat düştü: takip ettiğin uçuş şimdi ₺3.980" / "price drop: the flight you're watching is now €142" | "Fırsatı kaçırma, hemen al" / "grab it before it's gone" | A fare drop needs no decoration — data IS the urgency |
+| "Yolculuğuna 5 gün kaldı: online check-in açıldı" / "5 days to your trip: check-in is open" | "unutmayın!", "Önemli hatırlatma!!" | Countdown-to-departure framing is naturally engaging; alarm tone is for disruptions only |
+| "Eylülde Ege: az kalabalık, hâlâ deniz" / "September on the Aegean: fewer crowds, warm sea" | "cennet gibi", "Büyüleyici deneyim" / "paradise awaits", "magical experience" | Evocative = concrete sensory facts; brochure superlatives are wallpaper |
+| "İptal koşulları: 48 saate kadar ücretsiz" / "free cancellation until 48h before" | "İçiniz rahat olsun" / "book with total peace of mind" | The policy is the reassurance; state it |
 
 ## Urgency rules
 
@@ -39,7 +39,7 @@ Urgency is permitted **only on real fare/availability data**: an actual fare cha
 | Pre-trip (post-purchase) | Warm concierge: anticipation + logistics; ancillary offers framed as trip improvements, not add-on sales |
 | In-trip | Service-only, minimal, instantly useful (directions, support, check-out time); marketing silence |
 | Post-trip / review ask | Grateful, brief, memory-forward ("Barselona nasıldı?"); one ask per message |
-| Winback / re-inspiration | Seasonal + personal ("geçen eylül Ege'deydin, bu yıl nereye?"); inspiration allowed here more than anywhere |
+| Winback / re-inspiration | Seasonal + personal ("Geçen eylül Ege'deydin, bu yıl nereye?"); inspiration allowed here more than anywhere |
 
 ## TR / EN notes
 

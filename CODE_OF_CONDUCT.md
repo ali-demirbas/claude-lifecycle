@@ -36,7 +36,7 @@ This Code of Conduct applies within all community spaces (issues, pull requests,
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the maintainers via a private message on the maintainer's GitHub profile or by opening a confidential report where the platform supports it. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the maintainers through a private [GitHub Security Advisory](https://github.com/ali-demirbas/claude-lifecycle/security/advisories/new) on this repository (it reaches only the maintainers). All complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 

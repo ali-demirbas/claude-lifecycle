@@ -3,9 +3,9 @@ name: lifecycle-export
 argument-hint: "[json|mermaid|csv|report]"
 description: Export generated journeys as CRM-agnostic JSON (journey.schema.json), Mermaid diagrams, or CSV step lists. Use when the user says "export", "JSON ver", "dışa aktar", "şema çıktısı", "CSV ver".
 metadata:
-  version: 0.2.0
+  version: 0.3.0
   category: export
-  updated: 2026-10-09
+  updated: 2026-11-10
 ---
 
 # Lifecycle Export — Structured Output
@@ -42,3 +42,5 @@ HTML rules: fully self-contained (inline CSS/JS, no CDN), both themes token-base
 - Never emit JSON that violates the schema (wrong enum, missing required field, malformed id pattern `<sector>-<pattern>-<nn>`).
 - Never invent CRM-specific field names, variable syntax, or delay units, in the JSON or alongside it. The export stops at the agnostic schema; the import mapping belongs to whoever owns the tool.
 - Never export copy that hasn't passed copy review; export copy refs (`step-1`) instead and say copy is pending.
+
+**Quiet hours at the destination:** every exported push, SMS or WhatsApp step carries the line "quiet hours are not enforced until the send-time window is configured in the sending tool" (knowledge/compliance/consent-and-quiet-hours.md), so the gap is visible to whoever imports it.

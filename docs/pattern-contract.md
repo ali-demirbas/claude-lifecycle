@@ -4,7 +4,7 @@ Every file in `knowledge/journey-patterns/` follows this contract. Generated jou
 
 ## Frontmatter
 
-Existing keys stay: `name, stage, trigger_type, required_events, optional_events, required_attributes, optional_attributes, default_channels, base_steps, depth_range, applicable_industries, mutually_exclusive_with`. New keys:
+Optional key `requires_feed: true` marks a pattern that can't run without a live feed (stock, price, purchase cycle, alerts); `eligibility.py` blocks it at T3. Existing keys stay: `name, stage, trigger_type, required_events, optional_events, required_attributes, optional_attributes, default_channels, base_steps, depth_range, applicable_industries, mutually_exclusive_with`. New keys:
 
 | Key | Values | Meaning |
 |---|---|---|

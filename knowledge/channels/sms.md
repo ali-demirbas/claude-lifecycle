@@ -2,7 +2,7 @@
 name: sms
 consent_required: strictest of all channels — TCPA prior express written consent (US), İYS-registered opt-in (TR), GDPR opt-in (EU); never soft opt-in
 frequency_cap: 2 marketing SMS / user / week (default; user-adjustable — see compliance file)
-quiet_hours: "20:00–10:00 user local time + no Sundays (per compliance baseline; İYS practice)"
+quiet_hours: "20:00–10:00 user local time + no Sundays (this repo's default practice per the compliance baseline, not a statutory window)"
 limits:
   body: {max: 160, unit: chars, note: "GSM-7 single segment; drops to 70 if any UCS-2 char — see encoding rules"}
   body_unicode: {max: 70, unit: chars, note: "single segment when Turkish chars force UCS-2"}
@@ -19,18 +19,18 @@ The most expensive and most intrusive channel: it interrupts, it costs per segme
 1. Single segment by default: **160 chars GSM-7** or **70 chars UCS-2** — counted against the correct encoding, not estimated. Multi-segment SMS requires explicit user approval per journey step (concatenated segments count 153 GSM-7 / 67 UCS-2 each).
 2. **Turkish encoding trap, called out explicitly:** the GSM-7 default alphabet contains `ö`, `ü`, `Ö`, `Ü` and capital `Ç`, but **not lowercase `ç`**, and not `ş`, `ğ`, `ı`, `İ` (or `Ş`, `Ğ`); national shift tables exist but carrier support is unreliable. Real Turkish copy almost always contains at least one character outside the default alphabet — so **any TR-language SMS must be counted at the 70-char UCS-2 limit** unless every character is verified against the default alphabet ("Sepetin seni bekliyor" is safe; "yaşadığınız şehir" and "seçtiğin" are not). The GSM-7 extension characters `{ } [ ] ~ \ | ^ €` stay in GSM-7 but take **two septets each**, so they count double against 160/153.
 3. The opt-out instruction ("Çıkış: IPTAL yaz" / "Reply STOP to opt out") is part of the message and **counts inside the character limit**. Budget it before writing the body.
-4. Sender ID must be the registered alphanumeric brand sender (TR: İYS-registered başlık). Never a raw long number for marketing; never a sender the user won't recognize instantly.
+4. Sender ID must be the registered alphanumeric brand sender (TR: the başlık registered through the SMS operator; that registration is separate from İYS, which records consent, and neither replaces the other). Never a raw long number for marketing; never a sender the user won't recognize instantly.
 5. Consent is the strictest tier: TCPA prior express *written* consent (US), İYS-registered opt-in (TR), GDPR opt-in (EU). Transactional exemption applies only to genuinely transactional content — one promotional word converts the message to marketing and voids the exemption.
 6. Exactly one link, if any — **shortened on a branded domain** (e.g. `brnd.co/x1`), never a generic shortener (`bit.ly` links get carrier-filtered and erode trust).
 7. **No emoji.** Beyond tone, a single emoji forces UCS-2 and halves the character budget.
-8. Quiet hours 20:00–10:00 user local + no Sundays are mandatory (compliance baseline). Journeys must schedule around them, not queue into a 10:00 burst.
+8. Quiet hours 20:00–10:00 user local + no Sundays are mandatory in this repo (the compliance baseline's default practice, stricter than any statutory window). Journeys must schedule around them, not queue into a 10:00 burst.
 9. No personalization variable without a fallback; a broken `{{first_name}}` in 70 chars is a third of the message wasted. Count the **rendered** length (the longest realistic value of each variable, and its characters' encoding — a name with `ş` switches the whole message to UCS-2) plus the opt-out text, never the template placeholder length.
 
 ## Message anatomy (single segment)
 
 `[Sender context if not obvious] + [one fact] + [one action/link] + [opt-out]`
 
-Example (GSM-7, 92 chars): `Acme: Sepetindeki urun icin stok az kaldi. Tamamla: brnd.co/x1 Cikis: IPTAL yaz`
+Example (GSM-7, 79 chars): `Acme: Sepetindeki urun icin stok az kaldi. Tamamla: brnd.co/x1 Cikis: IPTAL yaz`
 Note the deliberate ASCII spelling — an accepted TR-SMS practice to stay in GSM-7; if the brand requires proper diacritics, count at 70. **Folding diacritics is a cost decision, not a default: it requires explicit user approval per brand, applies to SMS only, and is never carried into email/push/in-app copy. The approval must be RECORDED — brand config `sms_ascii_fold: approved` or the user's explicit yes in this run; absent that record, count at UCS-2/70 and ask, never assume.**
 
 ## When SMS is justified (cost + intrusiveness test)

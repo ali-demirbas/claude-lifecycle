@@ -6,11 +6,11 @@ The DQS (0–100) is the single number that governs how sophisticated generated 
 
 | Component | Max | Scoring rubric |
 |---|---|---:|
-| **Event diversity** | 25 | Distinct *behaviorally meaningful* events (noise excluded: page_view, scroll, session_start counts as recency only). 0–2 events: 0–5 · 3–5: 6–12 · 6–10: 13–19 · 11+ across ≥ 4 stages: 20–25 |
+| **Event diversity** | 25 | Distinct *behaviorally meaningful* events (noise excluded: page_view, scroll, session_start counts as recency only). 0–2 events: 0–5 · 3–5: 6–12 · 6–10: 13–19 · 11+ across ≤ 3 stages: 13–19 · 11+ across ≥ 4 stages: 20–25 |
 | **Conversion events** | 25 | No true revenue event: 0 · 1 revenue event, missing params: 8–12 · 1 revenue event with `value`/`currency`/`items`: 13–18 · multiple conversion types (e.g. purchase + subscription) with params: 19–25 |
 | **Funnel completeness** | 20 | Measured against the industry playbook's canonical funnel. Score = (tracked consecutive steps / total steps) × 20, rounded. Gaps in the middle hurt more than missing edges — a broken chain caps this at 12. When the playbook defines several funnels (e.g. acquisition, activation, a service funnel, renewal), score each against its own cohort and report the average with each funnel's steps shown; a service funnel is scored only on the people who entered it, never as a step the whole base must pass |
 | **User attributes / segments** | 15 | Anonymous only: 0 · identifiable users (user_id): 5–7 · + attributes usable for segmentation (plan, category affinity, consent state): 8–12 · + RFM-computable history: 13–15. **T2-aggregate inputs (pre-aggregated reports, no row-level data) cap at 0 here regardless of how rich the aggregate tables are** — this input has no per-user identity to score (which says nothing yet about whether the company's CRM can address its customers — see hard rule 3). |
-| **Volume sufficiency** | 15 | Monthly conversions: 0 (no data/T3) · < 100: 3–5 · 100–1k: 6–10 · ≥ 1k: 11–15. Volume gates *branch statistics* (comparing arms or variants), not journey existence and not operational branches |
+| **Volume sufficiency** | 15 | Monthly conversions: 0 (no data/T3, or zero conversions) · 1–99 (under 100): 3–5 · 100–1k: 6–10 · ≥ 1k: 11–15. Volume gates *branch statistics* (comparing arms or variants), not journey existence and not operational branches |
 
 ## Depth classes (what the score buys)
 

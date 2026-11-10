@@ -1,0 +1,13 @@
+{
+  "name": "claude-lifecycle",
+  "owner": {
+    "name": "Ali Demirbaş"
+  },
+  "plugins": [
+    {
+      "name": "claude-lifecycle",
+      "source": "./",
+      "description": "Data-adaptive lifecycle marketing engine for Claude Code. Connects GA4 or other data sources (or just an industry), scores data quality, and generates a prioritized portfolio of customer journeys with channel-ready CRM copy."
+    }
+  ]
+}

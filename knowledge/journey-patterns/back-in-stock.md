@@ -10,6 +10,7 @@ default_channels: [push, email]
 base_steps: 2
 depth_range: [1, 3]
 applicable_industries: [ecommerce, marketplace]
+requires_feed: true          # needs a live feed (stock, price, purchase cycle or alerts); blocked at T3
 mutually_exclusive_with: [price-drop]
 journey_class: marketing
 signal_sources:

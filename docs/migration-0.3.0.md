@@ -29,9 +29,9 @@
 
    Add `journey_class` (marketing, service or transactional).
 6. **Inventory.** Add `events_available` from the stage map, and `schema_version: "2.0"`.
-7. Validate, then render the doc's §5 and §8: `python3 scripts/validate_output.py journey new.json && python3 scripts/journey_render.py new.json`.
+7. Validate, then render the doc's §5 and §8: `python3 "$PLUGIN/scripts/validate_output.py" journey new.json && python3 "$PLUGIN/scripts/journey_render.py" new.json` (`$PLUGIN` is the plugin folder: your clone, or the installed plugin's path).
 
-`examples/ecommerce-full-ga4/05-journey-cart-recovery.json` is a complete before/after: its 0.2.0 version listed steps 5 and 6 as sequential although they were alternatives, and branched step 3 on "step 1 not opened".
+`examples/ecommerce-full-ga4/05-journey-cart-recovery.json` is the after side of a before/after (its 0.2.0 form is in git history at `v0.2.0`): its 0.2.0 version listed steps 5 and 6 as sequential although they were alternatives, and branched step 3 on "step 1 not opened".
 
 ## Portfolio registry
 

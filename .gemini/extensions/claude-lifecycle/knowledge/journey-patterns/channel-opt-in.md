@@ -3,7 +3,7 @@ name: channel-opt-in
 stage: engagement
 trigger_type: segment
 required_events: [consent_updated]
-optional_events: [add_to_wishlist, purchase, session_start, notification_open, consent_ask_dismissed, consent_withdrawn]
+optional_events: [add_to_wishlist, purchase, notification_open, consent_ask_dismissed, consent_withdrawn]
 required_attributes: [channel_consent_status]
 optional_attributes: [push_permission_status, consent_ask_history, engagement_score]
 default_channels: [in_app, email]
@@ -12,7 +12,7 @@ depth_range: [1, 3]
 applicable_industries: [ecommerce, saas, mobile-app, fintech, marketplace, subscription-media, travel, edtech, insurance]
 mutually_exclusive_with: []
 journey_class: marketing
-signal_sources: {consent_updated: authoritative, channel_consent_status: authoritative, consent_withdrawn: authoritative, push_permission_status: authoritative, consent_ask_history: authoritative, consent_ask_dismissed: behavioral, add_to_wishlist: behavioral, purchase: authoritative, session_start: behavioral, notification_open: engagement, engagement_score: inferred}
+signal_sources: {consent_updated: authoritative, channel_consent_status: authoritative, consent_withdrawn: authoritative, push_permission_status: authoritative, consent_ask_history: authoritative, consent_ask_dismissed: behavioral, add_to_wishlist: behavioral, purchase: authoritative, notification_open: engagement, engagement_score: inferred}
 insufficient_alone:
   - an open asking channel
   - a tapped yes with no record in the consent system
@@ -26,7 +26,7 @@ instance_key: target_channel
 
 # Channel Opt-In
 
-Win consent on a channel the user doesn't have yet, by asking through one they already do. Every other pattern in this engine assumes the channel is open; this is the pattern that opens it. The asymmetry that makes it work: **in-app is the only zero-consent channel** (see [in-app.md](../channels/in-app.md)): anyone with a live session is askable, so in-app is the default asking surface, falling back to whichever consented channel exists (in-app > push > email > SMS by cost and intrusiveness). The ask itself is a marketing message and must respect the asking channel's own consent, caps, and quiet hours: you cannot ask for SMS consent via SMS.
+Win consent on a channel the user doesn't have yet, by asking through one they already do. Every other pattern in this engine assumes the channel is open; this is the pattern that opens it. The asymmetry that makes it work: **in-app is the only zero-consent channel** (see [in-app.md](../channels/in-app.md)): anyone with a live session is askable, so in-app is the default asking surface, falling back to whichever consented channel exists (in-app > push > email by cost and intrusiveness; SMS is never an asking surface). The ask itself is a marketing message and must respect the asking channel's own consent, caps, and quiet hours: you cannot ask for SMS consent via SMS.
 
 The core rule: **the ask is value-first and moment-tied, never a bare "enable notifications."** Ask for push right after `add_to_wishlist` ("we'll tell you the moment it's back"), for SMS right after `purchase` ("instant shipping updates"), for email at a moment its content has obvious value. The stated value must match what will actually be sent: winning SMS consent with "shipping updates" and then sending promo blasts is consent bait-and-switch and a compliance liability, not a growth win.
 
@@ -106,7 +106,7 @@ The payoff is downstream: every grant unlocks blocked journeys and depth upgrade
 ## Timing and channel fit
 
 - In-app asks happen inside the session at the value moment; they have no clock beyond that.
-- An email restatement goes in daytime on the user's clock; push and SMS asks (asking for email via push, for example) respect their quiet hours per [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md).
+- Asking surfaces are in_app and email, plus push only where push is already consented (asking for email via push, for example). SMS never carries an ask: it is costly, consent-regulated, and the wrong place to request another channel's consent. An email restatement goes in daytime on the user's clock; a push ask respects push quiet hours per [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md).
 - The asking channel needs its own marketing consent; a channel open only for service messages (order updates) does not carry the ask. No marketing-consented channel and no session → no ask.
 
 ## Frequency and overlap

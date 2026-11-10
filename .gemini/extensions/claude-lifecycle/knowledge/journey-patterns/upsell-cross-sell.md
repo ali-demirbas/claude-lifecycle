@@ -3,7 +3,7 @@ name: upsell-cross-sell
 stage: revenue
 trigger_type: segment
 required_events: [purchase, session_start]
-optional_events: [subscription_start, plan_upgraded, order_delivered, feature_used, view_item, add_to_wishlist, trial_end, login, refund, support_ticket_opened, payment_failed, consent_withdrawn]
+optional_events: [subscription_start, plan_upgraded, order_delivered, feature_used, view_item, add_to_wishlist, refund, support_ticket_opened, payment_failed, consent_withdrawn]
 required_attributes: []
 optional_attributes: [plan_type, ltv_tier, category_history, engagement_score, seat_utilization, usage_vs_limit, limit_reset_date, renewal_date, time_to_first_use]
 default_channels: [email, in_app]
@@ -53,7 +53,7 @@ Three honesty rules sit next to the health gate. **Wait for use**: a complement 
 ## Entry / exit
 
 - **Entry:** active revenue relationship, engagement health at or above the user's own baseline, and a **concrete expansion candidate**, read as any_of(`usage_vs_limit` near the plan limit (authoritative, metering system), `seat_utilization` high (authoritative), a complement to something already bought after `order_delivered` (authoritative) plus its use period). Unmeasurable is no candidate. For complements, the first product's `order_delivered` plus its use period (`time_to_first_use` per category, default 7 days, configurable) must have elapsed. No candidate → no entry; generic "upgrade!" sends are excluded by design.
-- **Exclude:** declining usage (churn-prevention owns), open support ticket or refund on the first product, `payment_failed` unresolved, upsell message received in the last 30 days, negative-signal suppression per [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md) rule 4.
+- **Exclude:** declining usage (churn-prevention owns), open support ticket or refund on the first product, `payment_failed` unresolved, any expansion message from **other** journeys in the last 30 days (a post-purchase cross-sell, a campaign upsell; this journey's own repeat is governed by the 90-day re-entry below, a distinct clock), an open [post-purchase](post-purchase.md) instance for the anchor order when the candidate is an order complement (post-purchase s3 owns order-complement cross-sell; this journey picks the complement up only after that instance has ended), negative-signal suppression per [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md) rule 4.
 - **Success exit:** expansion `purchase` / `plan_upgraded` · **Window:** 21 days.
 - **Instance key:** `candidate_id`, the expansion candidate (the plan being outgrown, or the anchor order a complement is paired with).
 - **Checked before each send:** the success events for this candidate (`same_instance`; buying an unrelated item does not end a plan-upgrade instance), `refund` of the anchor order (`same_instance`), `support_ticket_opened` and `payment_failed` on the account (journey scope: any open ticket or failed payment stops every upsell instance), `consent_withdrawn` (channel-scoped: an email opt-out stops s2 and s3; the in-app step still renders unless in-product messages were turned off). A refund, ticket or payment failure ends the instance: the account is no longer healthy enough to sell to.
@@ -106,7 +106,7 @@ Incentive choice follows the CLV-tied rule: above the account's CLV threshold pr
 
 - **Worst path:** 3 sends in 10 days, 2 of them marketing email in a rolling 7 days.
 - **Overlaps:** post-purchase (same trigger family), [churn-prevention](churn-prevention.md) and save offers, [trial-conversion](trial-conversion.md), [loyalty](loyalty.md).
-- **Precedence:** never in parallel with a save offer: a user simultaneously told "pay more" and "please don't leave, here's a discount" loses trust in both messages, so churn-prevention wins and upsell is cancelled. Post-purchase service messages (delivery, setup help) go first; the complement waits for them.
+- **Precedence:** never in parallel with a save offer: a user simultaneously told "pay more" and "please don't leave, here's a discount" loses trust in both messages, so churn-prevention wins and upsell is cancelled. Post-purchase service messages (delivery, setup help) go first; the complement waits for them. **Owner of order-complement cross-sell:** [post-purchase](post-purchase.md) s3, for the order it is about; this journey excludes a complement candidate while that order's post-purchase instance is open, so one order never gets two complement cross-sells.
 
 ## Measurement
 

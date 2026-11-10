@@ -6,7 +6,7 @@ required_events: []
 optional_events: [purchase, login, session_start, coupon_redeemed, consent_withdrawn]
 required_attributes: [anniversary_date]
 optional_attributes: [first_purchase_date, birthdate, tenure_years, perk_expiry_date]
-default_channels: [email, push]
+default_channels: [email, push, in_app]
 base_steps: 1
 depth_range: [1, 2]
 applicable_industries: [ecommerce, saas, mobile-app, fintech, marketplace, subscription-media, travel, edtech]

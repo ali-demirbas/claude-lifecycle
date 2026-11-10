@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-This project is pre-1.0 (`v0.1.0`). Only the latest commit on `main` is supported; there are no maintained release branches yet.
+This project is pre-1.0 (see `.claude-plugin/plugin.json` for the current version). Only the latest commit on `main` is supported; there are no maintained release branches yet.
 
 ## Reporting a vulnerability
 
@@ -12,7 +12,10 @@ Include what you'd include in any report: the affected file(s), how to reproduce
 
 ## Scope
 
-This repo has no server, no hosted service, and collects no user data. The realistic attack surface is:
+This repo has no server, no hosted service, and sends no data anywhere. It reads the files you give it and writes its outputs (including brand configs under `output/brands/`) to your working folder. The realistic attack surface is:
+
+- the HTML canvases built from journey data (`scripts/build_canvas.py`, `scripts/copy_canvas.py`): journey and copy text is escaped before it reaches the page
+- `scripts/finalize_run.py`, which archives and writes files under the run folder
 
 - `scripts/validate_input.py` and `scripts/validate_output.py`, including the prompt-injection detection applied to connected-source data (GA4/CSV input)
 - Any skill or agent instruction that could be manipulated via crafted input data to exfiltrate data or act outside its intended scope

@@ -3,9 +3,9 @@ name: lifecycle-audit
 argument-hint: "[journey-doc-or-description]"
 description: Audit an existing journey portfolio — user-described, imported from a CRM tool, or previously generated. Scores coverage, conflicts, depth-vs-data fit, and copy compliance. Use when the user says "journey'lerimi denetle", "audit my flows", "mevcut otomasyonları incele", "portfolio audit".
 metadata:
-  version: 0.2.0
+  version: 0.3.0
   category: analysis
-  updated: 2026-10-09
+  updated: 2026-11-10
 ---
 
 # Lifecycle Audit — Portfolio Review
@@ -27,7 +27,7 @@ Journeys as: prior engine output, user description ("we have a welcome email and
 | # | Dimension | What is checked |
 |---|---|---|
 | 1 | Stage coverage | Each lifecycle stage with events has ≥ 1 journey; blind spots named (uses playbook `pattern_priorities` as the expectation) |
-| 2 | Priority fit | Are the sector's P0 patterns running? A missing P0 (e.g. no abandoned-cart in e-commerce) is automatically a Critical finding |
+| 2 | Priority fit | Are the sector's P0 patterns running? A missing P0 (e.g. no abandoned-cart in e-commerce) is a Critical finding when its events exist; when it can't run because events are missing, it is a High tracking gap |
 | 3 | Depth-vs-data fit | Journey complexity matches what the data supports: 10-step branched flows on thin data = over-engineered; 2-step flows on rich data = under-leveraged |
 | 4 | Trigger & exit hygiene | Event triggers vs blast schedules; success exits defined; re-entry policies exist |
 | 5 | Frequency & conflict | Aggregate worst-case messages/user/week vs caps in `knowledge/compliance/consent-and-quiet-hours.md`; overlapping triggers |

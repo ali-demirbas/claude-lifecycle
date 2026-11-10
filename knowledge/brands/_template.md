@@ -14,7 +14,7 @@ tone: <2–3 adjectives>
 formality: <sen | siz | per-language override in notes>
 channels_live: [email, push]       # only channels with real consented audiences
 incentive_policy:
-  max_discount_pct: 10
+  max_discount_pct: null           # null = not stated, so incentives stay out of the journeys until it is; 0 = no incentives
   clv_threshold: null              # above this LTV → value-add instead of discount; null = unknown, ask
   value_adds: []                   # e.g. [priority support, early access]
 extra_banned_words: []             # brand-specific additions to lexicon/channel bans
@@ -22,6 +22,8 @@ brand_vocabulary: []               # words/phrases the brand insists on (product
 existing_automations: []           # what already runs: [{name, audience_groups, channels, msgs: {email: 2} per 7 days or null if unknown}] — feeds coverage-overlap checks and the portfolio's external_journeys, so frequency counts them
 existing_automations_status: unknown  # declared | none_reported | unknown — unknown means frequency is verified only inside the generated portfolio
 withdrawn_channels: []             # channels users closed/opted out of; never reopened by a journey, only by an authoritative re-consent
+frequency_caps: {}                 # tighten-only overrides of the engine caps in knowledge/compliance/consent-and-quiet-hours.md, e.g. {email: 3, push: 4, sms: 1, all: 6} marketing sends per rolling 7 days; a value above the engine default is ignored, never applied; {} = engine defaults
+quiet_hours: {}                    # tighten-only overrides per channel in user local time, e.g. {push: "21:00-09:00", sms: "19:00-10:00"}; may only widen the engine window, never shorten it; {} = engine defaults
 recommendation_thresholds:         # upsell-cross-sell data sufficiency; no universal default — until set, computed pairings are treated as unvalidated and the curated/bestseller fallback is used
   observation_period: null         # ISO duration, e.g. P365D
   min_sample_orders: null          # orders containing the anchor item in the period

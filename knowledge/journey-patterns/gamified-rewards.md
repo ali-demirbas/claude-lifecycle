@@ -18,9 +18,9 @@ insufficient_alone:
   - an expiry date typed into a template rather than read from the reward record
   - a click on the play link
 exit_before_each_send: [coupon_redeemed, purchase, consent_withdrawn]
-reentry: {policy: once, on_duplicate_trigger: ignore}
+reentry: {policy: each_trigger, on_duplicate_trigger: ignore}
 measurement_default: holdout
-instance_key: reward_id
+instance_key: campaign_id
 ---
 
 # Gamified Rewards
@@ -61,9 +61,9 @@ A chance-based reward moment (spin-to-win, scratch card, pick-a-gift, mystery di
   - *Claim nudge* (branched): `game_played` that produced a winnable prize with no `reward_claimed` within 24h.
 - **Exclude:** minors and unverified-age users in gated markets, detractors and negative-signal-suppressed users ([consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md) rule 4), users in dunning (a prize wheel next to a failed payment reads as mockery), sectors whose lexicon sets `regulated: true`.
 - **Success exit:** `purchase`/`coupon_redeemed` containing the won reward · **Window:** the reward's real validity period from its record (default 14 days for measurement when the record has none).
-- **Instance key:** `reward_id` on the reward path (the claim-nudge path uses the play's prize record). Redeeming another reward or another campaign's code does not stop this instance.
-- **Checked before each send:** for this reward (`same_instance`): `coupon_redeemed`, `purchase` containing the reward; `consent_withdrawn` is channel-scoped (a push opt-out stops push steps, an email opt-out stops email steps). The won-reward message itself still goes out after a consent withdrawal only if the reward system treats it as the transactional delivery of the prize, with no promotional content.
-- **Re-entry:** once per user per campaign, campaigns bounded (a few per year as a default posture, set in brand config), never a daily-spin cadence in CRM sends. A daily reward loop is a product-gamification decision with its own ethics review, not a lifecycle journey. A repeated trigger (second play, replayed claim event for the same reward) is ignored.
+- **Instance key:** `campaign_id`: one instance per user per campaign, so each new campaign opens a new instance (`each_trigger`) and a second trigger inside the same campaign is ignored. Inside the instance, the reward path tracks the won `reward_id` (the claim-nudge path uses the play's prize record). Redeeming another reward or another campaign's code does not stop this instance.
+- **Checked before each send:** for this campaign's won reward (`same_instance`): `coupon_redeemed`, `purchase` containing the reward; `consent_withdrawn` is channel-scoped (a push opt-out stops push steps, an email opt-out stops email steps). The won-reward message itself still goes out after a consent withdrawal only if the reward system treats it as the transactional delivery of the prize, with no promotional content.
+- **Re-entry:** once per user per campaign (`each_trigger` keyed on `campaign_id`), campaigns bounded (a few per year as a default posture, set in brand config), never a daily-spin cadence in CRM sends. A daily reward loop is a product-gamification decision with its own ethics review, not a lifecycle journey. A repeated trigger (second play, replayed claim event for the same reward) is ignored.
 - **Handoffs:** a won reward that is a loyalty credit is confirmed by [loyalty](loyalty.md)'s reward confirmation, not twice; this pattern's won-reward send is then skipped.
 
 ## Depth scaling

@@ -236,11 +236,17 @@ def build_files():
     return ext_dir, files, copy_dirs, copy_files
 
 
+ICLOUD_COPY = re.compile(r".+ \d+(\.[^.]+)?$")  # "name 2.md", "lexicons 3": sync-conflict copies, never sources
+
+
 def dirs_in_sync(src, dst):
     if not os.path.isdir(dst):
         return False
     cmp = filecmp.dircmp(src, dst, ignore=["__pycache__"])
-    if cmp.left_only or cmp.right_only or cmp.diff_files or cmp.funny_files:
+    left = [f for f in cmp.left_only if not ICLOUD_COPY.match(f)]
+    right = [f for f in cmp.right_only if not ICLOUD_COPY.match(f)]
+    diff = [f for f in cmp.diff_files if not ICLOUD_COPY.match(f)]
+    if left or right or diff or cmp.funny_files:
         return False
     return all(dirs_in_sync(os.path.join(src, d), os.path.join(dst, d)) for d in cmp.common_dirs)
 
@@ -286,7 +292,7 @@ def main(argv):
         dst = os.path.join(ext_dir, relpath)
         if os.path.isdir(dst):
             shutil.rmtree(dst)
-        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "* [0-9]", "* [0-9].*"))
     for relpath, src in copy_files.items():
         dst = os.path.join(ext_dir, relpath)
         os.makedirs(os.path.dirname(dst), exist_ok=True)

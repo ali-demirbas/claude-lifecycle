@@ -3,7 +3,7 @@ name: feedback-nps
 stage: retention
 trigger_type: event
 required_events: [survey_response]
-optional_events: [purchase, feature_used, trial_end, login, share, invite_sent, support_ticket_opened, follow_up_completed, resolution_confirmed, consent_withdrawn]
+optional_events: [purchase, feature_used, trial_end, share, invite_sent, support_ticket_opened, follow_up_completed, resolution_confirmed, consent_withdrawn]
 required_attributes: [survey_score]
 optional_attributes: [survey_comment, experience_type, follow_up_sla]
 default_channels: [email, in_app]
@@ -12,7 +12,7 @@ depth_range: [2, 3]
 applicable_industries: [ecommerce, saas, mobile-app, fintech, marketplace, subscription-media, travel, edtech, insurance]
 mutually_exclusive_with: []
 journey_class: service
-signal_sources: {survey_response: authoritative, survey_score: authoritative, purchase: authoritative, trial_end: authoritative, feature_used: behavioral, login: behavioral, share: behavioral, invite_sent: authoritative, support_ticket_opened: authoritative, follow_up_completed: authoritative, resolution_confirmed: authoritative, consent_withdrawn: authoritative}
+signal_sources: {survey_response: authoritative, survey_score: authoritative, purchase: authoritative, trial_end: authoritative, feature_used: behavioral, share: behavioral, invite_sent: authoritative, support_ticket_opened: authoritative, follow_up_completed: authoritative, resolution_confirmed: authoritative, consent_withdrawn: authoritative}
 insufficient_alone:
   - no response to the survey
   - a support ticket marked closed

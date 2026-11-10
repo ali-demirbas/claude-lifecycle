@@ -64,7 +64,7 @@ High purchase frequency, short decision cycles (minutes to days), and a funnel t
 - Cart abandonment first touch: 1–4 hours (not minutes).
 - Browse abandonment first touch: same day, 4–24 hours.
 - Post-purchase: order/shipping messages are transactional; first marketing touch after delivery, not before.
-- Winback threshold: 1.5–2× the median inter-purchase gap (compute from data on T1; ask on T3). **T2 where the gap is uncomputable** (aggregate data, no per-user order history): fall back to the `churn_signal` default and mark it as an assumption in the journey doc — never present the fallback as a computed value.
+- Winback threshold: the one defined in [winback](../journey-patterns/winback.md) Entry (default 2× the median inter-purchase gap, floor 45 days; compute from data on T1; ask on T3). This file does not set a second number. **T2 where the gap is uncomputable** (aggregate data, no per-user order history): fall back to the `churn_signal` default and mark it as an assumption in the journey doc — never present the fallback as a computed value.
 
 ## Seasonality
 

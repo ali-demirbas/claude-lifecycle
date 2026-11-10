@@ -17,12 +17,12 @@ Word choice for e-commerce CRM copy. The customer relationship is transactional 
 
 | Use | Avoid | Why |
 |---|---|---|
-| "sepetin", "ayırdıkların" / "your cart", "your picks" | "işleminiz", "siparişiniz tamamlanmadı" / "your transaction" | Possessive + casual beats bureaucratic |
+| "sepetin", "ayırdıkların" / "your cart", "your picks" | "işleminiz", "Siparişiniz tamamlanmadı" / "your transaction" | Possessive + casual beats bureaucratic |
 | exact product names via `{{product_name}}` | "ürünler", "seçtikleriniz" (vague) | Specificity drives recall |
 | "kargo bedava" / "free shipping" (if true) | "kaçırma!!", "SON ŞANS" in caps | Real value > manufactured panic |
-| "stokta azaldı: {{stock_count}} adet" (if real data) | "tükenmek üzere" without data | Fake scarcity destroys trust and deliverability |
-| "iade kolay: 30 gün" | "risk yok", "%100 memnuniyet garantisi" | Concrete policy > absolute claims |
-| "sana özel" only with a real personalized item | "size özel fırsatlar dünyası" | Empty personalization reads as spam |
+| "Stokta azaldı: {{stock_count}} adet" (if real data) | "Tükenmek üzere" without data | Fake scarcity destroys trust and deliverability |
+| "İade kolay: 30 gün" | "Risk yok", "%100 memnuniyet garantisi" | Concrete policy > absolute claims |
+| "Sana özel" only with a real personalized item | "Size özel fırsatlar dünyası" | Empty personalization reads as spam |
 
 ## Urgency rules
 
@@ -32,15 +32,15 @@ Urgency is allowed **only when literally true**: real stock counts, real sale en
 
 | Journey type | Tone shift |
 |---|---|
-| Abandoned cart / browse | Helpful reminder; zero guilt ("hâlâ ilgileniyorsan" not "neden bıraktın?") |
+| Abandoned cart / browse | Helpful reminder; zero guilt ("Hâlâ ilgileniyorsan" not "Neden bıraktın?") |
 | Post-purchase | Gratitude + utility (care tips, tracking) before any cross-sell |
-| Winback | Honest and light ("bir süredir görüşemedik"); never passive-aggressive |
+| Winback | Honest and light ("Bir süredir görüşemedik"); never passive-aggressive |
 | Price drop / back in stock | Pure information, minimal decoration — the fact IS the message |
 
 ## TR / EN notes
 
 - TR: "sen" throughout for D2C fashion/beauty/lifestyle; switch to "siz" only for luxury or 45+ audiences (ask via intake).
-- TR: avoid direct translations like "kaçırmayın fırsatı" word orders; write native TR, not translated EN.
+- TR: avoid direct translations like "Kaçırmayın fırsatı" word orders; write native TR, not translated EN.
 - EN: contractions on ("you're", "it's"); sentence-case subjects, never Title Case.
 - Currency/date formats follow the audience locale, not the brand HQ.
 

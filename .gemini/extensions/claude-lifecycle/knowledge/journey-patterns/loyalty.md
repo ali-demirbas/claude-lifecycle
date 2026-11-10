@@ -80,9 +80,10 @@ Each instance runs one path, chosen by the moment that started it. The nurture p
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
-| r1 | reward_issued +0h | email (push mirror where consented) | Reward confirmation, transactional: what was credited, its value, how to use it, and its expiry only if the ledger holds one. One per `reward_id`; zero promotional content | → exit (completed) |
+| r1 | reward_issued +0h | email | Reward confirmation, `purpose: transactional`: what was credited, its value, how to use it, and its expiry only if the ledger holds one. One per `reward_id`; zero promotional content | → r2 |
+| r2 | r1 +0h, deferred to 09:00 user_local if inside push quiet hours | push | Short heads-up of the same confirmation, `purpose: transactional`, deeplinked to the reward. Sent only where push permission exists; otherwise skipped. Its own node and anchor, counted as its own send | → exit (completed) |
 | t1 | tier_changed +1h | email | Upgrade: name only the benefits that are new at this tier (the new tier's benefit set minus the previous tier's), when they start, and how long the tier holds if the ledger says | → exit (completed) |
-| t2 | tier_changed +1h | email | Downgrade, sent as a service notice: what changed, the rule that caused it, the effective date, what the member keeps, and the concrete way back. No upsell, no blame | → exit (completed) |
+| t2 | tier_changed +1h | email | Downgrade, sent as a service notice (`purpose: service`): what changed, the rule that caused it, the effective date, what the member keeps, and the concrete way back. No upsell, no blame | → exit (completed) |
 | w1 | loyalty_enrolled +1h | email | Enrolment welcome: how points are earned here, the current balance, and the first reward actually within reach from the live catalogue | → exit (completed) |
 | n1 | entry +1h | email | Nurture starts on a ledger milestone: balance update and what it concretely unlocks ("your 1.200 points = free shipping ×3"). If the ledger holds an expiry within the next 30 days, n1 states that date | → n2 |
 | n2 | n1 +3d | push | Nearest attainable reward, deeplinked | → d1 |
@@ -103,10 +104,10 @@ The success exit (redemption or qualifying purchase) is re-checked before n2, n3
 
 ## Timing and channel fit
 
-- Reward confirmations go immediately; they are service messages and are not held for a marketing send window, but push respects 22:00–09:00 quiet hours (email carries it overnight, push follows in the morning).
+- Reward confirmations go immediately; they are service messages and are not held for a marketing send window. r1 (email) goes at once; r2 (push) respects 22:00–09:00 quiet hours and follows in the morning when the reward lands overnight.
 - Tier and welcome sends allow an hour of settling time so a reversed transaction can cancel them first.
 - Nurture runs on the user's clock: push outside quiet hours, per [consent-and-quiet-hours.md](../compliance/consent-and-quiet-hours.md); calendar sends at 10:00 user_local, falling back to the market timezone.
-- Email carries anything with numbers, terms or dates; push carries one short nudge with a deeplink. No push consent → n2 moves to email at the same anchor; no marketing consent on any channel → only r1 and t2 run.
+- Email carries anything with numbers, terms or dates; push carries one short nudge with a deeplink. No push consent → n2 moves to email at the same anchor; no marketing consent on any channel → only r1, r2 and t2 run.
 
 ## Frequency and overlap
 
@@ -119,6 +120,7 @@ The success exit (redemption or qualifying purchase) is re-checked before n2, n3
 - **Primary outcome:** redemption (`spend_virtual_currency`) within 30 days of entry; repeat purchase rate as the behavioral test.
 - **Design:** member-level holdout (default 10%), assigned once and kept. The control does not receive the enrolment welcome or the nurture sends (n1–n4).
 - **Routine communications both groups keep:** reward confirmations, tier-change notices (both directions), and any expiry notice the program terms require. Withholding what the member is owed is not a test condition.
+- **Per-node purpose:** the journey class is `marketing`, but r1 and r2 carry `purpose: transactional` and t2 carries `purpose: service` in the generated journey. Holdout and marketing frequency caps apply to marketing-purpose sends only, so these nodes reach the control group and never count against the caps.
 - **Contamination risks:** points shown in order receipts and account pages reach both groups; a program-wide promotion (double points week) lifts both groups and must not be credited to the journey.
 - **Low volume:** redemption lags; a small program can usually show whether nurture moves redemption at all, not which nurture step did. When a power calculation for this baseline and the expected effect shows the control arm is too small, report "unmeasured", not "no effect".
 

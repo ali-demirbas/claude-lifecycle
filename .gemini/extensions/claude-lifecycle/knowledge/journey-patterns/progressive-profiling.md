@@ -49,7 +49,7 @@ Collect zero-party data, one lightweight question at a time, to close a **named 
 - **Entry:** user is at an engaged moment, the named attribute is missing **or past its TTL**, and no profiling question was asked within the cooldown.
 - **Ask because the task needs it:** the best moment is when the user's current task depends on the field (a delivery preference while ordering, a role while setting up a workspace). The question says why the field is needed and what changes once it is answered. Never request personal data unrelated to the named gap, and never ask to raise a profile-completion percentage.
 - **Exclude:** users in their first session, users in an active recovery or dunning journey, users under negative-signal suppression.
-- **Success exit:** `profile_attribute_written`. · **Window:** 7 days from entry.
+- **Success exit:** `profile_attribute_written`. · **Window:** 14 days from entry (s2 +7d), so an answer given after the s2 email still counts.
 - **Checked before every send:** `profile_attribute_written` and `profile_question_dismissed` for this instance's attribute (`instance_key: profile_gap`; answering a different question doesn't end this one), `consent_withdrawn` scoped to email (it stops the email fallback only; the in-app ask needs no marketing consent). The answer is read from the profile store that records it, never inferred from a click on the email.
 - **Re-entry:** next gap or next TTL expiry, after the cooldown (configurable, default 14 days between any two profiling asks). A repeated qualification while an instance is active is ignored.
 - **Hand-offs:** the written attribute is handed to the consuming journey named in `profile_gap`.
@@ -88,7 +88,7 @@ Rules: never gate product access behind answering; the answer must visibly chang
 
 ## Measurement
 
-- **Primary outcome:** answer rate (attributes written / asks) within 7 days. This pattern is measured on data, not revenue.
+- **Primary outcome:** answer rate (attributes written / asks) within the 14-day window. This pattern is measured on data, not revenue.
 - **Design:** `pre_post`. A holdout would only show that people who are not asked do not answer. The value shows up in the consuming journey: compare its branch accuracy or conversion before and after the gap was filled, using that journey's own holdout when it has one.
 - **Routine communications both groups keep:** not applicable without a holdout; account settings pages where users can edit their profile at any time stay available to everyone.
 - **Contamination:** the same field collected elsewhere (checkout, settings) during the period; record those writes separately by source.

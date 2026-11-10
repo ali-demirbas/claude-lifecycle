@@ -68,7 +68,7 @@ Depth stays short at every tier by design: a celebration that turns into a seque
 
 | Node | When | Channel | Intent | Route |
 |---|---|---|---|---|
-| s1 | entry +2h | email | Congratulate with the specific number ("your 10th order", "30-day streak"); specificity is the whole trick. Sent in daytime; this is not urgent | → d1 |
+| s1 | entry +2h, deferred to 10:00 user_local if inside quiet hours (00:00–06:00 for email, 22:00–09:00 when s1 falls back to push) | email | Congratulate with the specific number ("your 10th order", "30-day streak"); specificity is the whole trick. Sent in daytime; this is not urgent | → d1 |
 | d1 | s1 +7d | — | Decision on any_of(`login` (behavioral), `session_start` (behavioral)) between s1 +2d and s1 +7d | occurred → s2 · not_occurred → exit (completed) · unmeasurable → exit (completed) |
 | s2 | d1 +0h | in_app | Progress framing toward the next milestone: show the counter, or for task/badge systems suggest one specific next task. Shown at the user's next session, expires after 7d, then skipped | → exit (completed) |
 

@@ -3,9 +3,9 @@ name: lifecycle-qa
 argument-hint: "[journey-id]"
 description: Generate test event payloads for generated journeys — positive triggers, branch-condition cases, exits, and negative tests — so the CRM setup can be verified before launch. Use when the user says "test payload", "test eventi üret", "qa", "tetikleyiciyi test et", "sahte event".
 metadata:
-  version: 0.2.0
+  version: 0.3.0
   category: qa
-  updated: 2026-10-09
+  updated: 2026-11-10
 ---
 
 # Lifecycle QA — Trigger Payload Simulator

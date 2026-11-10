@@ -18,7 +18,8 @@ map says it is mapped with confidence (`mapping: "mapped"`) AND usable
   not_applicable       the pattern doesn't list this sector
 
 stage-map.json contract:
-  {"tier": "T1|T2|T2-aggregate|T3", "sector": "<slug>",
+  {"tier": "T1|T2|T2-aggregate|T3", "sector": "<slug>", "dqs": <0-100 or null for T3>,
+   "volume_capped": true|false (DQS hard rule: volume too low for branched depth),
    "events": [{"name", "stage", "mapping": "mapped|assumed|unmapped",
                "source": "authoritative|behavioral|inferred|engagement",
                "usable": true|false|null, "note"?}],
@@ -72,7 +73,12 @@ def assess(pattern, fm, smap, prio):
     if sector and applicable and sector not in applicable:
         return {"pattern": pattern, "status": "not_applicable", "reasons": [f"not used for sector '{sector}'"]}
     tier = smap.get("tier", "")
-    if tier == "T3" or not smap.get("events"):
+    if tier == "T3" and str(fm.get("requires_feed", "")).split("#")[0].strip() == "true":
+        return {"pattern": pattern, "status": "blocked",
+                "reasons": ["needs a live data feed (stock, price, purchase cycle or alerts); none at T3"]}
+    if tier != "T3" and not smap.get("events"):
+        return {"pattern": pattern, "status": "unknown", "reasons": [f"{tier or 'tier'} stage map lists no events"]}
+    if tier == "T3":
         if pattern in prio:
             return {"pattern": pattern, "status": "playbook-recommended", "priority": prio[pattern],
                     "reasons": ["T3: suggested by the sector playbook, not confirmed by data"]}

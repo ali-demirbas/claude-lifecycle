@@ -13,7 +13,7 @@ Check [ga4-recommended-events.md](ga4-recommended-events.md) including obvious a
 
 ## Rule 2 — Industry playbook lookup
 
-The active industry playbook (`knowledge/industries/<sector>.md`) lists sector-specific expected events. If the event name matches one (exact or alias), take the stage from the playbook's funnel table.
+The active industry playbook (`knowledge/industries/<sector>.md`) lists sector-specific expected events. If the event name matches one (exact or alias), derive the stage from where the playbook lists it; the funnel tables carry no Stage column, so the mapping is fixed: an event in the playbook's `conversion_events` → revenue; the event named in `activation_definition` → activation; any other funnel step before the first conversion event → its Rule 3 stage when the name hits a row there, otherwise revenue with `"intent": true`; a step after the conversion (renewal, claims, service funnels) → retention unless Rule 3 gives a more specific signal. Report a Rule 2 mapping as an assumption, like an alias.
 
 ## Rule 3 — Name-pattern heuristics
 
@@ -30,6 +30,8 @@ The active industry playbook (`knowledge/industries/<sector>.md`) lists sector-s
 | `invite`, `share`, `refer` | engagement (referral signal) | medium |
 | `cancel`, `churn`, `delete`, `delete_account`, `unsubscribe`, `remove` | winback-adjacent (negative) | high |
 | `fail`, `error`, `declined` | protect (payment-failure family) | medium |
+
+**Stage-map vocabulary.** `stage-map.json` uses the six stages only (acquisition, activation, engagement, revenue, retention, winback). The extra labels above are flags on top of a stage, not stages: `revenue-intent` → stage `revenue` + `"intent": true`; `winback-adjacent (negative)` → stage `retention` + `"negative": true` (a churn signal, never a send trigger on its own); `protect` → stage `revenue` + `"protect": true` (payment-failure family). **When a name hits several rows**, the more specific signal wins in this order: protect > negative > revenue > revenue-intent > activation > engagement (`checkout_failed` is protect, `app_store_subscription_cancel` is negative); if still ambiguous, Rule 5 applies (ask).
 
 Medium-confidence matches are applied but listed in the output under "assumed mappings — please confirm". A medium-confidence match on one of the generic engagement tokens (`view`, `click`, `open` especially) still goes through the noise-exclusion judgment `event-analyst` step 4 already applies (page_view/scroll/session-style noise) before it counts toward anything — a technically-matched pattern that is noise doesn't get to skip that filter just because Rule 3 assigned it a stage.
 

@@ -3,9 +3,9 @@ name: lifecycle-intake
 argument-hint: "[brand-name]"
 description: Structured questioning to fill information gaps before journey generation — goals, brand tone, channel inventory, existing automations, sector specifics. Usually triggered automatically by lifecycle-journeys or lifecycle-copy when data is insufficient; can be invoked directly with "intake", "bana soru sor", "eksik bilgileri al".
 metadata:
-  version: 0.2.0
+  version: 0.3.0
   category: intake
-  updated: 2026-10-09
+  updated: 2026-11-10
 ---
 
 # Lifecycle Intake — Structured Gap Filling
@@ -42,7 +42,7 @@ Ask a question only if its answer is (a) not derivable from connected data, and 
 ## Question format rules
 
 - Group by topic, number the questions, ≤ 8 questions per round.
-- Every question carries a stated default: "*(default: retention-first)*". Silence = default.
+- Every preference question carries a stated default: "*(default: retention-first)*". Silence = default. A **fact** question (consent, existing automations and their load, what a date means, the incentive cap) has no guessed default: its default is `unknown`, which becomes an open item and makes the affected journeys drafts.
 - Round 2 exists only for follow-ups created by round-1 answers. Never a round 3 — proceed with defaults and list assumptions.
 - **Contextual slot carryover:** before drafting questions, scan the conversation so far — if the user already stated an answer informally (even outside a formal intake round), treat it as answered and don't ask it again. The whitelist's "not derivable from connected data" test also covers "not already stated in this conversation."
 - **Round header states progress up front:** open every round with `Tur <n>/2 · <k> soru` so the user knows the total commitment before reading the first question, not after. A round that turns out to need only 3 of its planned 8 still states the real count — never pad to look thorough, never hide the true count to look short.
@@ -98,13 +98,13 @@ external_journeys_status: declared   # declared | none_reported | unknown
 
 ## Persistence (brand config)
 
-After intake completes, offer to write/update `${CLAUDE_PLUGIN_ROOT}/knowledge/brands/<brand-slug>.md` (from `knowledge/brands/_template.md`) so the answers persist across sessions — every field the template defines: `languages`, `markets`, `tone`, `formality`, `channels_live`, `incentive_policy` (incl. `clv_threshold`), `extra_banned_words`, `brand_vocabulary`, `existing_automations`, `product_rhythm`, and `verticals` when the company has genuinely separate product lines. On later sessions an existing brand file **pre-fills the Intake Summary** — only genuine gaps and stale fields get asked.
+After intake completes, offer to write/update `output/brands/<brand-slug>.md` in the user's working folder (from `${CLAUDE_PLUGIN_ROOT}/knowledge/brands/_template.md`; never inside the plugin, which updates replace and other clients share) so the answers persist across sessions — every field the template defines: `languages`, `markets`, `tone`, `formality`, `channels_live`, `incentive_policy` (incl. `clv_threshold`), `extra_banned_words`, `brand_vocabulary`, `existing_automations`, `product_rhythm`, and `verticals` when the company has genuinely separate product lines. On later sessions an existing brand file **pre-fills the Intake Summary** — only genuine gaps and stale fields get asked.
 
 **`goal` is the one whitelist answer that is never silently reused.** It persists to the brand file as `default_goal` and pre-fills the question, but — unlike tone or incentive policy — it is always re-surfaced for explicit confirmation ("*son seferki hedefiniz retention'dı, aynı mı?*"), never silently carried over: a brand's active priority can shift between engagements (this quarter's growth push vs. last quarter's retention focus) in a way the rest of the config shouldn't. Same pre-fills-but-never-silently-replaces principle as the website-research and brand-voice-ingestion paths below.
 
 ## Brand voice ingestion (samples beat adjectives)
 
-Users struggle to answer "describe your tone in 2-3 adjectives" but happily paste their 3 best-performing past messages. When they do: analyze the samples and **propose** the brand config's `tone`, `formality`, and `brand_vocabulary` values from them — then show the proposal for confirmation before writing `knowledge/brands/<brand>.md`. Same principle as T3 website research: ingestion pre-fills, it never silently replaces the user's say. Banned-word candidates spotted in the samples (words the brand clearly avoids) are suggested, not assumed.
+Users struggle to answer "describe your tone in 2-3 adjectives" but happily paste their 3 best-performing past messages. When they do: analyze the samples and **propose** the brand config's `tone`, `formality`, and `brand_vocabulary` values from them — then show the proposal for confirmation before writing `output/brands/<brand>.md`. Same principle as T3 website research: ingestion pre-fills, it never silently replaces the user's say. Banned-word candidates spotted in the samples (words the brand clearly avoids) are suggested, not assumed.
 
 ## Never do
 

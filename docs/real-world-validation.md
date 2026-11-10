@@ -1,6 +1,6 @@
 # Real-World Validation
 
-Most of this repo's evidence comes from the eval suite (`evals/`, 40 scenario-based decision tests) and synthetic sample data in `examples/`. Those prove the engine's *decision logic* is consistent. This page tracks the separate, rarer kind of evidence: what happened when someone actually ran it against a real product.
+Most of this repo's evidence comes from the eval suite (`evals/`, 45 scenario-based decision tests) and synthetic sample data in `examples/`. Those prove the engine's *decision logic* is consistent. This page tracks the separate, rarer kind of evidence: what happened when someone actually ran it against a real product.
 
 ## Run 1: an iOS freemium subscription app (AI photo/video editing)
 

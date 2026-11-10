@@ -94,7 +94,7 @@ Booking and reservation variant (travel, appointments, any availability search o
 
 - **Clock:** user local time; unknown timezone falls back to the market timezone. Push is held through 22:00–09:00 and released at the window's opening; email avoids 00:00–06:00.
 - **Channel fit:** email carries the item and its alternatives; push only while the view is under 24h old (push.md's recency test) and only for someone who hasn't come back on their own, and in the branched shape only for directed shoppers. No SMS or WhatsApp at any depth; the intent doesn't justify the cost or the interruption.
-- **Fallback:** no push consent → s2 is skipped, not replaced; no email consent → the journey runs push-only with s1 as the single send, or not at all for casual browsers.
+- **Fallback:** no push consent → s2 is skipped, not replaced; no email consent → the journey runs push-only with s2 (push) as the single send, re-anchored to entry +4h (s1's slot, still inside push.md's recency test), or not at all for casual browsers.
 - **First send:** the wait before s1 is bounded and is never pushed back by more browsing; a message that lands while the person is still choosing competes with what they are choosing.
 
 ## Frequency and overlap

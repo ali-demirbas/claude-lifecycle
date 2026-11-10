@@ -10,7 +10,7 @@ Reference for `lifecycle-audience`'s BigQuery mode. Everything here targets the 
 ## The tables
 
 - `project.analytics_<property_id>.events_YYYYMMDD` — one table per day, one row per event.
-- `events_intraday_YYYYMMDD` — today's streaming data; exclude from audience queries unless real-time entry is explicitly needed (rows can be revised at day close).
+- `events_intraday_YYYYMMDD` — today's streaming data; leave it out of **include** conditions unless real-time entry is explicitly needed (rows can be revised at day close). **Exclusions are the opposite case:** an exclusion CTE (purchase, consent withdrawal, cancellation) that reads only the daily tables misses everything since the last day close, so a buyer from this morning still gets the cart reminder. Either the exclusion also reads today's `events_intraday_*` table (note that a date-bounded `_TABLE_SUFFIX BETWEEN` on `events_*` does not match the `intraday_` suffix; add it explicitly), or the CRM re-checks the excluding event at send time. Say which one in the query's `activation_status` comment.
 - **Partitioned-table variant:** some properties export to a single partitioned `events` table (`event_date`/`event_timestamp` as the partition column) instead of date-sharded `events_YYYYMMDD` tables — same data, different bound syntax (`WHERE event_date BETWEEN ...` on the partition column, not `_TABLE_SUFFIX`). The two shapes are not interchangeable; confirm which one a workspace has (same "ask for a schema" rule below) before writing the date bound.
 
 ## Identity (the decision that changes every query)
@@ -19,6 +19,25 @@ Reference for `lifecycle-audience`'s BigQuery mode. Everything here targets the 
 |---|---|---|
 | `user_id` | Person (only where the reporting identity is implemented) | Preferred — cross-device exclusions actually hold |
 | `user_pseudo_id` | Device/browser | Fallback — **always flag in a comment**: a purchase on another device will NOT exclude this pseudo-user, so recovery journeys will occasionally message buyers |
+
+**NULL handling.** `user_id` is NULL on every pre-login event and on properties that never send it, so "prefer `user_id`" needs an explicit rule, or exclusions silently miss logged-out buyers:
+
+- **Include** on one identity column, `COALESCE(user_id, user_pseudo_id) AS identity`, and filter `WHERE COALESCE(user_id, user_pseudo_id) IS NOT NULL` explicitly. Flag in a comment that rows without a `user_id` are device-scoped.
+- **Exclude** on **both** identities: an excluding event matches when either the `user_id` or the `user_pseudo_id` matches (NULL never equals NULL, so a missing `user_id` cannot match by accident).
+
+```sql
+SELECT DISTINCT COALESCE(e.user_id, e.user_pseudo_id) AS identity   -- FLAG: device-scoped where user_id is NULL
+FROM `project.analytics_XXXX.events_*` e
+WHERE _TABLE_SUFFIX BETWEEN <window>
+  AND e.event_name = 'add_to_cart'
+  AND COALESCE(e.user_id, e.user_pseudo_id) IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM `project.analytics_XXXX.events_*` p
+    WHERE p._TABLE_SUFFIX BETWEEN <window>
+      AND p.event_name = 'purchase'
+      AND (p.user_id = e.user_id OR p.user_pseudo_id = e.user_pseudo_id)   -- either identity excludes
+      AND p.event_timestamp > e.event_timestamp)
+```
 
 The export provides event-level rows with `user_pseudo_id` even when User-ID isn't set; `user_id` is populated only where the site/app sends it, and adds person-level cross-device stitching. Three questions stay separate: **data access** (does the export exist), **identity scope** (pseudo vs user id), and **CRM addressability** (can the CRM map this identity to a contactable customer). A query result is an audience definition, not a send list — and GA4 analytics consent is not marketing-communication consent (that is enforced downstream, rule 4). Lookback is bounded by the dataset's own table/partition expiration, not the GA4 property's retention setting; confirm both before writing a long window.
 
@@ -121,13 +140,24 @@ Same rules apply as any other pattern (dated bound, identity choice, decision-tr
 
 ```sql
 -- journey: <id> · audience: include (RFM tiers for segmentation)
-WITH rfm AS (
+WITH orders AS (                           -- one row per transaction: a duplicate purchase hit counts once
   SELECT user_pseudo_id,
-         DATE_DIFF(CURRENT_DATE(), MAX(DATE(TIMESTAMP_MICROS(event_timestamp))), DAY) AS recency_days,
-         COUNT(*) AS frequency,
-         SUM((SELECT value.double_value FROM UNNEST(event_params) WHERE key = 'value')) AS monetary
+         ecommerce.transaction_id AS transaction_id,
+         MAX(event_timestamp) AS order_ts,
+         MAX(COALESCE(ecommerce.purchase_revenue,
+             (SELECT COALESCE(value.double_value, CAST(value.int_value AS FLOAT64))
+              FROM UNNEST(event_params) WHERE key = 'value'))) AS revenue
   FROM `project.analytics_XXXX.events_*`
   WHERE _TABLE_SUFFIX BETWEEN <window> AND event_name = 'purchase'
+    AND ecommerce.transaction_id IS NOT NULL
+  GROUP BY user_pseudo_id, transaction_id
+),
+rfm AS (
+  SELECT user_pseudo_id,
+         DATE_DIFF(CURRENT_DATE(), MAX(DATE(TIMESTAMP_MICROS(order_ts))), DAY) AS recency_days,
+         COUNT(DISTINCT transaction_id) AS frequency,
+         SUM(revenue) AS monetary
+  FROM orders
   GROUP BY user_pseudo_id
 )
 SELECT *,
@@ -139,7 +169,23 @@ FROM rfm
 -- activation_status: conditional (consent, suppression list and holdout assignment are applied in the CRM at send time)
 ```
 
+Monetary reads `ecommerce.purchase_revenue` first and falls back to the `value` param read as double **or** int (a `value` sent as an integer is silently dropped by a double-only read). Frequency is distinct transactions, never `COUNT(*)` of purchase events, which double-counts duplicate firing. Two more checks before trusting the tiers: one currency (`ecommerce.purchase_revenue_in_usd`, or a stated single currency; never a sum across currencies), and refunds netted where they are tracked (subtract `refund` events' `ecommerce.refund_value` for the same `transaction_id`). Purchases without a `transaction_id` are dropped here; report how many, since a high share means the dedup itself is unreliable.
+
 `NTILE(5)` needs a real population to bucket meaningfully — below a few hundred purchasers, fixed thresholds (from the industry playbook or the user's own figures) beat a five-way split of a tiny group; state which one was used and why.
+
+## Holdout assignment (sticky, emitted with the audience)
+
+measurement.md requires a holdout assigned once and kept. When the CRM does not assign it, the audience query emits it as a column, computed from the identity and the journey id so the same person lands in the same group on every run:
+
+```sql
+SELECT identity,
+       CASE WHEN MOD(ABS(FARM_FINGERPRINT(CONCAT(identity, ':', '<journey_id>'))), 100) < <holdout_pct>
+            THEN 'control' ELSE 'treatment' END AS lifecycle_group
+FROM audience                                -- the include/exclude query above, as a CTE
+-- control rows receive no journey send on any channel; the CRM must honor this column
+```
+
+The assignment is only as sticky as the identity: hash the identifier the CRM keys contacts on, because a person whose identity changes (pseudo id to user id at login) gets a new hash. Where the CRM assigns the holdout itself, drop the column and say so in the `activation_status` comment.
 
 ## Rules the generator must keep
 

@@ -3,7 +3,7 @@ name: referral
 stage: engagement
 trigger_type: segment
 required_events: [invite_sent]
-optional_events: [invite_accepted, referral_reward_credited, share, survey_response, purchase, login, consent_withdrawn]
+optional_events: [invite_accepted, referral_reward_credited, share, survey_response, login, consent_withdrawn]
 required_attributes: []
 optional_attributes: [nps_score, engagement_score, referral_reward]
 default_channels: [in_app, email]
@@ -12,7 +12,7 @@ depth_range: [2, 4]
 applicable_industries: [saas, mobile-app, fintech, ecommerce, marketplace, edtech, subscription-media, insurance, travel]
 mutually_exclusive_with: []
 journey_class: marketing
-signal_sources: {invite_sent: authoritative, invite_accepted: authoritative, referral_reward_credited: authoritative, share: behavioral, survey_response: authoritative, engagement_score: inferred, purchase: authoritative, login: behavioral, consent_withdrawn: authoritative}
+signal_sources: {invite_sent: authoritative, invite_accepted: authoritative, referral_reward_credited: authoritative, share: behavioral, survey_response: authoritative, engagement_score: inferred, login: behavioral, consent_withdrawn: authoritative}
 insufficient_alone:
   - a referral code issued, which is not a code used
   - a share-sheet open with no recorded invite
@@ -77,7 +77,7 @@ Depth stays modest at every tier: a referral is a favor, and favors aren't extra
 |---|---|---|---|---|
 | a1 | entry +0h | in_app | The ask, in a success moment (never on error screens): one line on why they might share, prefilled invite flow, reward terms if any. Shown at the next session after qualifying, expires after 7d; a2 is anchored to a1's scheduled time, not to the view | → a2 |
 | a2 | a1 +3d | email | Referral link for forwarding; restate the mutual reward plainly | → exit (completed) |
-| d1 | entry +7d | — | Code follow-up path starts on `invite_sent`: decision on `invite_accepted` (authoritative, referral system) between entry and entry +7d | occurred → exit (completed; the credit, once granted, starts r1) · not_occurred → c1 · unmeasurable → exit (completed) |
+| d1 | invite_sent +7d | — | Code follow-up path starts on `invite_sent` (declared as an event anchor in the journey's `time_anchors`, so an invite sent on day 6 still gets its full 7 days): decision on `invite_accepted` (authoritative, referral system) between invite_sent and invite_sent +7d | occurred → exit (completed; the credit, once granted, starts r1) · not_occurred → c1 · unmeasurable → exit (completed) |
 | c1 | d1 +0h at 10:00 user_local | email | One nudge: the invite hasn't been used yet, here is the link again to share with someone who'd want it. Then the path stops for this code | → exit (completed) |
 | r1 | referral_reward_credited +0h | email (in_app mirror at the next session, expires after 14d) | Reward confirmation, transactional: exactly what was credited, to whom, and where to see it; zero promotional content. One per credited reward record | → exit (completed) |
 

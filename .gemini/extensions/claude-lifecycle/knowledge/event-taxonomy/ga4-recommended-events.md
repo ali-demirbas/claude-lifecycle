@@ -66,12 +66,31 @@ stages: [acquisition, activation, engagement, revenue, retention, winback]
 | `add_shipping_info` | revenue-intent | very high |
 | `add_payment_info` | revenue-intent | very high |
 
+## App events (GA4 for Firebase: automatically collected and recommended app events)
+
+`noise` means the event says the app ran or a message arrived, not that the user did anything worth a journey decision: it is excluded from event diversity and never used as a trigger or a success exit.
+
+| GA4 event | Stage | Intent weight | Notes |
+|---|---|---|---|
+| `first_open` | acquisition | low | App install-to-first-launch; the app counterpart of `first_visit` and the clock start for mobile activation windows |
+| `app_update` | — | noise | Version change; useful only for release diagnostics |
+| `screen_view` | — | noise | App counterpart of `page_view` |
+| `user_engagement` | — | noise | Foreground-time heartbeat; recency at most, never a behavior |
+| `notification_receive` / `notification_open` | — | message metric | Delivery and open records of a push: they measure the message, not product behavior. Usable for message-engagement reporting (channel-opt-in's post-grant health, unengaged-sunset's push measurability), never as a product signal; excluded from event diversity |
+| `in_app_purchase` | revenue | high | Store purchase (automatically collected on Android and iOS); carries `value`, `currency`, `product_id`; a true revenue event |
+| `app_store_subscription_convert` | revenue | high | Trial converted to paid through the store; maps to `subscription_start` |
+| `app_store_subscription_renew` | retention | high | Store renewal; the success exit for renewal-cadence journeys |
+| `app_store_subscription_cancel` | retention | high (negative) | Store-side cancellation; maps to `subscription_cancel` (winback-adjacent, stage `retention` + `"negative": true`) |
+| `ad_impression` | — | low | Ad shown in an ad-funded app; monetization reporting (ad revenue), not a user intent signal and never a journey trigger |
+
 ## Games / app verticals
 
 | GA4 event | Stage | Intent weight |
 |---|---|---|
 | `tutorial_begin` | activation | medium |
 | `tutorial_complete` | activation | high |
+| `level_start` | engagement | low |
+| `level_end` (with `success`) | engagement | medium |
 | `level_up` / `unlock_achievement` | engagement | medium |
 | `earn_virtual_currency` | engagement | low |
 | `spend_virtual_currency` | revenue-intent | medium |
@@ -110,6 +129,22 @@ stages: [acquisition, activation, engagement, revenue, retention, winback]
 | `withdrawal` | engagement | medium | A **full-balance** withdrawal is fintech.md's own hard churn signal — treat as winback-adjacent (negative) when the amount equals the account balance; a partial withdrawal is ordinary account activity |
 | `card_activated` | activation | medium | Card-issuing fintechs' equivalent of first product use |
 | `loan_applied` / `trade_executed` | revenue-intent | high | Lending/investing sub-verticals' core pre-conversion action — not itself a true revenue event |
+
+## Insurance (common custom conventions, matches `knowledge/industries/insurance.md`'s funnels)
+
+| Event (convention) | Stage | Intent weight | Notes |
+|---|---|---|---|
+| `quote_started` | revenue-intent | high | Quote funnel entry; a completed, priced quote with no purchase is the quote-abandonment trigger |
+| `policy_purchased` | revenue | high | Canonical conversion; carries `value` (premium), `currency`, `product_line`, `payment_plan` |
+| `app_activated` / `portal_registered` | activation | high | insurance.md's activation event (within 14 days of `policy_purchased`) |
+| `claim_filed` | retention | high | Service moment; pauses marketing to that policyholder while the claim is open |
+| `claim_resolved` (with `outcome`) | retention | high | `outcome` (paid / partial / rejected) sets every post-claim message; a rejected claim is a negative signal |
+| `premium_payment_failed` | revenue (protect) | very high | Same protect-family treatment as `payment_failed` |
+| `premium_payment_succeeded` | revenue (protect) | high | Recovery / success exit for premium dunning |
+| `policy_renewal_due` (attribute `renewal_date`) | retention | high | Time-based cohort entry for renewal-reminder, not a behavior |
+| `policy_renewed` | revenue | high | The annual conversion event (`conversion_events`); the renewal success exit |
+| `policy_lapsed` | retention | high (negative) | Winback-adjacent (stage `retention` + `"negative": true`); the sector's core churn definition |
+| `coverage_ended` | retention | high (negative) | See the control signals above; cover actually stopped |
 
 ## Mobile subscription platforms (RevenueCat / App Store Server Notifications — not GA4-official, real webhook/event names)
 

@@ -1096,7 +1096,7 @@ const JOURNEYS = [
 const UI = {
   intent: 'Intent',
   fallback: 'Fallback',
-  review: { pass: 'Passed', fix: 'Passed with a note', legal: 'Legal review' },
+  review: { pass: 'Passed', notes: 'Passed with a note', legal: 'Legal review', pending: 'Not reviewed' },
   over: (a, l) => `Actual length ${a}, limit ${l}: over the limit`,
   mismatch: (d, a) => `Declared ${d}, actual length ${a}`,
   channel: { email: 'Email', push: 'Push', sms: 'SMS', inapp: 'In-app', whatsapp: 'WhatsApp', human: 'Human' }
@@ -1164,9 +1164,10 @@ function escapeHtml(s) {
 }
 
 function badgeHtml(review) {
-  if (review === 'fix') return `<span class="lab-badge lab-t-watch">${ICONS.alert}${UI.review.fix}</span>`;
+  if (review === 'notes' || review === 'fix') return `<span class="lab-badge lab-t-watch">${ICONS.alert}${UI.review.notes}</span>`;
   if (review === 'legal') return `<span class="lab-badge lab-t-warn">${ICONS.scale}${UI.review.legal}</span>`;
-  return `<span class="lab-badge lab-t-good">${ICONS.check}${UI.review.pass}</span>`;
+  if (review === 'pass') return `<span class="lab-badge lab-t-good">${ICONS.check}${UI.review.pass}</span>`;
+  return `<span class="lab-badge lab-t-neutral">${ICONS.alert}${UI.review.pending}</span>`;
 }
 
 function stepHtml(s) {

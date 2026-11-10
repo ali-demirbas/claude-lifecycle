@@ -4,7 +4,7 @@ stage: engagement
 trigger_type: segment
 journey_class: marketing
 required_events: [session_start]
-optional_events: [sign_up, first_open, login, purchase, app_remove, link_click, preference_updated, consent_withdrawn]
+optional_events: [login, purchase, app_remove, preference_updated, consent_withdrawn]
 required_attributes: []
 optional_attributes: [days_dormant, acquisition_source, last_screen, push_token_valid, reactivation_reason]
 default_channels: [push, email]
@@ -12,7 +12,7 @@ base_steps: 3
 depth_range: [3, 6]
 applicable_industries: [mobile-app, saas, marketplace, subscription-media, edtech, ecommerce, fintech, travel]
 mutually_exclusive_with: []
-signal_sources: {session_start: behavioral, login: behavioral, purchase: authoritative, app_remove: behavioral, link_click: engagement, preference_updated: authoritative, push_token_valid: authoritative, acquisition_source: behavioral, last_screen: behavioral, days_dormant: behavioral, consent_withdrawn: authoritative}
+signal_sources: {session_start: behavioral, login: behavioral, purchase: authoritative, app_remove: behavioral, preference_updated: authoritative, push_token_valid: authoritative, acquisition_source: behavioral, last_screen: behavioral, days_dormant: behavioral, consent_withdrawn: authoritative}
 insufficient_alone:
   - no session on one surface while another surface is active
   - another inactive period with nothing new to say
@@ -48,12 +48,12 @@ Bring back dormant **non-customers**: users who signed up or installed, never co
 
 ## Entry / exit
 
-- **Entry:** last `session_start` (across all joined surfaces) older than the dormancy threshold (default 21–30 days; tune to the product's natural usage cadence), zero lifetime `purchase`, valid consent or push token on ≥ 1 channel, and a recorded `reactivation_reason` for this attempt.
+- **Entry:** last `session_start` (across all joined surfaces) older than the dormancy threshold (default 21–30 days; tune to the product's natural usage cadence; where the industry playbook's `churn_signal` sets a dormancy clock and states a sector override, as [mobile-app](../industries/mobile-app.md) does, that clock is the threshold), zero lifetime `purchase`, valid consent or push token on ≥ 1 channel, and a recorded `reactivation_reason` for this attempt.
 - **Exclude:** any past purchaser (winback owns them), users currently in activation-rescue (dormancy inside the first weeks is activation's problem), users active on another surface or product, consent silent > 2 years (re-permission first), users under the portfolio negative-signal override.
 - **Success exit:** `session_start` or `login`. Revenue is explicitly *not* this journey's exit; returners hand off to activation/revenue patterns · **Window:** 14 days.
 - **Checked before each send:** `session_start`, `login`, `purchase` (hand off; the person is now a customer), `consent_withdrawn` (channel-scoped: an email unsubscribe stops the email steps, a revoked push permission or invalid token stops push; neither moves the message to another channel on its own).
 - **Re-entry:** after a 60-day cooldown, max 3 lifetime cycles, and only with a new `reactivation_reason` each time; a repeated trigger while an instance is open is ignored. Without a new reason, or after the third cycle, the person goes to [unengaged-sunset](unengaged-sunset.md) instead of another campaign.
-- **Handoffs:** return session → [activation](activation.md) or [welcome-onboarding](welcome-onboarding.md) (whichever the person never finished); `purchase` → [post-purchase](post-purchase.md). Queued reactivation sends are suppressed in both cases. Inbound from [trial-conversion](trial-conversion.md): non-converting trialists arrive here after the trial's grace step (they never qualify for winback, which needs a past purchase).
+- **Handoffs:** return session → [welcome-onboarding](welcome-onboarding.md) or [activation](activation.md), only a journey the person has **never entered** (both run `reentry: once`, so a handoff to one already entered would silently go nowhere); if the person already entered both, → [feature-adoption](feature-adoption.md) where it applies, otherwise no handoff (the return session is the success). `purchase` → [post-purchase](post-purchase.md). Queued reactivation sends are suppressed in both cases. Inbound from [trial-conversion](trial-conversion.md): non-converting trialists arrive here after the trial's grace step (they never qualify for winback, which needs a past purchase).
 
 ## Depth scaling
 

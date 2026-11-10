@@ -29,6 +29,7 @@ import argparse
 import concurrent.futures as cf
 import datetime as dt
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -59,9 +60,27 @@ def read_expected(case_dir):
         if not line.startswith((" ", "\t")):
             top = key
             fields[key] = val.strip()
-        elif top == "run" and key == "copy":
-            fields["run.copy"] = val.strip()
+        elif top == "run" and key in ("copy", "stage"):
+            fields[f"run.{key}"] = val.strip()
     return fields.get("run.copy", "").lower() == "true", fields.get("sector", ""), fields.get("tier", "")
+
+
+def read_stage(case_dir):
+    """`run: {stage: results}` cases exercise one skill, not the journeys pipeline."""
+    for line in open(os.path.join(case_dir, "expected.yaml"), encoding="utf-8"):
+        m = re.match(r"\s+stage:\s*(\S+)", line)
+        if m:
+            return m.group(1)
+    return None
+
+
+def read_breadth(case_dir):
+    p = os.path.join(case_dir, "intake.md")
+    if os.path.isfile(p):
+        m = re.search(r"breadth:\s*([^·\n]+)", open(p, encoding="utf-8").read())
+        if m:
+            return m.group(1).strip()
+    return None
 
 
 def build_prompt(case_id, case_dir, out_dir):
@@ -69,6 +88,12 @@ def build_prompt(case_id, case_dir, out_dir):
     inputs = sorted(f for f in os.listdir(case_dir) if f not in ("expected.yaml", "intake.md"))
     rel = lambda p: os.path.relpath(p, REPO)  # noqa: E731
     stages = "connect → map → intake → journeys" + (" → copy" if copy else "")
+    stage = read_stage(case_dir)
+    if stage:
+        stages = f"only the `lifecycle-{stage}` skill on the inputs below (no journeys pipeline)"
+    breadth = read_breadth(case_dir)
+    breadth_line = (f"- Breadth gate: {breadth}, as the intake says." if breadth else
+                    "- Breadth gate: build everything eligible (option C), so every assertion in the case can be checked.")
     input_line = (", ".join(rel(os.path.join(case_dir, f)) for f in inputs)
                   if inputs else "none (this is a Tier 3, industry-only case)")
     return f"""/claude-lifecycle:lifecycle
@@ -78,9 +103,9 @@ This is a non-interactive evaluation run (eval case `{case_id}`). No human is wa
 - Data input: {input_line}
 - Sector: {sector or "see intake"} · tier: {tier or "detect from input"}
 - The user's answers to every intake question are in `{rel(os.path.join(case_dir, "intake.md"))}`. Treat that file as the user speaking. Where a gate would normally ask something the file doesn't answer, take the documented default, and record what you assumed in the dossier.
-- Breadth gate: build everything eligible (option C), so every assertion in the case can be checked.
+{breadth_line}
 - Run the full pipeline: {stages}. Follow every skill's rules exactly as in a normal run, including the validation gates.
-- Write ALL artifacts to `{rel(out_dir)}/` (not output/): the data assessment, portfolio.json, every journey JSON + doc, the tracking plan if anything is blocked, {"the copy docs, " if copy else ""}and dossier.md.
+- The project folder for this run is `{rel(out_dir)}/` (use it wherever a skill says `output/<project>/`, including its `_cache/`). Write ALL artifacts there (not output/): the data assessment, portfolio.json, every journey JSON + doc, the tracking plan if anything is blocked, {"the copy docs, " if copy else ""}and dossier.md.
 - Skip the HTML canvases; this run is graded on the markdown/JSON artifacts only.
 """
 
@@ -116,7 +141,9 @@ def run_case(case_id, args):
         "passed": check.returncode == 0 and not (bool(meta.get("is_error")) or proc.returncode != 0),
         "check_exit": check.returncode,
         "check_tail": check.stdout[-1500:],
-        "run_error": bool(meta.get("is_error")) or proc.returncode != 0,
+        "run_error": bool(meta.get("is_error")) or proc.returncode != 0 or bool(meta.get("permission_denials")),
+        "permission_denials": meta.get("permission_denials"),
+        "commit": subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True).stdout.strip(),
         "cost_usd": meta.get("total_cost_usd"),
         "turns": meta.get("num_turns"),
         "seconds": round(elapsed),
@@ -149,7 +176,8 @@ def main():
     else:
         chosen = []
         for c in args.cases:
-            hits = [a for a in available if a == c or a.startswith(c + "-") or a.startswith(c)]
+            hits = [a for a in available if a == c or a.startswith(c + "-")
+                    or (c.isdigit() and a.split("-", 1)[0].lstrip("0") == c.lstrip("0"))]
             if len(hits) != 1:
                 print(f"case '{c}' matched {len(hits)} cases: {hits}")
                 return 2

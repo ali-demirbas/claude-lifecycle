@@ -3,9 +3,9 @@ name: lifecycle-copy
 argument-hint: "[journey-id]"
 description: Write CRM channel copy (email, push, SMS, in-app, WhatsApp) for journey steps — rule-checked against channel limits and sector lexicons, with A/B variants and character counts. Use when the user says "copy yaz", "metin yaz", "email metni", "push metni", "CRM copy", "write the messages".
 metadata:
-  version: 0.2.0
+  version: 0.3.0
   category: copy
-  updated: 2026-10-09
+  updated: 2026-11-10
 ---
 
 # Lifecycle Copy — Channel Copywriting
@@ -22,7 +22,7 @@ Produce send-ready copy for journey steps. Copy here is an engineering artifact:
 
 1. A journey doc (from `lifecycle-journeys`) OR a user-supplied step description (channel + intent minimum).
 2. The rule chain, loaded in inheritance order (CLAUDE.md rule 8 — most specific wins, bans/compliance strictest wins):
-   - `${CLAUDE_PLUGIN_ROOT}/knowledge/brands/<brand>.md` if it exists — tone/formality override; `extra_banned_words` extend all ban lists; `brand_vocabulary` is authoritative for product/feature names.
+   - `output/brands/<brand>.md` if it exists — tone/formality override; `extra_banned_words` extend all ban lists; `brand_vocabulary` is authoritative for product/feature names.
    - `${CLAUDE_PLUGIN_ROOT}/knowledge/lexicons/locales/<lang>.md` per target language — voice, emotion calibration, market red lines.
    - `${CLAUDE_PLUGIN_ROOT}/knowledge/lexicons/<sector>.md`. No lexicon for the sector → use the closest and say so.
 3. Tone + formality + language(s) from the brand file or Intake Summary. Missing → trigger `lifecycle-intake` (tone questions only).
@@ -44,7 +44,7 @@ For every channel used, load `${CLAUDE_PLUGIN_ROOT}/knowledge/channels/<channel>
 
 Spawn one `copy-writer` per journey **concurrently in a single message**. Give each writer a file path, not pasted rules: its journey doc path, the lexicon, the channel files it needs, the locale overlay and brand config paths, and the output paths. Each writer writes its own `output/<project>/_copy/<id>.md` (the copy-output structure) and `output/<project>/_copy/<id>.canvas.json` (that journey's object for the copy canvas), runs `validate_output.py copy` on its doc, and returns a short receipt (paths, validator line, open issues), not the copy itself. Don't retype a returned doc. For each journey step (its **intent line is the brief**, don't drift from it):
 - A **target tone** per step, drawn from the lexicon's stage-calibration table and adjusted by the locale overlay's emotion calibration — goes in the template's Target tone field and binds the writer.
-- Variant A and Variant B with genuinely different angles (e.g. utility vs social proof) — not synonym swaps. Each variant carries the template's `strategy` + `hypothesis` JSON metadata (one falsifiable sentence — `lifecycle-results` scores these later).
+- Variant A and Variant B with genuinely different angles (e.g. utility vs social proof) — not synonym swaps — for marketing steps whose journey's volume note supports a test; service/transactional steps and low-volume journeys get one variant marked `single variant: <reason>`. Each variant carries the template's `strategy` + `hypothesis` JSON metadata (one falsifiable sentence — `lifecycle-results` scores these later).
 - One short Fallback with no personalization variables.
 - Real character counts per field (count characters, do not estimate; for SMS respect the GSM-7 vs Unicode distinction in the channel file — Turkish characters change the limit).
 
@@ -56,7 +56,7 @@ Mechanical checks first, in code: `validate_output.py copy <doc> --sector <secto
 
 ### 4. Fix and re-check
 
-FIX blocks are rewritten by the writer and re-checked, at most two rounds per block. A block still failing after that is reported as unresolved with the reviewer's diagnosis, never shipped as ✅. Nothing labeled FIX may reach the user. If a rule cannot be satisfied (e.g. intent impossible in 120 push chars), change the step's channel recommendation and tell the user why.
+FIX blocks are rewritten by a new `copy-writer` spawned for that journey with the reviewer's FIX rows and the current doc path (the first writer has already returned), then re-reviewed, at most two rounds per block. In quick-draft mode the same applies to the single review pass's FIX blocks; a block still FIX after it is delivered marked unresolved, never as a draft pass. A block still failing after that is reported as unresolved with the reviewer's diagnosis, never shipped as ✅. Nothing labeled FIX may reach the user. If a rule cannot be satisfied (e.g. intent impossible in 120 push chars), change the step's channel recommendation and tell the user why.
 
 **Legal-review path:** when the sector lexicon has `regulated: true` and a block carries a borderline money/health/outcome claim that is not outright banned, the block ships stamped `⚖️ legal review required` (with the exact claim quoted) instead of ✅ — it goes to manual sign-off, not into the send queue.
 

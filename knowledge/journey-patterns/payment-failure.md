@@ -4,7 +4,7 @@ stage: revenue
 trigger_type: event
 journey_class: transactional
 required_events: [payment_failed, payment_succeeded]
-optional_events: [subscription_cancel, login, add_payment_info, payment_status_unknown, access_suspended, access_restored]
+optional_events: [subscription_cancel, add_payment_info, payment_status_unknown, access_suspended, access_restored]
 required_attributes: [failure_reason]
 optional_attributes: [retry_schedule, plan_name, payment_method_type, charged_payment_method, grace_end_date]
 default_channels: [email, sms, in_app]
@@ -12,7 +12,7 @@ base_steps: 4
 depth_range: [2, 6]
 applicable_industries: [saas, subscription-media, fintech, mobile-app, insurance, edtech]
 mutually_exclusive_with: []
-signal_sources: {payment_failed: authoritative, payment_succeeded: authoritative, failure_reason: authoritative, payment_status_unknown: authoritative, add_payment_info: authoritative, subscription_cancel: authoritative, access_suspended: authoritative, access_restored: authoritative, retry_schedule: authoritative, charged_payment_method: authoritative, grace_end_date: authoritative, login: behavioral}
+signal_sources: {payment_failed: authoritative, payment_succeeded: authoritative, failure_reason: authoritative, payment_status_unknown: authoritative, add_payment_info: authoritative, subscription_cancel: authoritative, access_suspended: authoritative, access_restored: authoritative, retry_schedule: authoritative, charged_payment_method: authoritative, grace_end_date: authoritative}
 insufficient_alone:
   - a payment status of unknown or timeout
   - a card update with no successful charge yet
@@ -57,6 +57,7 @@ Recover failed subscription payments before involuntary churn. This protects exi
 - **Exclude:** user already in this journey for the same invoice, subscription already cancelled, failure on a free-trial card authorization (different message entirely), status still unknown.
 - **Success exit:** `payment_succeeded` for this instance's `invoice_id` · **Window:** the grace period (typically 7–21 days, set by billing config; `grace_end_date`).
 - **Checked before each send:** `payment_succeeded` **for this invoice** (`same_instance`: paying invoice A never stops invoice B's dunning, and a payment for another invoice does not end this one), `subscription_cancel` for the subscription the invoice belongs to (stops every open instance of it). An SMS stop request is channel-scoped: it stops SMS sends only, and the final notice moves to email. Marketing consent withdrawal does not stop these notices; it does stop the optional post-recovery marketing step.
+- **Pre-send hold after a card update:** `add_payment_info` for this invoice (`same_instance`) holds s2 and s3 until the retry it waits for returns a result. Success → the success exit, and neither is sent. Failure → s3 sends on its own schedule (deadline unchanged), worded for an updated method that was also declined. This keeps the banner ("card updated, we'll retry on date") and the chain from contradicting each other, and a customer who just fixed the card never receives a suspension notice for the old one.
 - **Restriction is never a surprise:** if there was time to warn before access is restricted, the final notice (s3) must have gone out first; a suspension without a prior final notice is a defect.
 - **Restoration is confirmed explicitly:** when payment succeeds after `access_suspended`, the customer receives a transactional confirmation that access is back, triggered on `access_restored`. That confirmation sits outside this graph, because a send after the success event would be cancelled by the before-each-send check; the journey doc must name the message that does it, and QA treats its absence as a gap.
 - **Re-entry:** per distinct failed invoice (`instance_key: invoice_id`); two failed invoices are two instances with their own clocks, and a send from each is merged into one message when both fall on the same day. A repeated `payment_failed` for the same invoice (a failed automatic retry) is ignored by the trigger; the open instance continues on its own timeline.
@@ -80,7 +81,8 @@ Depth is bounded by the grace period, not by DQS ambition: every step must land 
 |---|---|---|---|---|
 | s1 | entry +1h | email | Transactional notice: what failed, why (`failure_reason`), whether a backup method will be tried, the suspension date, one-click link to update payment. No promo content. | → d1 |
 | b1 | entry +1h (shown at next session, expires at grace_end_date) | in_app | Persistent banner from the first session after the failure: payment issue and the days left in grace; switches to "card updated, we'll retry on date" after `add_payment_info` for this invoice. Runs alongside the chain; no send waits on it being seen | → exit with the instance |
-| d1 | s1 +3d | — | Decision on `add_payment_info` (authoritative) for this account between entry and s1 +3d | occurred → s3 · not_occurred → s2 · unmeasurable → s2 |
+| d1 | s1 +3d | — | Decision on `add_payment_info` (authoritative) for this account between entry and s1 +3d | occurred → c1 · not_occurred → s2 · unmeasurable → s2 |
+| c1 | d1 +0h | email | Transactional confirmation: update received, the date of the next retry on the new method, nothing else to do. No suspension wording | → s3 (held until the retry result; see the pre-send hold) |
 | s2 | d1 +0h | email | Transactional reminder placed before the next automatic retry (from `retry_schedule`); reassure that service continues during grace | → s3 |
 | s3 | grace_end_date -2d at 10:00 user_local, deadline grace_end_date -1d | sms | Final transactional notice: exact suspension date and what happens to data/access | → exit (expired) at grace_end_date |
 

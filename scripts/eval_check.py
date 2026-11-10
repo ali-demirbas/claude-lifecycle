@@ -89,6 +89,14 @@ def split_list(s):
     return out
 
 
+ASSERTION_KEYS = {"must_generate", "must_not_generate", "must_block", "suppressed_accounts_include", "min_steps",
+                  "max_steps", "audience_must_exclude", "required_anywhere", "forbidden_anywhere", "journeys_validate",
+                  "copy"}
+LIST_KEYS = ("must_generate", "must_not_generate", "must_block", "suppressed_accounts_include", "audience_must_exclude",
+             "required_anywhere", "forbidden_anywhere")
+COPY_KEYS = {"forbidden", "required", "must_pass_validator", "max_discount", "sector"}
+
+
 def scalar(v):
     v = v.strip()
     if len(v) >= 2 and v[0] == '"' and v[-1] == '"':
@@ -144,9 +152,35 @@ def check_case(case_dir, out_root=None):
     if not a:
         fail("expected.yaml has no assertions")
         return fails
+    unknown = sorted(set(a) - ASSERTION_KEYS)
+    if unknown:
+        fail(f"unknown assertion key(s) {unknown}: they would be silently ignored (supported: {sorted(ASSERTION_KEYS)})")
+    for k in LIST_KEYS:
+        if k in a and not isinstance(a[k], list):
+            fail(f"assertion '{k}' must be a list, got {type(a[k]).__name__} ({a[k]!r})")
+            a[k] = []
+    for k in ("copy",):
+        if isinstance(a.get(k), dict):
+            bad = sorted(set(a[k]) - COPY_KEYS)
+            if bad:
+                fail(f"unknown copy assertion key(s) {bad} (supported: {sorted(COPY_KEYS)})")
     if not os.path.isdir(out_dir):
         print(f"SKIP: no run output at evals/out/{case_id} — run the case first")
         return ["not run"]
+
+    # outputs graded here must come from the current pipeline: a run manifest and schema-2.0 journeys
+    stale = []
+    for p in glob.glob(os.path.join(out_dir, "*.json")):
+        try:
+            d = json.load(open(p, encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(d, dict) and ("steps" in d or "nodes" in d) and d.get("schema_version") != "2.0":
+            stale.append(os.path.basename(p))
+    if stale:
+        fail(f"run output is from an older pipeline (schema 1.x journeys: {stale[:3]}); re-run the case")
+    if not os.path.isfile(os.path.join(out_dir, "run-manifest.json")):
+        fail("run output has no run-manifest.json, so it can't be tied to a run of the current code; re-run the case")
 
     # portfolio-based assertions
     pf_path = os.path.join(out_dir, "portfolio.json")
@@ -212,21 +246,29 @@ def check_case(case_dir, out_root=None):
         elif pat in steps_by_pattern and max(steps_by_pattern[pat]) > n:
             fail(f"max_steps: '{pat}' has {max(steps_by_pattern[pat])} steps, expected ≤ {n}")
     for acc in a.get("audience_must_exclude", []):
+        excluded_somewhere = str(acc) in [str(s) for s in (pf or {}).get("suppressed_accounts", [])]
         for p, d in journeys:
-            inc = json.dumps(d.get("audience", {}).get("include", ""), ensure_ascii=False)
-            if str(acc) in inc:
+            aud = d.get("audience") or {}
+            inc = json.dumps(aud.get("include", ""), ensure_ascii=False)
+            exc = json.dumps([aud.get("exclude", ""), d.get("exit")], ensure_ascii=False)
+            if str(acc) in inc and not re.search(rf"{re.escape(str(acc))}\W{{0,3}}(hariç|excluded|except)", inc, re.I):
                 fail(f"account '{acc}' appears in audience.include of {os.path.basename(p)}")
+            if str(acc) in exc:
+                excluded_somewhere = True
+        if not excluded_somewhere:
+            fail(f"account '{acc}' is not excluded anywhere (portfolio suppressed_accounts or a journey's "
+                 f"audience.exclude); a missing mention is not an exclusion")
 
     # greps
     texts = read_all_text(out_dir)
     if not texts:
         fail("the run produced no artifacts in the output dir: nothing to grade (an empty run is not a pass)")
-    blob = tr_fold("\n".join(texts.values()))
+    blob = tr_fold("\n".join(texts.values())).replace("ı", "i")
     for s in a.get("required_anywhere", []):
-        if tr_fold(str(s)) not in blob:
+        if tr_fold(str(s)).replace("ı", "i") not in blob:
             fail(f"required string not found anywhere: '{s}'")
     for s in a.get("forbidden_anywhere", []):
-        if tr_fold(str(s)) in blob:
+        if tr_fold(str(s)).replace("ı", "i") in blob:
             fail(f"forbidden string found in output: '{s}'")
 
     # whole-output validation: the generated journeys/portfolio must pass the
@@ -300,6 +342,9 @@ def main(argv):
             total_fail += len(fs)
     print(f"\n==== {len(cases)} case(s): {len(cases)-not_run} evaluated, {not_run} not run, "
           f"{total_fail} failed assertion(s)")
+    if not_run == len(cases):
+        print("nothing was evaluated: every case is missing its run output")
+        return 2
     return 1 if total_fail else 0
 
 

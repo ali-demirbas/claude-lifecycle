@@ -17,9 +17,9 @@ Sektör lexicon'u ne söyleneceğine karar verir; bu dosya Türkçenin onu nası
 
 ## Emotion calibration
 
-- **Güven verici:** somut politika + sahiplenme diliyle kurulur ("30 gün iade, soru sorulmaz") — sıfat yığınıyla değil ("güvenilir, kaliteli hizmet" boş okur).
-- **Sıcak:** küçültme/samimiyet ekleriyle değil, kullanıcının kendi verisiyle kurulur ("40 gündür süren serin" > "canım müşterimiz").
-- **Acil (izinliyse):** Türkçede büyük harf + ünlem hızla spam okur; aciliyet veriyle taşınır ("son 3 adet"), tonlamayla değil.
+- **Güven verici:** somut politika + sahiplenme diliyle kurulur ("30 gün iade, soru sorulmaz") — sıfat yığınıyla değil ("Güvenilir, kaliteli hizmet" boş okur).
+- **Sıcak:** küçültme/samimiyet ekleriyle değil, kullanıcının kendi verisiyle kurulur ("40 gündür süren serin" > "Canım müşterimiz").
+- **Acil (izinliyse):** Türkçede büyük harf + ünlem hızla spam okur; aciliyet veriyle taşınır ("Son 3 adet"), tonlamayla değil.
 - **Kutlayıcı:** abartı Türkçede hızlı devalüe olur; "Tebrikler, 10. siparişin" yeter — "MUHTEŞEMSİN!" yazmaz.
 
 ## Punctuation & typography

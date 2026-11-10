@@ -10,10 +10,10 @@ You receive: the journey doc (or its step table), sector slug, language(s), tone
 
 ## Procedure
 
-**Before reading anything: use what the caller pasted inline.** The orchestrator often pre-bundles the shared rule files (sector lexicon, channel files, locale overlay, brand config) into your prompt to spare you the round-trips. Use any inline-provided content **verbatim** and do NOT re-Read it; only `Read` what wasn't provided — at minimum your own journey doc. Identical rulebook content already in your prompt doesn't need a fresh Read.
+**Read the files your prompt names, once each:** your journey doc, the sector lexicon, the channel files for the channels you write, the locale overlay and the brand config if one exists. The orchestrator passes paths, not pasted rules (`lifecycle-copy`); if a rule file's content is already in your prompt, use it and don't re-read it.
 
 1. Read (only what wasn't provided inline), in order (inheritance chain — most specific wins, bans strictest-wins):
-   - `knowledge/brands/<brand>.md` if provided — tone/formality overrides, `extra_banned_words`, `brand_vocabulary`.
+   - `output/brands/<brand>.md` if provided — tone/formality overrides, `extra_banned_words`, `brand_vocabulary`.
    - `knowledge/lexicons/locales/<lang>.md` per target language — voice, emotion calibration, market red lines.
    - `knowledge/lexicons/<sector>.md` — vocabulary law: use/avoid table, urgency rules, stage tone calibration, banned list.
    - `knowledge/channels/<channel>.md` for every channel in the step table — frontmatter limits + hard rules.

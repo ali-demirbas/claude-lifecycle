@@ -198,6 +198,10 @@ def main(argv):
     ap.add_argument("--schema", choices=["digest", "full"], default="digest",
                     help="digest (default): generated compact schema + a passing example; full: the raw schema")
     a = ap.parse_args(argv)
+    for name, val in (("pattern", a.pattern), ("sector", a.sector), ("brand", a.brand)):
+        if val is not None and not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", val):
+            print(f"error: --{name} must be a slug (lowercase letters, digits, dashes), got {val!r}", file=sys.stderr)
+            return 2
     chunks, missing = [], []
     for title, rel in parts(a.pattern, a.sector, a.brand):
         p = os.path.join(ROOT, rel)

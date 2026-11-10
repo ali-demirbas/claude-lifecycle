@@ -11,29 +11,29 @@ last_reviewed: 2026-07-16
 
 # EdTech Lexicon
 
-Word choice for course/learning-app CRM copy. The learner's inner critic already tells them they're behind — the brand must never join in. Every message is a coach's message: it names concrete progress ("12 ders tamamladın"), makes the next step feel small ("sıradaki ders 4 dakika"), and treats a missed day as a normal part of learning rather than a failure. Motivation without concreteness is noise ("You can do it!"); concreteness without warmth is a report card. The craft is holding both: specific numbers, kind framing. Shame-based re-engagement gets short-term opens and long-term uninstalls — it is banned here, not just discouraged.
+Word choice for course/learning-app CRM copy. The learner's inner critic already tells them they're behind — the brand must never join in. Every message is a coach's message: it names concrete progress ("12 ders tamamladın"), makes the next step feel small ("Sıradaki ders 4 dakika"), and treats a missed day as a normal part of learning rather than a failure. Motivation without concreteness is noise ("You can do it!"); concreteness without warmth is a report card. The craft is holding both: specific numbers, kind framing. Shame-based re-engagement gets short-term opens and long-term uninstalls — it is banned here, not just discouraged.
 
 ## Use / avoid
 
 | Use | Avoid | Why |
 |---|---|---|
-| "12 ders tamamladın: Unit 3'e geldin" / "you've completed 12 lessons: you're into Unit 3" | "harikasın, devam et!" / "you're amazing, keep going!" (alone) | Concrete progress motivates; empty cheerleading reads as automated |
-| "kaldığın yerden devam et: 4 dakikalık bir ders" / "pick up where you left off: a 4-minute lesson" | "derslerine geri dön" / "get back to your lessons" | Small, named next step lowers the re-entry wall; commands raise it |
-| "dün ara verdin: bugün kısa bir dersle dönmek ister misin?" / "you took a break yesterday: fancy a short one today?" | "serini kaybettin", "yine mi bıraktın?" / "you lost your streak", "quitting again?" | Break ≠ failure; guilt framing is the sector's #1 uninstall trigger |
-| "hedefine %60 yaklaştın" / "you're 60% of the way to your goal" (real data) | "geride kaldın" / "you're falling behind" | Same data, opposite frame; always measure toward, never behind |
-| "bu hafta 3 gün çalıştın: geçen haftadan bir gün fazla" / "3 study days this week: one more than last week" | comparisons to other learners ("kullanıcıların %80'i senden ileride") | Self-comparison motivates; peer-comparison shames the exact users at risk |
-| "sertifikana 2 ders kaldı" / "2 lessons to your certificate" | "başarısız olma", "fırsatı kaçırma" / "don't fail", "don't miss out" | Proximity-to-goal is the strongest honest urgency edtech has |
+| "12 ders tamamladın: Unit 3'e geldin" / "you've completed 12 lessons: you're into Unit 3" | "Harikasın, devam et!" / "you're amazing, keep going!" (alone) | Concrete progress motivates; empty cheerleading reads as automated |
+| "Kaldığın yerden devam et: 4 dakikalık bir ders" / "pick up where you left off: a 4-minute lesson" | "Derslerine geri dön" / "get back to your lessons" | Small, named next step lowers the re-entry wall; commands raise it |
+| "Dün ara verdin: bugün kısa bir dersle dönmek ister misin?" / "you took a break yesterday: fancy a short one today?" | "serini kaybettin", "Yine mi bıraktın?" / "you lost your streak", "quitting again?" | Break ≠ failure; guilt framing is the sector's #1 uninstall trigger |
+| "Hedefine %60 yaklaştın" / "you're 60% of the way to your goal" (real data) | "Geride kaldın" / "you're falling behind" | Same data, opposite frame; always measure toward, never behind |
+| "Bu hafta 3 gün çalıştın: geçen haftadan bir gün fazla" / "3 study days this week: one more than last week" | comparisons to other learners ("Kullanıcıların %80'i senden ileride") | Self-comparison motivates; peer-comparison shames the exact users at risk |
+| "Sertifikana 2 ders kaldı" / "2 lessons to your certificate" | "Başarısız olma", "Fırsatı kaçırma" / "don't fail", "don't miss out" | Proximity-to-goal is the strongest honest urgency edtech has |
 | "5 günlük seri! Yarın da buradayız" / "5-day streak! see you tomorrow" | "serin tehlikede!!" / "your streak is in danger!!" | Celebrate the streak's existence; weaponizing it against the user backfires |
 
 ## Urgency rules
 
-Urgency is allowed only for **real, external deadlines**: cohort start dates, live-class times, exam dates the learner registered for (TR: YKS/KPSS calendars), and trial/subscription expiry. State the date plainly, once. Manufactured study pressure — streak-loss threats, "falling behind" framing, artificial daily deadlines — is banned: the product's job is to build a sustainable habit, and copy that borrows against the learner's anxiety repays it in churn. Streak mechanics may be *celebrated* and gently continued ("yarın da buradayız") but never threatened. Purchase-side urgency (course sale end dates) must follow the same real-data rule as everywhere: a variable behind every claim.
+Urgency is allowed only for **real, external deadlines**: cohort start dates, live-class times, exam dates the learner registered for (TR: YKS/KPSS calendars), and trial/subscription expiry. State the date plainly, once. Manufactured study pressure — streak-loss threats, "falling behind" framing, artificial daily deadlines — is banned: the product's job is to build a sustainable habit, and copy that borrows against the learner's anxiety repays it in churn. Streak mechanics may be *celebrated* and gently continued ("Yarın da buradayız") but never threatened. Purchase-side urgency (course sale end dates) must follow the same real-data rule as everywhere: a variable behind every claim.
 
 ## Tone calibration by journey stage
 
 | Journey type | Tone shift |
 |---|---|
-| Welcome / onboarding | Warm and directive: one clear first action ("ilk dersin hazır: 4 dakika"); connect it to their stated goal |
+| Welcome / onboarding | Warm and directive: one clear first action ("İlk dersin hazır: 4 dakika"); connect it to their stated goal |
 | Activation (enrolled, not started) | Friction-removing: shrink the task, restate the goal; assume life got busy, not that they lost interest |
 | Daily rhythm / streak | Light, brief, same-time-of-day; celebrate consistency, personalize by their usual study window |
 | Streak-break rescue (churn prevention) | The gentlest message in the portfolio: normalize the break, offer the smallest possible re-entry, zero guilt |

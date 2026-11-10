@@ -20,7 +20,7 @@ The sector lexicon decides what to say; this file decides how English says it. E
 - **Reassuring:** built from stated policy and plain mechanics ("30-day returns, no questions") — adjectives ("reliable, premium service") carry nothing.
 - **Warm:** first-name + the user's own data; endearments ("hey friend!") read as over-familiar in most brands.
 - **Urgent (when allowed):** English tolerates mild urgency better than many languages, which is exactly why the data-backing rule matters more — "ends tonight" without a real date variable is the classic spam pattern.
-- **Celebratory:** exclamation tolerance is higher than in TR/DE but still max one; "You did it — order #10" style restraint outperforms confetti language.
+- **Celebratory:** exclamation tolerance is higher than in TR/DE but still max one; "You did it: order #10" style restraint outperforms confetti language.
 
 ## Punctuation & typography
 

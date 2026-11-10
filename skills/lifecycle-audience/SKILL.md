@@ -3,9 +3,9 @@ name: lifecycle-audience
 argument-hint: "[journey-id]"
 description: Turn journey audience definitions into executable artifacts — BigQuery SQL against the standard GA4 export schema, or a CDP-agnostic trait definition — so the data team receives a query, not a ticket. Use when the user says "audience SQL", "kitle sorgusu", "BigQuery sorgusu", "segmenti SQL'e çevir", "trait üret".
 metadata:
-  version: 0.2.0
+  version: 0.3.0
   category: export
-  updated: 2026-09-28
+  updated: 2026-11-10
 ---
 
 # Lifecycle Audience — From Definition to Query
@@ -47,7 +47,8 @@ A query is a SQL artifact; activation is what happens when a data team runs it, 
 
 - **Behavioral audience validated** — Validation B run, size sane (this skill's own output above).
 - **Identity resolution validated** — the identity field used (`user_id` / `user_pseudo_id` / CDP trait key) is confirmed to match the CRM's own join key; a query that's perfect in BigQuery still misses everyone if the CRM can't resolve `user_pseudo_id` to a sendable contact.
-- **Channel consent enforcement location known** — named explicitly (CRM segment filter, İYS layer, reverse-ETL sync rule) — "consent filtering happens downstream" (Never do, below) is an architecture note, not a guarantee it's actually wired up on this specific sync.
+- **Holdout assignment location known** — where the control group is assigned and suppressed (a `lifecycle_group` column from the sticky assignment in `knowledge/audience-sql.md`, or the CRM's own holdout); a query is never `ready` while the control is unassigned.
+- **Channel consent enforcement location known** — named explicitly (CRM segment filter, the consent registry (İYS in Türkiye), reverse-ETL sync rule) — "consent filtering happens downstream" (Never do, below) is an architecture note, not a guarantee it's actually wired up on this specific sync.
 - **Suppression list enforcement location known** — same as above, for negative-signal/suppressed accounts.
 - **Global frequency-cap enforcement location known** — whether the CRM itself enforces the portfolio's caps, or whether `lifecycle-journeys`' conflict-review math is the only thing standing between this audience and an over-frequency send.
 
@@ -56,7 +57,7 @@ Any precondition that is genuinely unverified (not "no" — unknown) sets `activ
 ## Never do
 
 - Never generate SQL against a guessed schema — custom/renamed tables → ask for one `INFORMATION_SCHEMA` listing or a sample row, then adapt.
-- Never fold marketing-consent filtering silently into the query — consent lives in the CRM/İYS layer; the SQL selects the *behavioral* audience and a comment says consent filtering happens downstream.
+- Never fold marketing-consent filtering silently into the query — consent lives in the CRM or the market's consent registry (İYS in Türkiye); the SQL selects the *behavioral* audience and a comment says consent filtering happens downstream.
 - Never emit a query for an audience whose defining event is in the tracking plan's missing list — blocked is blocked, in SQL too.
 - Never ship an audience query without a size signal (dry-run estimate, or an explicit instruction to get one before running) — an unvalidated query is exactly how an audience leak (accidentally targeting everyone, or no one) reaches a live send.
 - Never return an identity-only audience when the journey's copy needs item/product/discount personalization — select those fields alongside identity (`knowledge/audience-sql.md` rule 6).

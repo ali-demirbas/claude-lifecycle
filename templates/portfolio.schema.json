@@ -1,0 +1,397 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "templates/portfolio.schema.json",
+  "title": "Portfolio registry",
+  "description": "DRAFT (audit5). Machine-facing journey registry read by scripts/validate_output.py check_portfolio and written by skills/lifecycle-journeys + scripts/finalize_run.py. Shape only: cap math, file existence, handoff targets and 'caps may only tighten the knowledge-file defaults' stay in code. Applies to schema_version 2.0 registries only; files without schema_version keep the legacy read path.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "frequency_policy",
+    "external_journeys_status",
+    "journeys"
+  ],
+  "$defs": {
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "push",
+        "sms",
+        "in_app",
+        "whatsapp"
+      ]
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "channelCounts": {
+      "type": "object",
+      "description": "Per-channel weekly counts. Keys are the channel vocabulary only: 'e-mail', 'Email' or 'total' are rejected, so a typo can't escape its channel cap.",
+      "propertyNames": {
+        "$ref": "#/$defs/channel"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/count"
+      }
+    },
+    "group": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "minLength": 1
+    },
+    "relativeFile": {
+      "type": "string",
+      "description": "Path relative to the portfolio's folder, no absolute paths and no parent-directory segments: the registry must stay valid when the output folder is moved or archived under runs/.",
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(^|/)\\.\\.(/|$))[^\\\\]+\\.json$"
+    }
+  },
+  "properties": {
+    "brand": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "const": "2.0"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "single",
+        "portfolio"
+      ],
+      "description": "Written by finalize_run.py from the run manifest's mode."
+    },
+    "readiness": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "draft"
+      ]
+    },
+    "caps": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Brand-specific caps. May only TIGHTEN the defaults in knowledge/compliance/consent-and-quiet-hours.md; the maxima below mirror that table today, and the validator must re-check against the live table (load_default_caps) because a schema constant can drift.",
+      "properties": {
+        "email": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "push": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "push_per_day": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "sms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "whatsapp": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "in_app": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        }
+      }
+    },
+    "frequency_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "window",
+        "on_breach"
+      ],
+      "properties": {
+        "window": {
+          "const": "P7D"
+        },
+        "on_breach": {
+          "type": "string",
+          "enum": [
+            "defer",
+            "skip",
+            "priority"
+          ]
+        }
+      }
+    },
+    "external_journeys_status": {
+      "type": "string",
+      "enum": [
+        "declared",
+        "none_reported",
+        "unknown"
+      ]
+    },
+    "external_journeys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "audience_groups",
+          "msgs"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "audience_groups": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/group"
+            }
+          },
+          "msgs": {
+            "description": "Counts exactly as the user stated them; null = the user named the journey but not its volume (reported unverifiable).",
+            "oneOf": [
+              {
+                "$ref": "#/$defs/channelCounts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "window": {
+            "const": "P7D"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "events_available": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "journeys": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "file",
+          "pattern",
+          "stage",
+          "priority",
+          "channels",
+          "audience_group",
+          "est_msgs_per_week"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*-[0-9]{2}$"
+          },
+          "file": {
+            "$ref": "#/$defs/relativeFile"
+          },
+          "pattern": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "acquisition",
+              "activation",
+              "engagement",
+              "revenue",
+              "retention",
+              "winback"
+            ]
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "P0",
+              "P1",
+              "P2"
+            ]
+          },
+          "channels": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/channel"
+            }
+          },
+          "audience_group": {
+            "$ref": "#/$defs/group"
+          },
+          "est_msgs_per_week": {
+            "$ref": "#/$defs/channelCounts"
+          },
+          "vertical": {
+            "type": "string",
+            "minLength": 1
+          },
+          "readiness": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "draft"
+            ]
+          }
+        }
+      }
+    },
+    "audience_overlaps": {
+      "type": "array",
+      "description": "Each item is one combination of groups a single user can occupy at once. A flat [a, b] is rejected (it would be read character by character). Every name must be an audience_group or an external audience_groups entry; that cross-reference is checked in code.",
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "uniqueItems": true,
+        "items": {
+          "$ref": "#/$defs/group"
+        }
+      }
+    },
+    "campaign_msgs_per_week": {
+      "$ref": "#/$defs/channelCounts"
+    },
+    "blocked": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pattern",
+          "reason"
+        ],
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "missing_events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "suppressed_accounts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-text planner notes; never read by the validator."
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1
+    },
+    "allowed_channels": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "email",
+          "push",
+          "sms",
+          "in_app",
+          "whatsapp"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Channels the brand can send on and users consented to; every journey's channels must be inside it."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "external_journeys_status": {
+            "const": "declared"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "external_journeys"
+        ],
+        "properties": {
+          "external_journeys": {
+            "minItems": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "external_journeys": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "scope": {
+            "const": "single"
+          }
+        },
+        "required": [
+          "scope"
+        ]
+      },
+      "then": {
+        "properties": {
+          "journeys": {
+            "maxItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "anyOf": [
+    {
+      "required": [
+        "brand"
+      ]
+    },
+    {
+      "required": [
+        "project"
+      ]
+    }
+  ]
+}

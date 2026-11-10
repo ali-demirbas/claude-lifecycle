@@ -284,6 +284,45 @@ def _v2_root(doc):
     return to_node(doc["start"])
 
 
+_EN = {"Giriş": "Entry", "Tetikleyici": "Trigger", "Yol ayrımı": "Decision", "Sinyal": "Signal", "Zamanlama": "Timing",
+       "Gün": "Day", "ortak adım": "shared step", "diğer dalda devam ediyor": "continues on the other branch",
+       "Oldu": "Occurred", "Olmadı": "Did not occur", "Varsayılan": "Default", "Ölçülemedi": "Unmeasurable",
+       "Tamamlandı": "Completed", "Dönüştü": "Converted", "Süre doldu": "Expired", "Devir": "Handoff",
+       "Bastırıldı": "Suppressed", "Abonelikten çıktı": "Unsubscribed", "Uygun değil": "Ineligible", "Çıkış": "Exit",
+       "Gösterim: sonraki oturumda": "Shown at the next session", "içinde görülmezse düşer": "then expires",
+       "Son gönderim": "Send no later than", "Amaç": "Purpose", "pazarlama sıklığına sayılmaz": "not counted toward marketing caps",
+       "Alıcı": "Recipient", "Zaman: olaya bağlı": "Time: event-driven", "anında": "at entry", "sonrası hemen": "right after",
+       " sonra": " later", " önce": " before", " gün": " day(s)", " saat": " hour(s)", " hafta": " week(s)",
+       " dakika": " minute(s)", "hemen": "immediately", "saat dilimi yok": "no timezone", "veya": "or", " ve ": " and "}
+
+
+def localize(obj, lang):
+    """Turkish words the script itself composes -> English for an English run (journey text is left alone)."""
+    if lang == "tr":
+        return obj
+    def tr(s):
+        for a, b in sorted(_EN.items(), key=lambda kv: -len(kv[0])):
+            s = s.replace(a, b)
+        return s
+    def walk(n):
+        for key in ("tag",):
+            if isinstance(n.get(key), str):
+                n[key] = tr(n[key])
+        if n.get("kind") == "exit" and isinstance(n.get("title"), str):
+            n["title"] = tr(n["title"])
+        for r in n.get("rows") or []:
+            if isinstance(r.get("html"), str):
+                r["html"] = tr(r["html"])
+        for c in n.get("children") or []:
+            if isinstance(c.get("label"), str):
+                c["label"] = tr(c["label"])
+            walk(c["node"])
+    for j in obj:
+        if isinstance(j.get("root"), dict):
+            walk(j["root"])
+    return obj
+
+
 def journey_to_canvas(doc):
     """Map a per-journey schema JSON onto one canvas journey object
     ({id, skill, label, purpose, segment, goal, primaryMetric, root}). The node
@@ -327,6 +366,14 @@ def build(template_path, journeys, meta):
 
     # Header texts — NO DOTALL so the `<title>` inside the SWAPPABLE comment
     # (which has no closing `</title>` on its own line) is never matched.
+    lang = str(meta.get("lang") or "tr").lower()
+    t, _ = _sub_once(t, r'<html lang="[a-z-]+"', f'<html lang="{lang}"')
+    if lang != "tr":
+        ui_file = Path(template_path).with_name("ui-en.json")
+        blocks = json.loads(ui_file.read_text(encoding="utf-8")) if ui_file.is_file() else {}
+        block = blocks.get(Path(template_path).name)
+        if block:
+            t, _ = _sub_once(t, r"^const UI = \{\n.*?^\};", block, flags=re.M | re.S)
     if "title" in meta:
         t, _ = _sub_once(t, r"<title>.*?</title>", f"<title>{_esc(meta['title'])}</title>")
     if "eyebrow" in meta:
@@ -425,6 +472,7 @@ def main(argv):
         print(f"warning: {count_warn}", file=sys.stderr)
 
     try:
+        journeys = localize(journeys, str(meta.get("lang") or "tr").lower()) if args.from_journeys else journeys
         built = build(args.template, journeys, meta)
     except ValueError as e:
         print(f"error: {e}", file=sys.stderr)

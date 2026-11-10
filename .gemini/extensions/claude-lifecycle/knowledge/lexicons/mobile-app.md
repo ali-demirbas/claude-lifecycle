@@ -33,16 +33,16 @@ Urgency must be anchored to a real, system-known expiry: a streak that breaks at
 
 | Journey type | Tone shift |
 |---|---|
-| Welcome / onboarding | Warm, zero-pressure, one tiny step at a time ("ilk adım 30 saniye sürer") |
-| Activation (stalled tutorial) | Encouraging, effort-minimizing ("kaldığın yerden 1 dakikada bitir"); never point out that they quit |
+| Welcome / onboarding | Warm, zero-pressure, one tiny step at a time ("İlk adım 30 saniye sürer") |
+| Activation (stalled tutorial) | Encouraging, effort-minimizing ("Kaldığın yerden 1 dakikada bitir"); never point out that they quit |
 | Churn prevention (fading) | Light, content-led — lead with what's new or unfinished, never with their absence |
 | Reactivation / winback | Fresh-start energy: what changed, what's new since they left; no guilt, no "we noticed you've been away" |
 | Milestone / streak | Celebrate loudly, this is the one place hype is allowed ("Rekor kırdın!") |
-| Monetization (IAP/offer) | Matter-of-fact and tied to their moment ("bu seviyede işine yarar"); never desperate discounting |
+| Monetization (IAP/offer) | Matter-of-fact and tied to their moment ("Bu seviyede işine yarar"); never desperate discounting |
 
 ## TR / EN notes
 
-- TR: "sen" always — "siz" in a game push reads like a bank letter. Native, spoken-register TR; write how players actually talk ("hadi", "bir tur", "kaldığın yerden"), not translated marketing EN.
+- TR: "sen" always — "siz" in a game push reads like a bank letter. Native, spoken-register TR; write how players actually talk ("hadi", "Bir tur", "Kaldığın yerden"), not translated marketing EN.
 - TR: suffix personalization correctly ({{first_name}} + vocative works; avoid awkward possessive constructions with foreign names).
 - EN: fragments welcome ("New puzzle. 2 minutes. Go."), sentence case, no Title Case Push Titles.
 - Emoji: max 1, placed at the end of title or body, never as a substitute for a word; skip entirely in billing, account, or parental-context messages.

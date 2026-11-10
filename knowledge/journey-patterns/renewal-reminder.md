@@ -3,16 +3,16 @@ name: renewal-reminder
 stage: retention
 trigger_type: time
 required_events: [subscription_renewed]
-optional_events: [subscription_cancel, subscription_expired, plan_changed, payment_failed, payment_succeeded, renewal_quote_issued, renewal_page_click, login]
+optional_events: [subscription_cancel, subscription_expired, plan_changed, payment_failed, payment_succeeded, renewal_quote_issued, renewal_page_click]
 required_attributes: [renewal_date, auto_renew]
 optional_attributes: [renewal_price, notice_period_days, grace_period_days, plan_name, payment_method_type, quote_valid_until, product_line, delivered_value_summary]
-default_channels: [email, push, sms]
+default_channels: [email, push, sms, in_app, whatsapp]
 base_steps: 3
 depth_range: [2, 6]
 applicable_industries: [insurance, saas, subscription-media, edtech, fintech, mobile-app]
 mutually_exclusive_with: []
 journey_class: service
-signal_sources: {renewal_date: authoritative, auto_renew: authoritative, subscription_renewed: authoritative, subscription_cancel: authoritative, subscription_expired: authoritative, plan_changed: authoritative, payment_failed: authoritative, payment_succeeded: authoritative, renewal_quote_issued: authoritative, renewal_price: authoritative, quote_valid_until: authoritative, renewal_page_click: engagement, login: behavioral, delivered_value_summary: authoritative}
+signal_sources: {renewal_date: authoritative, auto_renew: authoritative, subscription_renewed: authoritative, subscription_cancel: authoritative, subscription_expired: authoritative, plan_changed: authoritative, payment_failed: authoritative, payment_succeeded: authoritative, renewal_quote_issued: authoritative, renewal_price: authoritative, quote_valid_until: authoritative, renewal_page_click: engagement, delivered_value_summary: authoritative}
 insufficient_alone:
   - a click on the renewal link or a visit to the renewal page
   - a renewal date computed from the start date plus an assumed term length
@@ -96,7 +96,7 @@ Depth is bounded by the lead window, not by DQS: a monthly plan with a 7-day not
 | x3 | renewal_date +2d | — | Exit `handoff` → winback, `suppress_queued: true`, carrying lapse date, renewal model, product line and consent state. | — |
 | x4 | renewal_date +2d | — | Exit `completed` (neutral): outcome unknown, reconcile with billing before anyone is told they lapsed. No win-back handoff on an unknown outcome. | — |
 
-**Short-runway compression.** The first notice of each branch (s1, s3, s6) goes at the lead point or at entry, whichever is later. A step whose anchor has already passed at entry is dropped, never sent late, and no step moves past the next one or past `renewal_date`. When two sends would land less than 48 hours apart, the earlier discretionary one is dropped; the owed first notice is never dropped.
+**Short-runway compression.** The first notice of each branch (s1, s3, s6) goes at the lead point or at entry, whichever is later. A step whose anchor has already passed at entry is dropped, never sent late, and no step moves past the next one or past `renewal_date`. When two sends would land less than 48 hours apart, the discretionary one is dropped. When the earlier send is the owed first notice, it absorbs the later send's wording and the later send is dropped; the owed first notice is never dropped.
 
 | Runway at entry | Sends (auto · manual · neutral) | Dropped or merged |
 |---|---|---|
@@ -122,8 +122,8 @@ Branched additions, each with its own anchor in a generated journey:
 
 - **Worst path in any rolling 7 days:** manual branch, s4 + s5 = 2 sends (both service). Branched adds at most q1 in the same window (3 service sends). The marketing recap m1 sits outside the last week and counts against marketing caps.
 - **Service sends are exempt from marketing caps** but are deduplicated against other service messages about the same subscription: if a billing or policy-document notice with the same date and price goes out within 24 hours, skip the discretionary reminder (s2, s4, s7), never the first notice.
-- **Usual overlaps:** payment-failure, cancellation-winddown, churn-prevention (insurance repurposes it as pre-renewal retention against the same `renewal_date`), upsell-cross-sell, anniversary.
-- **Precedence on the same subscription:** payment-failure (open) > cancellation-winddown > renewal-reminder > churn-prevention / upsell-cross-sell / anniversary. A lower journey defers its sends inside this journey's last 7 days; a higher one suppresses this journey's queued sends at handoff. Where churn-prevention runs as an insurance pre-renewal program, the owner chooses at portfolio level whether it supplies the marketing layer (and this pattern drops m1) or this pattern replaces it; both must not count down to the same date with their own copy.
+- **Usual overlaps:** payment-failure, cancellation-winddown, churn-prevention (in insurance, the save path for at-risk policies ahead of the same `renewal_date`), upsell-cross-sell, anniversary.
+- **Precedence on the same subscription:** payment-failure (open) > cancellation-winddown > renewal-reminder > churn-prevention / upsell-cross-sell / anniversary. A lower journey defers its sends inside this journey's last 7 days; a higher one suppresses this journey's queued sends at handoff. **This journey owns the renewal clock**: the countdown notices to `renewal_date` and the m1 recap are sent only here. Churn-prevention, where it runs before a renewal (insurance), is the save path for at-risk policies only: it enters on a risk signal, never on renewal proximity alone, sends no countdown of its own to the same date, and defers its sends inside this journey's last 7 days.
 
 ## Measurement
 

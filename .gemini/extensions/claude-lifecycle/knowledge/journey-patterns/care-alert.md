@@ -4,15 +4,16 @@ stage: retention
 trigger_type: event
 journey_class: service
 required_events: [external_alert]
-optional_events: [session_start, claim_filed, purchase, alert_cancelled, coverage_ended, consent_withdrawn]
+optional_events: [claim_filed, alert_cancelled, coverage_ended, consent_withdrawn]
 required_attributes: [alert_type, affected_region]
 optional_attributes: [product_line, travel_date, severity, alert_end]
 default_channels: [push, sms]
 base_steps: 2
 depth_range: [1, 2]
 applicable_industries: [insurance, travel]
+requires_feed: true          # needs a live feed (stock, price, purchase cycle or alerts); blocked at T3
 mutually_exclusive_with: []
-signal_sources: {external_alert: authoritative, alert_type: authoritative, affected_region: authoritative, severity: authoritative, alert_end: authoritative, alert_cancelled: authoritative, claim_filed: authoritative, coverage_ended: authoritative, product_line: authoritative, travel_date: authoritative, session_start: behavioral, purchase: authoritative, consent_withdrawn: authoritative}
+signal_sources: {external_alert: authoritative, alert_type: authoritative, affected_region: authoritative, severity: authoritative, alert_end: authoritative, alert_cancelled: authoritative, claim_filed: authoritative, coverage_ended: authoritative, product_line: authoritative, travel_date: authoritative, consent_withdrawn: authoritative}
 insufficient_alone:
   - a forecast or model output that is not the official feed
   - a region match without a held product or booking exposed to the peril
@@ -82,7 +83,7 @@ s2 is worded so it reads correctly even if s1 never arrived (it names the event,
 
 ## Timing and channel fit
 
-- **Quiet hours:** a genuinely imminent, high-severity protective alert is the one legitimate quiet-hours exception in the portfolio, an exception the **user's own safety** justifies, taken only when the source feed's timing forces it, and documented per send. A morning-safe warning waits for morning (push 09:00, SMS 10:00 user local). The check-in (s2) never uses the exception.
+- **Quiet hours:** a genuinely imminent, high-severity protective alert is the one legitimate quiet-hours exception in the portfolio, an exception the **user's own safety** justifies, taken only when the source feed's timing forces it, and documented per send. The same exception covers the SMS no-Sundays rule: an imminent alert goes on a Sunday too. A morning-safe warning waits for morning (push 09:00, SMS 10:00 user local); a morning-safe SMS that would land on a Sunday goes by push at 09:00 where push is reachable, otherwise moves to Monday 10:00, and is dropped if the peril's onset comes before that. The check-in (s2) never uses the exception.
 - **Push** fits: it is immediate and lands on the device the traveler or driver carries. **SMS** is the fallback where push is unconsented or the token is dead, and for travelers who may be offline from the app. Email is too slow for s1 and is not used.
 - **Fallback:** neither push nor SMS reachable → the person is not alerted by this journey; the journey doc reports the gap rather than switching to email for an imminent event.
 

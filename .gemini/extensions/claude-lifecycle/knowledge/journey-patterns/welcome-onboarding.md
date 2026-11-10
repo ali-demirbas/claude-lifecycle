@@ -3,7 +3,7 @@ name: welcome-onboarding
 stage: activation
 trigger_type: event
 required_events: [sign_up]
-optional_events: [login, tutorial_begin, tutorial_complete, feature_used, purchase, subscription_start, link_click, activation_event, consent_withdrawn]
+optional_events: [login, tutorial_begin, tutorial_complete, feature_used, purchase, activation_event, consent_withdrawn]
 required_attributes: []
 optional_attributes: [signup_source, plan_type, onboarding_goal, account_id, user_role, last_completed_step]
 default_channels: [email, in_app]
@@ -12,7 +12,7 @@ depth_range: [4, 10]
 applicable_industries: [ecommerce, saas, mobile-app, fintech, marketplace, subscription-media, travel, edtech, insurance]
 mutually_exclusive_with: [account-onboarding]
 journey_class: marketing
-signal_sources: {sign_up: authoritative, activation_event: behavioral, login: behavioral, tutorial_begin: behavioral, signup_source: authoritative, onboarding_goal: authoritative, link_click: engagement, consent_withdrawn: authoritative}
+signal_sources: {sign_up: authoritative, activation_event: behavioral, login: behavioral, tutorial_begin: behavioral, signup_source: authoritative, onboarding_goal: authoritative, consent_withdrawn: authoritative}
 insufficient_alone:
   - a login without the activation event
   - tutorial_begin without tutorial_complete
@@ -54,6 +54,7 @@ Guide brand-new users from `sign_up` to their first value moment. The first 7 da
 - **Success exit:** `activation_event` · **Window:** 14 days from entry.
 - **Checked before every send:** `activation_event` (activated users leave immediately; do not keep sending "how to get started"), `consent_withdrawn` scoped to that channel (an email unsubscribe stops the emails; the in-app pointer, which needs no marketing consent, still shows).
 - **Re-entry:** once ever. A repeated `sign_up` for the same identity while an instance is active is ignored (no restart).
+- **Inbound from:** [lead-nurture](lead-nurture.md) (on `sign_up`, carrying the lead source and consent state) and [reactivation](reactivation.md) (a returning dormant non-customer who never entered this journey, carrying `reactivation_reason`); the sender's queued sends are suppressed.
 - **Hand-offs:** activated users go to the engagement patterns (`feature-adoption`, `milestone`); users who time out unactivated go to [activation](activation.md), which only starts after this window closes. Any queued sends of this journey are dropped at hand-off.
 
 ## Depth scaling
@@ -77,7 +78,7 @@ Pace is a segmentation axis in its own right: fast progressors get a lighter tra
 | s1 | entry +5m | email | Welcome: confirm what they signed up for, one CTA to the single first-value action | → s2 |
 | s2 | s1 +1d (shown at next session, expires after 5d) | in_app | Contextual pointer to the core action, shown at the next session on or after this time; skipped if no session comes within 5 days. s3 keeps its own anchor (`s1 +3d`) whether or not s2 was seen | → s3 |
 | s3 | s1 +3d | email | How-to aimed at the most common activation blocker, with proof the result is worth it | → d1 |
-| d1 | s1 +6d | — | Decision on `login` (behavioral) between entry and s1 +6d | occurred → s4a · not_occurred → s4b · unmeasurable → s4b |
+| d1 | s1 +6d | — | Decision on `login` (behavioral) between s1 +1d and s1 +6d (the window opens a day after the welcome, so the signup session's own login never counts as a return) | occurred → s4a · not_occurred → s4b · unmeasurable → s4b |
 | s4a | s1 +6d | email | Returned but stuck: deep link back to the exact unfinished step (`last_completed_step`), not to the start of onboarding | → s5 |
 | s4b | s1 +6d | email | Use-case story matched to `signup_source` when known, generic best case otherwise | → s5 |
 | s5 | s1 +11d | email | Direct activation nudge plus an offer of human help or the support channel | end |

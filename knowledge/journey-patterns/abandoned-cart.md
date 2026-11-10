@@ -3,7 +3,7 @@ name: abandoned-cart
 stage: revenue
 trigger_type: event
 required_events: [add_to_cart, purchase]
-optional_events: [begin_checkout, view_cart, remove_from_cart, payment_failed, consent_withdrawn, cart_cleared]
+optional_events: [begin_checkout, view_cart, payment_failed, consent_withdrawn, cart_cleared]
 required_attributes: []
 optional_attributes: [cart_value, cart_items, cart_id, item_availability]
 default_channels: [email, push]

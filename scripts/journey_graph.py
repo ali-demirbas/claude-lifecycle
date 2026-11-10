@@ -19,11 +19,13 @@ safety-relevant fact (timing, frequency, event existence) could not be
 established, so the caller must not report an unconditional pass.
 """
 import re
+import sys
 
 GRAPH_VERSION = "2.0.0"
 DUR = re.compile(r"^(-)?P(?!$)(?:(\d+)W|(?:(\d+)D)?(?:T(?=\d)(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?)$")
 DAY = 86400
-MAX_PATHS = 2000
+MAX_PATHS = 20000
+sys.setrecursionlimit(max(sys.getrecursionlimit(), 5000))
 CONSENT_EXIT = re.compile(r"consent|unsub|opt_?out|optout|withdraw|izin", re.I)
 CONSENT_GRANT = re.compile(r"consent_?grant|re_?consent|opt_?in|subscribe|izin_?ver|izni_?ver|onay_?ver|onaylandı", re.I)
 CONSENT_NEGATIVE = re.compile(r"unsub|opt_?out|optout|withdr|revok|denied|declin|reject|iptal|geri_?[cç]ek|ret\b|_ret$|red_?ed", re.I)
@@ -278,8 +280,9 @@ def timeline(doc, by_id, path, F):
                 F.error(f"node '{nid}': decision window ends ({fmt(t)}) before it starts ({fmt(t_from)})")
             lat = max([dur_seconds(m.get("latency")) or 0 for m in signal_members(n.get("signal") or {})] or [0])
             if lat and t is not None and t_from is not None and (t - t_from) < lat:
-                F.warn(f"node '{nid}': decision window ({fmt(t - t_from)}) is shorter than the signal's "
-                       f"latency ({fmt(lat)}); late data will read as 'not occurred'")
+                F.unverifiable(f"node '{nid}': decision window ({fmt(t - t_from)}) is shorter than the signal's "
+                               f"latency ({fmt(lat)}); late data would read as 'not occurred', which the "
+                               f"unmeasurable rule forbids — widen the window or route late data to unmeasurable")
         if k in ("entry", "message", "decision"):
             if t is not None:
                 if t < 0:
@@ -319,9 +322,9 @@ def path_frequency(by_id, tl, window):
     for ch in set(known) | set(unknown):
         certain[ch] = window_max(known.get(ch, []), window)
         res[ch] = certain[ch] + unknown.get(ch, 0)
-    all_known = [t for v in known.values() for t in v]
+    all_known = [t for c, v in known.items() if c != "in_app" for t in v]
     certain["total"] = window_max(all_known, window)
-    res["total"] = certain["total"] + sum(unknown.values())
+    res["total"] = certain["total"] + sum(v for c, v in unknown.items() if c != "in_app")
     if "push" in known or "push" in unknown:
         certain["push_per_day"] = window_max(known.get("push", []), 13 * 3600)  # inside one 09:00-22:00 day
         res["push_per_day"] = certain["push_per_day"] + unknown.get("push", 0)
@@ -342,6 +345,12 @@ def analyze(doc, inventory=None, window=7 * DAY):
     if not ranged:
         return _analyze_once(doc, inventory, window)
     import copy as _copy  # noqa: PLC0415
+    for k, v in ranged.items():
+        lo, hi = (dur_seconds(x) for x in (v["range"] + [None, None])[:2])
+        if lo is not None and hi is not None and lo > hi:
+            bad = _analyze_once(doc, inventory, window)
+            bad["findings"].error(f"time anchor '{k}': range {v['range']} is reversed (shortest first, then longest)")
+            return bad
     results = []
     for end in (0, 1):
         d = _copy.deepcopy(doc)
@@ -780,6 +789,8 @@ def legacy_frequency(doc, window=7 * DAY):
 
 def analyze_legacy(doc):
     F = Findings()
+    F.unverifiable("schema 1.x journey (steps/flow): frequency caps, withdrawn channels, consent exits and measurement "
+                   "are not checked the way schema 2.0 checks them — regenerate as 2.0 (docs/migration-0.3.0.md)")
     for s in doc.get("steps") or []:
         bc = s.get("branch_condition") or ""
         if LEGACY_OPEN.search(bc):

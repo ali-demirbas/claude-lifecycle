@@ -452,6 +452,7 @@ body.lab {
     .print-step .ps-row { font-size: 12px; margin: 2px 0; }
     .print-step.exit-good { background: #ecfdf5; }
     .print-step.exit-bad { background: #f7f8fb; }
+    .print-step.exit-neutral { background: #f7f8fb; }
     .print-branch-label { font-size: 11px; font-weight: 600; color: #007956; margin: 10px 0 4px; }
     code.variable { background: #f3f7ff; }
     .lab-tip-bubble { display: none; }
@@ -838,8 +839,10 @@ function buildCard(node) {
   const el = document.createElement('div');
   if (node.kind === 'exit') {
     const good = node.exit === 'good';
-    el.className = `lab-node lab-node--pill lab-node--exit${good ? ' is-good' : ''}`;
-    el.innerHTML = `<span class="lab-icon lab-icon--xs lab-icon--round ${good ? 'lab-t-good' : 'lab-t-neutral'}">${good ? ICONS.check : ICONS.x}</span><span>${escapeHtml(node.title)}</span>`;
+    const neutral = node.exit === 'neutral';
+    el.className = `lab-node lab-node--pill lab-node--exit${good ? ' is-good' : ''}${neutral ? ' is-neutral' : ''}`;
+    const mark = good ? ICONS.check : (neutral ? ICONS.chevron : ICONS.x);
+    el.innerHTML = `<span class="lab-icon lab-icon--xs lab-icon--round ${good ? 'lab-t-good' : 'lab-t-neutral'}">${mark}</span><span>${escapeHtml(node.title)}</span>`;
     return el;
   }
   if (node.kind === 'wait') {
@@ -1052,7 +1055,7 @@ function buildPrintView() {
       const indent = `style="margin-left:${Math.min(depth, 6) * 18}px"`;
       const labelHtml = label ? `<div class="print-branch-label" ${indent}>${escapeHtml(label)} →</div>` : '';
       if (node.kind === 'exit') {
-        const mark = node.exit === 'good' ? '✓' : '✕';
+        const mark = node.exit === 'good' ? '✓' : (node.exit === 'neutral' ? '→' : '✕');
         return `${labelHtml}<div class="print-step ${cls}" ${indent}><div class="ps-title">${mark} ${escapeHtml(node.title)}</div></div>`;
       }
       const rows = (node.rows || []).map(r => `<div class="ps-row">${highlightVars(r.html)}</div>`).join('');

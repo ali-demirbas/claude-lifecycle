@@ -37,8 +37,8 @@ You receive `validate_output.py copy` output for each doc. Character counts, cei
 
 ```
 ## Review — <journey-id>
-verdict: PASS | FIX | LEGAL
-| block | check failed | violation (quote it) | required fix |
+verdict: PASS | FIX | LEGAL   (the worst block verdict: any FIX → FIX, else any LEGAL → LEGAL)
+| block | verdict (PASS/FIX/LEGAL) | check failed | violation (quote it) | required fix |
 notes: [only for borderline PASSes — what to watch; for LEGAL: the exact claim awaiting sign-off]
 ```
 

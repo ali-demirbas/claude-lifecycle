@@ -3,7 +3,7 @@ name: post-purchase
 stage: retention
 trigger_type: event
 required_events: [purchase]
-optional_events: [refund, order_cancelled, review_submitted, low_rating_submitted, support_ticket_opened, view_item, add_to_cart, consent_withdrawn]
+optional_events: [refund, order_cancelled, review_submitted, low_rating_submitted, support_ticket_opened, consent_withdrawn]
 required_attributes: []
 optional_attributes: [delivery_date, order_category, repurchase_period_days, is_first_purchase, is_guest_checkout, support_ticket_open]
 default_channels: [email, push]
@@ -64,6 +64,7 @@ Turn one purchase into a relationship: onboarding onto the product bought, a wel
 - **Checked before each send:** a later `purchase` (success; it also restarts the journey on the new order), and, for this instance's order only (`instance_key: order_id`): `order_cancelled`, `refund`, `support_ticket_opened` on the order. A refund or ticket on an older order doesn't stop this one (an open complaint still applies through the portfolio-wide override). `consent_withdrawn` is scoped to that send's channel: an email unsubscribe stops s1–s3, and s4 still goes by push where push is consented. A low rating is handled by d1/d2 before each sell, not as a journey-wide exit, so it can't silently filter who gets the review request. A first purchase cancelled or fully reversed ends the instance without a further touch.
 - **Re-entry:** per purchase, subject to portfolio frequency caps.
 - **Repeated trigger while active:** a newer order restarts the instance on that order; the older instance exits and its queued sends are dropped (newest order wins).
+- **Inbound from:** [reactivation](reactivation.md) when a dormant non-customer makes a first `purchase`; reactivation's queued sends are suppressed and the order starts this journey as a normal entry (`order_id`), with `reactivation_reason` carried for reporting.
 - **Handoffs:**
   - `low_rating_submitted` or `support_ticket_opened` → service recovery (the support/human resolution path; [feedback-nps](feedback-nps.md)'s detractor route where that journey runs); queued sell sends suppressed. A low rating is never followed by a sell, and it is never used to decide who gets the review request (no review gating).
   - `refund` resolved without dispute → one no-sell "did the resolution work for you?" touch belongs to the service path, not to this journey.
@@ -87,7 +88,7 @@ Anchor (declared in `time_anchors`): `repurchase_due` = purchase + `repurchase_p
 | s1 | delivery_date +2d | email | Usage / care / getting-the-most tips for the item bought; pure value, no sell | → s2 |
 | s2 | s1 +5d | email | Review/UGC ask: one item, one click, honest framing | → d1 |
 | d1 | s2 +5d | — | Decision on `low_rating_submitted` for this order (authoritative review/rating record) between entry and s2 +5d | occurred → handoff service recovery · not_occurred → s3 · unmeasurable → s3 |
-| s3 | s2 +5d | email | Cross-sell complements to `order_category`, framed as completing the purchase | → d2 |
+| s3 | s2 +5d | email | Cross-sell complements to `order_category`, framed as completing the purchase. This journey owns order-complement cross-sell for the order; [upsell-cross-sell](upsell-cross-sell.md) excludes the order while this instance is open | → d2 |
 | d2 | repurchase_due -1d | — | Decision on `low_rating_submitted` for this order (authoritative review/rating record) between s2 +5d and repurchase_due -1d | occurred → handoff service recovery · not_occurred → s4 · unmeasurable → s4 |
 | s4 | repurchase_due +0d | email (push only for users opted into product-update pushes; a 30-day-old purchase is not a recent trigger under push.md) | Second-purchase bridge: replenish, the next step in the category, or new-arrivals deeplink | → end |
 

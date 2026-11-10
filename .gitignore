@@ -14,6 +14,13 @@
 user-data/
 exports/
 output/
+*.xlsx
+*.xls
+*.parquet
+*.ndjson
+*.tsv
+.env
+.env.*
 
 # OS / editor noise
 .DS_Store
@@ -33,3 +40,5 @@ evals/out/
 # iCloud Drive sync-conflict copies ("name 2.ext") — never part of the repo
 * 2.*
 * 2
+* [0-9].*
+* [0-9]
