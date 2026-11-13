@@ -137,3 +137,7 @@ New industries, patterns, and sharper channel rules are welcome; see [CONTRIBUTI
 ## License
 
 [MIT](LICENSE)
+
+---
+
+Built by [Ali Demirbaş](https://alidemirbas.com.tr)
