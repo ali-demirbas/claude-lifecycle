@@ -29,7 +29,7 @@ Checked against the official docs on 2026-11-14: the `claude-plugins-official` R
 | Long description | the README (below is a suggested opening) | confirmed |
 | Category | Marketing *(suggested)* | **unconfirmed**: none of the checked pages lists a category field for plugin submissions or says where one is read from |
 | Keywords | `plugin.json` `keywords` (below) | in manifest; whether the directory shows them is **unconfirmed** |
-| Icon (`icon`) | not set; the repo has no logo file | to add before the first submission: a square PNG, 512 to 2048 px, under 2 MB, at `.claude-plugin/icon.png` (SVG and WebP are refused). The icon is taken only once, at the first save or submission, so choose it deliberately |
+| Icon | `.claude-plugin/icon.png` (1024 px, square) | in the repo |
 | Documentation URL | `https://ali-demirbas.github.io/claude-lifecycle/` | to add as `documentationUrl` |
 | Support URL | `https://github.com/ali-demirbas/claude-lifecycle/issues` | to add as `supportUrl` |
 | Privacy policy URL | `https://github.com/ali-demirbas/claude-lifecycle/blob/main/docs/directory-submission.md#privacy-statement` | to add as `privacyPolicyUrl` |

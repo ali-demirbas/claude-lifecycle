@@ -5,7 +5,7 @@ description: Export generated journeys as CRM-agnostic JSON (journey.schema.json
 metadata:
   version: 0.3.0
   category: export
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Export — Structured Output

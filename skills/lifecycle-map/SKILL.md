@@ -5,7 +5,7 @@ description: Map tracked events to lifecycle stages (acquisition/activation/enga
 metadata:
   version: 0.3.0
   category: data
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Map — Event → Stage Mapping

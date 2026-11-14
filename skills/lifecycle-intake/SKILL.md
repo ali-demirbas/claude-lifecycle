@@ -5,7 +5,7 @@ description: Structured questioning to fill information gaps before journey gene
 metadata:
   version: 0.3.0
   category: intake
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Intake — Structured Gap Filling

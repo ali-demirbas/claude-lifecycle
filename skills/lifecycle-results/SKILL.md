@@ -5,7 +5,7 @@ description: Close the measurement loop. Ingest journey performance data from th
 metadata:
   version: 0.3.0
   category: measurement
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Results — Closing the Loop

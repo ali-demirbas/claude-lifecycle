@@ -67,7 +67,7 @@ for f in skills/*/SKILL.md; do
     for k in $SKILL_META_KEYS; do
       echo "$fm" | grep -q "^  $k:" || err "$f: metadata missing key '$k'"
     done
-    upd=$(echo "$fm" | sed -n 's/^  updated:[[:space:]]*//p' | head -1)
+    upd=$(echo "$fm" | sed -n 's/^  updated:[[:space:]]*//p' | head -1 | tr -d '"')
     echo "$upd" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' \
       || err "$f: metadata.updated '$upd' is not YYYY-MM-DD"
     ver=$(echo "$fm" | sed -n 's/^  version:[[:space:]]*//p' | head -1)
@@ -271,12 +271,12 @@ print(f"  ok: {checked} internal links resolve")
 PY
 
 echo "== 8. Brands: frontmatter + cross-file references =="
-BRAND_KEYS="name display_name industry languages markets default_goal product_rhythm tone formality channels_live incentive_policy extra_banned_words brand_vocabulary existing_automations"
+BRAND_FIELDS="name display_name industry languages markets default_goal product_rhythm tone formality channels_live incentive_policy extra_banned_words brand_vocabulary existing_automations"
 for f in knowledge/brands/*.md; do
   base=$(basename "$f" .md)
   [ "$base" = "_template" ] && continue
   fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
-  for k in $BRAND_KEYS; do
+  for k in $BRAND_FIELDS; do
     echo "$fm" | grep -q "^$k:" || err "$f: missing frontmatter key '$k'"
   done
   nm=$(echo "$fm" | sed -n 's/^name:[[:space:]]*//p' | head -1)

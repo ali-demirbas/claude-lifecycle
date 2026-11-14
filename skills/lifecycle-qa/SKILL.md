@@ -5,7 +5,7 @@ description: Generate test event payloads for generated journeys — positive tr
 metadata:
   version: 0.3.0
   category: qa
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle QA — Trigger Payload Simulator
