@@ -1,8 +1,10 @@
-# claude-lifecycle — rules for Claude
+# Lifecycle Journey Builder — rules for Claude
 
 This repo is a Claude Code plugin: a lifecycle marketing engine built from skills, agents, and a knowledge base. When working inside this repo (or when its skills are invoked), follow these rules. They override defaults.
 
 ## Non-negotiable rules
+
+> A plugin-root CLAUDE.md is not loaded for users who install the plugin. They receive these rules through the SessionStart hook (`hooks/session_orientation.py`, its `RULES` list), so a rule added, removed or changed here must change there too. `scripts/tests/run_tests.sh` fails when the two rule counts differ.
 
 1. **Never generate journeys before a Data Quality Score (DQS) exists.** Run `lifecycle-connect` first, or state explicitly that the user chose Tier 3 (industry-only). Journey depth is derived from DQS — see [docs/data-quality-score.md](docs/data-quality-score.md).
 2. **All outputs come from templates.** Journeys use [templates/journey-doc.md](templates/journey-doc.md), portfolios use [templates/journey-portfolio.md](templates/journey-portfolio.md), copy uses [templates/copy-output.md](templates/copy-output.md). Never invent an ad-hoc output format.

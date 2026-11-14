@@ -464,6 +464,32 @@ expect 1 "injection + broken timestamps fails"  python3 "$VI" "$FX/bad_input.csv
 expect 0 "GA4 aggregate export passes (preamble, YYYYMMDD, Realtime col)" python3 "$VI" "$FX/ga4_aggregate_input.csv"
 expect 1 "injection in a free-text column (not a NAME_COL keyword) is caught" python3 "$VI" "$FX/bad_injection_freetext_col.csv"
 
+echo "== hooks =="
+HK="$DIR/../../hooks"
+HT=$(mktemp -d /tmp/lc_hooks.XXXXXX); mkdir -p "$HT/output/proj" "$HT/elsewhere"
+cp "$DIR/../../examples/ecommerce-full-ga4/05-journey-cart-recovery.json" "$HT/output/proj/cart.json"
+cp "$FX/audit3/C01.json" "$HT/output/proj/broken.json"
+cp "$FX/audit3/C01.json" "$HT/elsewhere/broken.json"
+hook_in() { printf '{"hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"%s"}}' "$1"; }
+hook_run() { hook_in "$1" | python3 "$HK/validate_on_write.py"; }
+expect 0 "hook: valid journey under output/ passes"                    hook_run "$HT/output/proj/cart.json"
+expect 2 "hook: broken journey under output/ is fed back (exit 2)"     hook_run "$HT/output/proj/broken.json"
+expect_contains "hook: broken journey feedback carries the FAIL lines" "Channel Consent Violation" hook_run "$HT/output/proj/broken.json"
+expect 0 "hook: a file outside output/ is not validated"               hook_run "$HT/elsewhere/broken.json"
+expect 0 "hook: malformed stdin never crashes the session"             sh -c 'echo "{not json" | python3 "$1"' _ "$HK/validate_on_write.py"
+rm -rf "$HT"
+CLAUDE_RULES=$(grep -cE '^[0-9]+\. \*\*' "$DIR/../../CLAUDE.md")
+HOOK_RULES=$(python3 "$HK/session_orientation.py" | grep -cE '^[0-9]+\. ')
+if [ "$CLAUDE_RULES" -eq "$HOOK_RULES" ] && [ "$CLAUDE_RULES" -eq 12 ]; then
+  echo "PASS: session orientation carries all $HOOK_RULES CLAUDE.md rules"
+else
+  echo "FAIL: CLAUDE.md has $CLAUDE_RULES numbered rules, session_orientation.py injects $HOOK_RULES — change both together"
+  FAILED=1
+fi
+for n in 1 2 3 4 5 6 7 8 9 10 11 12; do
+  python3 "$HK/session_orientation.py" | grep -qE "^$n\. " || { echo "FAIL: session orientation is missing rule $n"; FAILED=1; }
+done
+
 echo
 if [ "$FAILED" -eq 1 ]; then echo "TESTS FAILED"; exit 1; fi
 echo "ALL TESTS PASSED"

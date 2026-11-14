@@ -3,7 +3,7 @@
 
 Each case is run by a fresh, non-interactive Claude Code process with this repo
 loaded as a plugin (`claude -p --plugin-dir <repo>`), entering through the
-`/claude-lifecycle:lifecycle` router exactly as a user would after installing.
+`/lifecycle-journey-builder:lifecycle` router exactly as a user would after installing.
 The run writes its artifacts to evals/out/<case-id>/, then eval_check.py grades
 them. So one command is both the E2E install test and the eval generation step
 that used to be done by hand.
@@ -96,7 +96,7 @@ def build_prompt(case_id, case_dir, out_dir):
                     "- Breadth gate: build everything eligible (option C), so every assertion in the case can be checked.")
     input_line = (", ".join(rel(os.path.join(case_dir, f)) for f in inputs)
                   if inputs else "none (this is a Tier 3, industry-only case)")
-    return f"""/claude-lifecycle:lifecycle
+    return f"""/lifecycle-journey-builder:lifecycle
 
 This is a non-interactive evaluation run (eval case `{case_id}`). No human is watching, so never stop to ask a question.
 

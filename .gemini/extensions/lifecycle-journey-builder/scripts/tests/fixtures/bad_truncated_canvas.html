@@ -1,5 +1,5 @@
 <!--
-  claude-lifecycle COPY CANVAS output template: THE mandatory copy-output format,
+  Lifecycle Journey Builder COPY CANVAS output template: THE mandatory copy-output format,
   the copy-side counterpart to templates/canvas.html.
   Design: Lab UI, the shared visual language of every Lab tool: a tab per journey
   and one card per step, the step's channel along the card's top edge exactly as
@@ -18,13 +18,11 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="generator" content="claude-lifecycle — https://github.com/ali-demirbas/claude-lifecycle">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>İletişim Metinleri</title>
 <style>
-/* lab-ui:begin */
 /* Lab UI 1.0.0 - the visual language of alidemirbas.com.tr/lab, for the HTML
-   every Lab tool writes (claude-lifecycle, dashboard-builder, the Google Ads
+   every Lab tool writes (Lifecycle Journey Builder, dashboard-builder, the Google Ads
    change-history dashboard, ab-test-playbook).
    Source: design-system/lab-ui/ in the site repo. Tools keep a vendored copy
    and inline it into each self-contained output between the lab-ui markers;
@@ -118,48 +116,6 @@
   color-scheme: light;
 }
 
-/* Dark: the same roles on the stone floor. Tints are mixed from each hue so a
-   soft fill stays a fill, never a glare. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --lab-ground: #161312; --lab-surface: #1f1c1b; --lab-surface-soft: #292524;
-    --lab-text: #f5ede9; --lab-text-strong: #ffffff; --lab-text-muted: #bfb8b5; --lab-text-subtle: #98918f;
-    --lab-line: #35312f; --lab-line-strong: #45403e;
-    --lab-ring: rgb(255 255 255 / 0.08); --lab-ring-strong: rgb(255 255 255 / 0.14); --lab-dot: rgb(255 255 255 / 0.16);
-    --lab-brand: #5089ff; --lab-brand-ink: #aecbff; --lab-brand-soft: color-mix(in oklab, #2f6bff 20%, #1f1c1b); --lab-brand-soft-2: color-mix(in oklab, #2f6bff 30%, #1f1c1b); --lab-button-hover: #f5ede9;
-    --lab-good: #5ee9b5; --lab-good-soft: color-mix(in oklab, #00bb7f 18%, #1f1c1b); --lab-good-line: color-mix(in oklab, #00bb7f 40%, #1f1c1b);
-    --lab-watch: #fee685; --lab-watch-soft: color-mix(in oklab, #f99c00 18%, #1f1c1b); --lab-watch-line: color-mix(in oklab, #f99c00 40%, #1f1c1b);
-    --lab-warn: #ffb86a; --lab-warn-soft: color-mix(in oklab, #fe6e00 18%, #1f1c1b); --lab-warn-line: color-mix(in oklab, #fe6e00 40%, #1f1c1b);
-    --lab-bad: #ffa2ae; --lab-bad-soft: color-mix(in oklab, #ff2357 18%, #1f1c1b); --lab-bad-line: color-mix(in oklab, #ff2357 40%, #1f1c1b);
-    --lab-info: #aecbff; --lab-info-soft: color-mix(in oklab, #2f6bff 20%, #1f1c1b); --lab-info-line: color-mix(in oklab, #2f6bff 45%, #1f1c1b);
-    --lab-ch-email-soft: color-mix(in oklab, #8d54ff 20%, #1f1c1b); --lab-ch-email-ink: #ddd6ff;
-    --lab-ch-push-soft: color-mix(in oklab, #00a5ef 20%, #1f1c1b); --lab-ch-push-ink: #77d4ff;
-    --lab-ch-sms-soft: color-mix(in oklab, #00baa7 20%, #1f1c1b); --lab-ch-sms-ink: #96f7e4;
-    --lab-ch-inapp-soft: color-mix(in oklab, #f99c00 20%, #1f1c1b); --lab-ch-inapp-ink: #fee685;
-    --lab-ch-whatsapp-soft: color-mix(in oklab, #00bb7f 20%, #1f1c1b); --lab-ch-whatsapp-ink: #a4f4cf;
-    --lab-ch-human-soft: color-mix(in oklab, #ff2357 20%, #1f1c1b); --lab-ch-human-ink: #ffccd3;
-  }
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --lab-ground: #161312; --lab-surface: #1f1c1b; --lab-surface-soft: #292524;
-  --lab-text: #f5ede9; --lab-text-strong: #ffffff; --lab-text-muted: #bfb8b5; --lab-text-subtle: #98918f;
-  --lab-line: #35312f; --lab-line-strong: #45403e;
-  --lab-ring: rgb(255 255 255 / 0.08); --lab-ring-strong: rgb(255 255 255 / 0.14); --lab-dot: rgb(255 255 255 / 0.16);
-  --lab-brand: #5089ff; --lab-brand-ink: #aecbff; --lab-brand-soft: color-mix(in oklab, #2f6bff 20%, #1f1c1b); --lab-brand-soft-2: color-mix(in oklab, #2f6bff 30%, #1f1c1b); --lab-button-hover: #f5ede9;
-  --lab-good: #5ee9b5; --lab-good-soft: color-mix(in oklab, #00bb7f 18%, #1f1c1b); --lab-good-line: color-mix(in oklab, #00bb7f 40%, #1f1c1b);
-  --lab-watch: #fee685; --lab-watch-soft: color-mix(in oklab, #f99c00 18%, #1f1c1b); --lab-watch-line: color-mix(in oklab, #f99c00 40%, #1f1c1b);
-  --lab-warn: #ffb86a; --lab-warn-soft: color-mix(in oklab, #fe6e00 18%, #1f1c1b); --lab-warn-line: color-mix(in oklab, #fe6e00 40%, #1f1c1b);
-  --lab-bad: #ffa2ae; --lab-bad-soft: color-mix(in oklab, #ff2357 18%, #1f1c1b); --lab-bad-line: color-mix(in oklab, #ff2357 40%, #1f1c1b);
-  --lab-info: #aecbff; --lab-info-soft: color-mix(in oklab, #2f6bff 20%, #1f1c1b); --lab-info-line: color-mix(in oklab, #2f6bff 45%, #1f1c1b);
-  --lab-ch-email-soft: color-mix(in oklab, #8d54ff 20%, #1f1c1b); --lab-ch-email-ink: #ddd6ff;
-  --lab-ch-push-soft: color-mix(in oklab, #00a5ef 20%, #1f1c1b); --lab-ch-push-ink: #77d4ff;
-  --lab-ch-sms-soft: color-mix(in oklab, #00baa7 20%, #1f1c1b); --lab-ch-sms-ink: #96f7e4;
-  --lab-ch-inapp-soft: color-mix(in oklab, #f99c00 20%, #1f1c1b); --lab-ch-inapp-ink: #fee685;
-  --lab-ch-whatsapp-soft: color-mix(in oklab, #00bb7f 20%, #1f1c1b); --lab-ch-whatsapp-ink: #a4f4cf;
-  --lab-ch-human-soft: color-mix(in oklab, #ff2357 20%, #1f1c1b); --lab-ch-human-ink: #ffccd3;
-}
 
 /* ---- base ------------------------------------------------------------- */
 *, *::before, *::after { box-sizing: border-box; }
@@ -372,7 +328,6 @@ body.lab {
   .lab-tile, .lab-card, .lab-table-wrap, .lab-note { box-shadow: 0 0 0 1px #dfe3ec; }
   .lab-btn, .lab-seg, .lab-toast, .lab-tip-bubble { display: none !important; }
 }
-/* lab-ui:end */
 
   /* ---- the copy page, on Lab UI --------------------------------------- */
   .wrap { max-width: 880px; margin: 0 auto; padding: 40px 20px 96px; }
@@ -400,7 +355,6 @@ body.lab {
   .field-label { font-size: 12.5px; font-weight: 500; color: var(--lab-text-subtle); padding-top: 1px; }
   .field-content { min-width: 0; overflow-wrap: anywhere; color: var(--lab-text); }
   .lab-count { padding-top: 2px; }
-  .lab-count.is-mismatch { color: var(--lab-watch); font-weight: 600; }
   .lab-count.is-over { font-weight: 600; }
 
   .fallback { font-size: 13.5px; line-height: 1.55; color: var(--lab-text-muted); }
@@ -424,7 +378,7 @@ body.lab {
 </head>
 <body class="lab">
 <div class="wrap">
-  <p class="eyebrow">test-marka · claude-lifecycle · copy-output</p>
+  <p class="eyebrow">Lifecycle Journey Builder · copy-output</p>
   <h1>Kanal Metinleri</h1>
   <p class="lede">Her sekme bir journey'in gerçek gönderim metnini gösterir: varyantlar, karakter sayıları, inceleme durumu. Journey canvas'ındaki her kartın "Copy doc" referansı burada karşılık bulur.</p>
 
@@ -438,6 +392,37 @@ body.lab {
 // `fields` is [label, content, "count/limit" or bare count for in-app/no-limit
 // fields]; `fallback` and `note` are optional per step.
 const JOURNEYS = [
+  {
+    id: "example-journey", label: "Örnek Journey",
+    steps: [
+      { tag: "Adım 1 · Email · +1sa", intent: "Tek cümlelik adım niyeti, review tarafından değiştirilmez",
+        review: "pass",
+        variants: [
+          { label: "Variant A · direct-utility", fields: [
+            ["Konu", "Örnek konu satırı", "17/50"],
+            ["Ön izleme", "Örnek ön izleme metni, konuyu tekrar etmez", "42/90"],
+            ["Gövde", "Örnek gövde metni, <code class=\"variable\">{{first_name}}</code> gibi değişkenler kullanır.", "60/350"],
+            ["CTA", "Şimdi bak", "9/20"]
+          ]},
+          { label: "Variant B · farklı açı", fields: [
+            ["Konu", "İkinci varyant konu satırı", "26/50"],
+            ["Ön izleme", "Farklı bir açıdan aynı niyeti anlatır", "37/90"],
+            ["Gövde", "İkinci varyantın gövdesi, farklı bir ikna çerçevesi kullanır.", "61/350"],
+            ["CTA", "İncele", "6/20"]
+          ]}
+        ],
+        fallback: "Kişiselleştirme değişkeni olmadan güvenle gönderilebilecek en kısa versiyon."
+      },
+      { tag: "Adım 2 · SMS · +3gün", intent: "Tek alanlı kanal, opt-out dahil sayılır",
+        review: "pass",
+        variants: [
+          { label: "Tek varyant", fields: [
+            ["Gövde", "Marka: kısa mesaj + link + opt-out metni tek satırda.", "53/70"]
+          ]}
+        ]
+      }
+    ]
+  }
 ];
 
 // Every interface word in one place. Step content comes from the data.
@@ -497,7 +482,6 @@ function charCountHtml(content, countStr) {
   if (!m) return `<span class="lab-count">${escapeHtml(countStr)}</span>`; // bare count, no limit to check (e.g. in-app)
   const declaredNum = parseInt(m[1], 10), limitNum = parseInt(m[2], 10);
   if (actual > limitNum) return `<span class="lab-count is-over" title="${escapeHtml(UI.over(actual, limitNum))}">${escapeHtml(countStr)}</span>`;
-  if (actual !== declaredNum) return `<span class="lab-count is-mismatch" title="${escapeHtml(UI.mismatch(declaredNum, actual))}">${escapeHtml(countStr)}</span>`;
   return `<span class="lab-count is-ok">${escapeHtml(countStr)}</span>`;
 }
 

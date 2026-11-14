@@ -1,8 +1,8 @@
-# claude-lifecycle
+# Lifecycle Journey Builder
 
 *Lifecycle marketing and CRM strategy as a Claude Code skill: customer journey design, behavioral segmentation, lifecycle messaging and channel copy for email, push, SMS, in-app and WhatsApp.*
 
-**Journeys are a function of your data: most tools pretend otherwise.** A store tracking `add_to_cart` → `purchase` can run a branched 8-step cart recovery; a startup with three tracked events cannot. claude-lifecycle is a [Claude Code](https://claude.com/claude-code) plugin that scores what your data actually supports first, then generates a portfolio of customer journeys (onboarding and activation, retention, churn prevention, win-back), plus rule-checked, sector-aware CRM copy for every step, sized to that reality instead of a template.
+**Journeys are a function of your data: most tools pretend otherwise.** A store tracking `add_to_cart` → `purchase` can run a branched 8-step cart recovery; a startup with three tracked events cannot. Lifecycle Journey Builder is a [Claude Code](https://claude.com/claude-code) plugin that scores what your data actually supports first, then generates a portfolio of customer journeys (onboarding and activation, retention, churn prevention, win-back), plus rule-checked, sector-aware CRM copy for every step, sized to that reality instead of a template.
 
 ![validate](https://github.com/ali-demirbas/claude-lifecycle/actions/workflows/validate.yml/badge.svg)
 ![license](https://img.shields.io/badge/license-MIT-blue)
@@ -10,7 +10,9 @@
 ![patterns](https://img.shields.io/badge/journey_patterns-29-8b5cf6)
 ![industries](https://img.shields.io/badge/industries-9-10b981)
 
-![claude-lifecycle journey canvas: a channel-colored customer journey tree, generated from a real data quality score with entry rules, branching decisions, and per-step detail](docs/hero-screenshot.png)
+[![60-second demo: GA4 or a CSV is scored into a Data Quality Score, turned into a journey portfolio, and rendered as a journey canvas](docs/assets/demo.gif)](https://ali-demirbas.github.io/claude-lifecycle/demo/journey-canvas.html)
+
+![Lifecycle Journey Builder journey canvas: a channel-colored customer journey tree, generated from a real data quality score with entry rules, branching decisions, and per-step detail](docs/hero-screenshot.png)
 
 *Live output from the [zero-install demo](https://ali-demirbas.github.io/claude-lifecycle/demo/journey-canvas.html): every card, color, and number on this canvas comes from the sample dataset, not a mockup.*
 
@@ -37,7 +39,7 @@ Every lifecycle tool ships the same five template flows, regardless of what data
 
 ## How it works
 
-![claude-lifecycle pipeline: data input tiers feed a Connect stage that scores a 0-100 Data Quality Score, then Map turns events into a stage map, a gap check routes to a short Intake or straight to the Journeys portfolio engine, which produces both Copy and a Tracking Plan, converging on Export](docs/pipeline-diagram.svg)
+![Lifecycle Journey Builder pipeline: data input tiers feed a Connect stage that scores a 0-100 Data Quality Score, then Map turns events into a stage map, a gap check routes to a short Intake or straight to the Journeys portfolio engine, which produces both Copy and a Tracking Plan, converging on Export](docs/pipeline-diagram.svg)
 
 Full walkthrough with design decisions: [docs/architecture.md](docs/architecture.md)
 
@@ -48,9 +50,17 @@ Full walkthrough with design decisions: [docs/architecture.md](docs/architecture
 Inside Claude Code, add this repo as a plugin marketplace and install the plugin:
 
 ```text
-/plugin marketplace add ali-demirbas/claude-lifecycle
-/plugin install claude-lifecycle@claude-lifecycle
+/plugin install lifecycle-journey-builder --marketplace ali-demirbas/claude-lifecycle
 ```
+
+On Claude Code older than 2.1.275, add the marketplace first:
+
+```text
+/plugin marketplace add ali-demirbas/claude-lifecycle
+/plugin install lifecycle-journey-builder@lifecycle-journey-builder
+```
+
+Installed it before 0.4.0 as `claude-lifecycle`? Current Claude Code versions reserve names that start with `claude-`, so remove the old install (`/plugin uninstall claude-lifecycle`) and install it again under the new name. Skills are now called as `/lifecycle-journey-builder:lifecycle`.
 
 Or run it from a local clone without installing (the scripts need Python 3.9+ and `pip install -r requirements.txt`):
 
@@ -62,11 +72,11 @@ claude --plugin-dir ./claude-lifecycle
 Installing single skills with a skills CLI copies the skill text only, without the scripts, knowledge and templates the skills call, so use the plugin.
 
 
-Using [Gemini CLI](https://github.com/google-gemini/gemini-cli) instead? `.gemini/extensions/claude-lifecycle/` ships the same skills, rules and agents, generated from the same source files by `scripts/build_gemini.py`:
+Using [Gemini CLI](https://github.com/google-gemini/gemini-cli) instead? `.gemini/extensions/lifecycle-journey-builder/` ships the same skills, rules and agents, generated from the same source files by `scripts/build_gemini.py`:
 
 ```bash
 git clone https://github.com/ali-demirbas/claude-lifecycle.git
-cd claude-lifecycle/.gemini/extensions/claude-lifecycle && gemini extensions link .
+cd claude-lifecycle/.gemini/extensions/lifecycle-journey-builder && gemini extensions link .
 ```
 
 Then, inside Claude Code:

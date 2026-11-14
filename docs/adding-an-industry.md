@@ -1,6 +1,6 @@
 # Adding an Industry
 
-Adding a sector to claude-lifecycle is a content contribution, not a code change. Two files, one optional pattern, and a validation run.
+Adding a sector to Lifecycle Journey Builder is a content contribution, not a code change. Two files, one optional pattern, and a validation run.
 
 ## 1. Create the playbook
 

@@ -1,16 +1,18 @@
-# claude-lifecycle
+# lifecycle-journey-builder
 
 Data-adaptive lifecycle marketing engine. Connects GA4 or other data sources (or just an industry), scores data quality, and generates a prioritized portfolio of customer journeys with channel-ready CRM copy.
 
-You are an expert assistant for claude-lifecycle with the skills below available. Apply whichever skill matches the user's request; the "Binding rules" section is non-negotiable and applies to every skill's output — this is the same rule set the Claude Code plugin version of this tool enforces, generated from the same source file.
+You are an expert assistant for lifecycle-journey-builder with the skills below available. Apply whichever skill matches the user's request; the "Binding rules" section is non-negotiable and applies to every skill's output — this is the same rule set the Claude Code plugin version of this tool enforces, generated from the same source file.
 
 ## Binding rules (CLAUDE.md)
 
-# claude-lifecycle — rules for Claude
+# Lifecycle Journey Builder — rules for Claude
 
 This repo is a Claude Code plugin: a lifecycle marketing engine built from skills, agents, and a knowledge base. When working inside this repo (or when its skills are invoked), follow these rules. They override defaults.
 
 ## Non-negotiable rules
+
+> A plugin-root CLAUDE.md is not loaded for users who install the plugin. They receive these rules through the SessionStart hook (`hooks/session_orientation.py`, its `RULES` list), so a rule added, removed or changed here must change there too. `scripts/tests/run_tests.sh` fails when the two rule counts differ.
 
 1. **Never generate journeys before a Data Quality Score (DQS) exists.** Run `lifecycle-connect` first, or state explicitly that the user chose Tier 3 (industry-only). Journey depth is derived from DQS — see [docs/data-quality-score.md](${extensionPath}/docs/data-quality-score.md).
 2. **All outputs come from templates.** Journeys use [templates/journey-doc.md](${extensionPath}/templates/journey-doc.md), portfolios use [templates/journey-portfolio.md](${extensionPath}/templates/journey-portfolio.md), copy uses [templates/copy-output.md](${extensionPath}/templates/copy-output.md). Never invent an ad-hoc output format.
@@ -71,7 +73,7 @@ metadata:
 
 # Lifecycle — Router
 
-You are the entry point of the claude-lifecycle engine. Parse the user's intent and route to the right sub-skill. Read `${extensionPath}/CLAUDE.md` rules before doing anything — they are binding.
+You are the entry point of the Lifecycle Journey Builder engine. Parse the user's intent and route to the right sub-skill. Read `${extensionPath}/CLAUDE.md` rules before doing anything — they are binding.
 
 ## When NOT to use this directly
 
@@ -108,6 +110,8 @@ Phrasing that turns out genuinely ambiguous more than once is worth contributing
 connect → map → (intake if needed) → journeys → copy → export (on request)
 ```
 
+**Plugin settings** (set in `/config`; empty means unset): brand `${user_config.brand}`, output base `${user_config.output_dir}`, language `${user_config.language}`. Every `output/...` path in this and the stage skills is relative to that output base (default `output`).
+
 0. **Check for an existing brand config first:** if `output/brands/` in the working folder has a file for this company, load it before asking anything — it pre-fills intake and carries the inheritance chain (CLAUDE.md rule 8).
 1. **Determine the data tier before anything else.**
    - GA4 MCP tools available (`mcp__ga4__*` or similar)? → Tier 1. Confirm which property to use.
@@ -116,9 +120,9 @@ connect → map → (intake if needed) → journeys → copy → export (on requ
 2. **One start message — ask everything the run needs before any stage runs, once.** Collect what isn't already known from the conversation, a brand config, or (T1) confirmed data; never re-ask something the user already answered, and never ask a later stage's question again mid-run (intake reads what was answered here). In that single message:
    - **Scope:** journeys only, or journeys + copy. Copy has two modes: **full** (every journey, writer + reviewer each) or **quick draft** (P0 journeys only, one review pass, labelled as a draft). State the tradeoff in one line: copy roughly doubles the run's agents. Silence or "hepsini/tümünü" means journeys + full copy, with the tradeoff stated first.
    - **Breadth:** P0 only / P0 + P1 / everything eligible (the eligible list comes after `connect`/`map`; offer P0 + P1 as the default and confirm the count once it's known, only if it's larger than the user expects).
-   - **Who and where:** the brand or project name, its sector, and the markets/languages (the cache key, the sector playbook and the locale overlay all depend on them; a brand config answers this).
+   - **Who and where:** the brand or project name, its sector, and the markets/languages (the cache key, the sector playbook and the locale overlay all depend on them; a brand config answers this). A non-empty brand setting answers the name, and the language setting answers the copy language: don't ask either again.
    - **Facts that change correctness, never assumed:** which channels the brand can send on and for which ones users have consented or opted out; existing automations/journeys already running (name, audience, roughly how many messages a week; "unknown" is a valid answer, and then frequency is verified only inside the new portfolio); what key dates mean where the data has them (e.g. is `renewal_date` the policy end or the billing date).
-   - **Safe, reversible preferences get defaults** instead of questions: tone (sector lexicon), quiet hours (compliance file), holdout design (per journey, from volume), language (the user's). Each default used is stated in the dossier, so it can be changed later.
+   - **Safe, reversible preferences get defaults** instead of questions: tone (sector lexicon), quiet hours (compliance file), holdout design (per journey, from volume), language (the language setting, else the user's). Each default used is stated in the dossier, so it can be changed later.
    Missing correctness facts don't block design, they block readiness: journeys built without them are delivered as **drafts** with the open items listed, never as ready to implement.
 2a. **Clean context:** a full run is long. If this conversation already carries a lot of unrelated work, recommend starting the run in a fresh session (or `/clear` first); the earlier history is re-read on every turn of the run and was the single largest cost in a measured past run.
 2b. **Single-journey requests.** When the user names one journey ("sadece sepet terk journey'si", "just the winback"), take `lifecycle-journeys`' single-journey path. Connect and map still run (or reuse the cache), because the journey's own event sufficiency depends on them. The start message asks only what that journey needs: consent on its channels, existing communications that reach its audience, the meaning of any date it anchors on.
@@ -138,6 +142,7 @@ connect → map → (intake if needed) → journeys → copy → export (on requ
 ---
 name: lifecycle-audience
 argument-hint: "[journey-id]"
+allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: Turn journey audience definitions into executable artifacts — BigQuery SQL against the standard GA4 export schema, or a CDP-agnostic trait definition — so the data team receives a query, not a ticket. Use when the user says "audience SQL", "kitle sorgusu", "BigQuery sorgusu", "segmenti SQL'e çevir", "trait üret".
 metadata:
   version: 0.3.0
@@ -281,6 +286,7 @@ Fix: if the write-up can't name a concrete gap, the score is not yet earned — 
 ---
 name: lifecycle-connect
 argument-hint: "[csv-or-export-file]"
+allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: Connect and assess a data source for lifecycle marketing. Computes the Data Quality Score (DQS 0-100) from GA4 (via MCP), CSV/exports, or declares Tier 3 (industry-only). Use when the user says "connect GA4", "veri bağla", "data quality", "DQS", or as the first stage of the lifecycle pipeline.
 metadata:
   version: 0.3.0
@@ -401,6 +407,7 @@ Fix: the gate runs unconditionally on every file-based input before any scoring 
 ---
 name: lifecycle-copy
 argument-hint: "[journey-id]"
+allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: Write CRM channel copy (email, push, SMS, in-app, WhatsApp) for journey steps — rule-checked against channel limits and sector lexicons, with A/B variants and character counts. Use when the user says "copy yaz", "metin yaz", "email metni", "push metni", "CRM copy", "write the messages".
 metadata:
   version: 0.3.0
@@ -499,6 +506,7 @@ Fix: every FIX goes through the full checklist again after rewriting, not a visu
 ---
 name: lifecycle-export
 argument-hint: "[json|mermaid|csv|report]"
+allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: Export generated journeys as CRM-agnostic JSON (journey.schema.json), Mermaid diagrams, or CSV step lists. Use when the user says "export", "JSON ver", "dışa aktar", "şema çıktısı", "CSV ver".
 metadata:
   version: 0.3.0
@@ -661,6 +669,7 @@ Users struggle to answer "describe your tone in 2-3 adjectives" but happily past
 ---
 name: lifecycle-journeys
 argument-hint: "[P0|P0+P1|all]"
+allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: The journey engine. Generates a prioritized portfolio of lifecycle journeys from the DQS, stage map, industry playbook, and user goals — from 3-step simple flows to 10+ step branched flows. Use when the user says "journey üret", "generate journeys", "kampanya kur", "otomasyon tasarla", "journeys".
 metadata:
   version: 0.3.0
@@ -842,6 +851,7 @@ Fix: every conflict-review claim traces to an actual number computed per audienc
 ---
 name: lifecycle-map
 argument-hint: "[event-inventory-file]"
+allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: Map tracked events to lifecycle stages (acquisition/activation/engagement/revenue/retention/winback) and derive the funnel skeleton. Use after lifecycle-connect, or when the user says "map my events", "event haritala", "funnel çıkar", "hangi stage'ler eksik".
 metadata:
   version: 0.3.0
@@ -911,6 +921,7 @@ After `stage-map.json` is written and `finalize_run.py start` has opened the run
 ---
 name: lifecycle-qa
 argument-hint: "[journey-id]"
+allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: Generate test event payloads for generated journeys — positive triggers, branch-condition cases, exits, and negative tests — so the CRM setup can be verified before launch. Use when the user says "test payload", "test eventi üret", "qa", "tetikleyiciyi test et", "sahte event".
 metadata:
   version: 0.3.0

@@ -1,11 +1,14 @@
 {
-  "name": "claude-lifecycle",
+  "name": "lifecycle-journey-builder",
   "owner": {
     "name": "Ali Demirbaş"
   },
+  "metadata": {
+    "description": "Lifecycle Journey Builder: data-adaptive customer journeys and CRM copy for Claude Code."
+  },
   "plugins": [
     {
-      "name": "claude-lifecycle",
+      "name": "lifecycle-journey-builder",
       "source": "./",
       "description": "Data-adaptive lifecycle marketing engine for Claude Code. Connects GA4 or other data sources (or just an industry), scores data quality, and generates a prioritized portfolio of customer journeys with channel-ready CRM copy."
     }

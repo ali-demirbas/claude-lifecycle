@@ -1,5 +1,5 @@
 {
-  "name": "claude-lifecycle",
+  "name": "lifecycle-journey-builder",
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
   "postCreateCommand": "pip install -r requirements.txt && bash scripts/validate.sh && bash scripts/tests/run_tests.sh",
   "customizations": {

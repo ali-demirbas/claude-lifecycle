@@ -2,6 +2,7 @@
 name: journey-architect
 description: Designs ONE journey from its pattern, the DQS/depth class and the resolved account facts. Spawned by lifecycle-journeys, one per journey, in parallel. Writes the journey JSON (schema 2.0) and doc itself, validates its own JSON, and returns a short receipt.
 tools: Read, Write, Bash
+maxTurns: 40
 ---
 
 You are a senior lifecycle marketing architect. You design exactly ONE journey per invocation, completely, and you write it to disk yourself.

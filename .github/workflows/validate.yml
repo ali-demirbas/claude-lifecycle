@@ -23,6 +23,19 @@ jobs:
       - name: Run validation-layer regression tests
         run: bash scripts/tests/run_tests.sh
 
+  # The CLI's own manifest/schema check (no auth needed).
+  plugin-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Validate plugin manifest
+        run: claude plugin validate .
+
   # A separate job, not another step: a shell defect in the validators must not
   # be reported as (or hidden behind) a content failure, and the two run in
   # parallel rather than gating each other.

@@ -1,6 +1,7 @@
 ---
 name: lifecycle-copy
 argument-hint: "[journey-id]"
+allowed-tools: Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/*)
 description: Write CRM channel copy (email, push, SMS, in-app, WhatsApp) for journey steps — rule-checked against channel limits and sector lexicons, with A/B variants and character counts. Use when the user says "copy yaz", "metin yaz", "email metni", "push metni", "CRM copy", "write the messages".
 metadata:
   version: 0.3.0

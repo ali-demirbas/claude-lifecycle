@@ -1,6 +1,6 @@
 # Architecture
 
-claude-lifecycle is a data-adaptive pipeline: the same engine produces different portfolios depending on what the data can support. Industry differences live in **data files** (playbooks, lexicons), never in skill logic.
+Lifecycle Journey Builder is a data-adaptive pipeline: the same engine produces different portfolios depending on what the data can support. Industry differences live in **data files** (playbooks, lexicons), never in skill logic.
 
 ## Pipeline
 
