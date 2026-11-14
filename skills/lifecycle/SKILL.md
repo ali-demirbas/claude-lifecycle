@@ -5,7 +5,7 @@ description: Lifecycle marketing engine router. Use when the user says "lifecycl
 metadata:
   version: 0.3.0
   category: router
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle — Router

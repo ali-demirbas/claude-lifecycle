@@ -5,7 +5,7 @@ description: Audit an existing journey portfolio — user-described, imported fr
 metadata:
   version: 0.3.0
   category: analysis
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Audit — Portfolio Review

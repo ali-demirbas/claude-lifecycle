@@ -5,7 +5,7 @@ description: Connect and assess a data source for lifecycle marketing. Computes 
 metadata:
   version: 0.3.0
   category: data
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Connect — Data Source Assessment & DQS

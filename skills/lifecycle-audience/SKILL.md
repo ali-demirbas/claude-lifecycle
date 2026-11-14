@@ -5,7 +5,7 @@ description: Turn journey audience definitions into executable artifacts — Big
 metadata:
   version: 0.3.0
   category: export
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Audience — From Definition to Query

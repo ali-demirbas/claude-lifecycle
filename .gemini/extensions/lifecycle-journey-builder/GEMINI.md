@@ -68,7 +68,7 @@ description: Lifecycle marketing engine router. Use when the user says "lifecycl
 metadata:
   version: 0.3.0
   category: router
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle — Router
@@ -146,7 +146,7 @@ description: Turn journey audience definitions into executable artifacts — Big
 metadata:
   version: 0.3.0
   category: export
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Audience — From Definition to Query
@@ -210,7 +210,7 @@ description: Audit an existing journey portfolio — user-described, imported fr
 metadata:
   version: 0.3.0
   category: analysis
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Audit — Portfolio Review
@@ -289,7 +289,7 @@ description: Connect and assess a data source for lifecycle marketing. Computes 
 metadata:
   version: 0.3.0
   category: data
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Connect — Data Source Assessment & DQS
@@ -409,7 +409,7 @@ description: Write CRM channel copy (email, push, SMS, in-app, WhatsApp) for jou
 metadata:
   version: 0.3.0
   category: copy
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Copy — Channel Copywriting
@@ -507,7 +507,7 @@ description: Export generated journeys as CRM-agnostic JSON (journey.schema.json
 metadata:
   version: 0.3.0
   category: export
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Export — Structured Output
@@ -554,7 +554,7 @@ description: Structured questioning to fill information gaps before journey gene
 metadata:
   version: 0.3.0
   category: intake
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Intake — Structured Gap Filling
@@ -669,7 +669,7 @@ description: The journey engine. Generates a prioritized portfolio of lifecycle 
 metadata:
   version: 0.3.0
   category: design
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Journeys — Portfolio Engine
@@ -850,7 +850,7 @@ description: Map tracked events to lifecycle stages (acquisition/activation/enga
 metadata:
   version: 0.3.0
   category: data
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Map — Event → Stage Mapping
@@ -919,7 +919,7 @@ description: Generate test event payloads for generated journeys — positive tr
 metadata:
   version: 0.3.0
   category: qa
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle QA — Trigger Payload Simulator
@@ -993,7 +993,7 @@ description: Close the measurement loop. Ingest journey performance data from th
 metadata:
   version: 0.3.0
   category: measurement
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Results — Closing the Loop

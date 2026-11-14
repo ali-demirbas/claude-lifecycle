@@ -5,7 +5,7 @@ description: The journey engine. Generates a prioritized portfolio of lifecycle 
 metadata:
   version: 0.3.0
   category: design
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Journeys — Portfolio Engine

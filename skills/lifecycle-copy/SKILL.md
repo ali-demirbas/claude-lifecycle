@@ -5,7 +5,7 @@ description: Write CRM channel copy (email, push, SMS, in-app, WhatsApp) for jou
 metadata:
   version: 0.3.0
   category: copy
-  updated: 2026-11-10
+  updated: "2026-11-10"
 ---
 
 # Lifecycle Copy — Channel Copywriting
