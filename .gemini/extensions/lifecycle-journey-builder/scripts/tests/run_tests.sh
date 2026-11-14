@@ -476,6 +476,7 @@ expect 0 "hook: valid journey under output/ passes"                    hook_run 
 expect 2 "hook: broken journey under output/ is fed back (exit 2)"     hook_run "$HT/output/proj/broken.json"
 expect_contains "hook: broken journey feedback carries the FAIL lines" "Channel Consent Violation" hook_run "$HT/output/proj/broken.json"
 expect 0 "hook: a file outside output/ is not validated"               hook_run "$HT/elsewhere/broken.json"
+# shellcheck disable=SC2016  # $1 is meant to expand inside the sh -c child
 expect 0 "hook: malformed stdin never crashes the session"             sh -c 'echo "{not json" | python3 "$1"' _ "$HK/validate_on_write.py"
 rm -rf "$HT"
 CLAUDE_RULES=$(grep -cE '^[0-9]+\. \*\*' "$DIR/../../CLAUDE.md")
