@@ -110,7 +110,7 @@ Phrasing that turns out genuinely ambiguous more than once is worth contributing
 connect → map → (intake if needed) → journeys → copy → export (on request)
 ```
 
-**Plugin settings** (set in `/config`; empty means unset): brand `${user_config.brand}`, output base `${user_config.output_dir}`, language `${user_config.language}`. Every `output/...` path in this and the stage skills is relative to that output base (default `output`).
+**Plugin settings** (set with `/plugin configure`; a value that is empty, or still reads literally as `${user_config.…}` because this Claude Code version does not fill it in, is unset: then the output base is `output` and the language follows the user): brand `${user_config.brand}`, output base `${user_config.output_dir}`, language `${user_config.language}`. Every `output/...` path in this and the stage skills is relative to that output base (default `output`).
 
 0. **Check for an existing brand config first:** if `output/brands/` in the working folder has a file for this company, load it before asking anything — it pre-fills intake and carries the inheritance chain (CLAUDE.md rule 8).
 1. **Determine the data tier before anything else.**
@@ -142,7 +142,6 @@ connect → map → (intake if needed) → journeys → copy → export (on requ
 ---
 name: lifecycle-audience
 argument-hint: "[journey-id]"
-allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: Turn journey audience definitions into executable artifacts — BigQuery SQL against the standard GA4 export schema, or a CDP-agnostic trait definition — so the data team receives a query, not a ticket. Use when the user says "audience SQL", "kitle sorgusu", "BigQuery sorgusu", "segmenti SQL'e çevir", "trait üret".
 metadata:
   version: 0.3.0
@@ -286,7 +285,6 @@ Fix: if the write-up can't name a concrete gap, the score is not yet earned — 
 ---
 name: lifecycle-connect
 argument-hint: "[csv-or-export-file]"
-allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: Connect and assess a data source for lifecycle marketing. Computes the Data Quality Score (DQS 0-100) from GA4 (via MCP), CSV/exports, or declares Tier 3 (industry-only). Use when the user says "connect GA4", "veri bağla", "data quality", "DQS", or as the first stage of the lifecycle pipeline.
 metadata:
   version: 0.3.0
@@ -407,7 +405,6 @@ Fix: the gate runs unconditionally on every file-based input before any scoring 
 ---
 name: lifecycle-copy
 argument-hint: "[journey-id]"
-allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: Write CRM channel copy (email, push, SMS, in-app, WhatsApp) for journey steps — rule-checked against channel limits and sector lexicons, with A/B variants and character counts. Use when the user says "copy yaz", "metin yaz", "email metni", "push metni", "CRM copy", "write the messages".
 metadata:
   version: 0.3.0
@@ -506,7 +503,6 @@ Fix: every FIX goes through the full checklist again after rewriting, not a visu
 ---
 name: lifecycle-export
 argument-hint: "[json|mermaid|csv|report]"
-allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: Export generated journeys as CRM-agnostic JSON (journey.schema.json), Mermaid diagrams, or CSV step lists. Use when the user says "export", "JSON ver", "dışa aktar", "şema çıktısı", "CSV ver".
 metadata:
   version: 0.3.0
@@ -669,7 +665,6 @@ Users struggle to answer "describe your tone in 2-3 adjectives" but happily past
 ---
 name: lifecycle-journeys
 argument-hint: "[P0|P0+P1|all]"
-allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: The journey engine. Generates a prioritized portfolio of lifecycle journeys from the DQS, stage map, industry playbook, and user goals — from 3-step simple flows to 10+ step branched flows. Use when the user says "journey üret", "generate journeys", "kampanya kur", "otomasyon tasarla", "journeys".
 metadata:
   version: 0.3.0
@@ -851,7 +846,6 @@ Fix: every conflict-review claim traces to an actual number computed per audienc
 ---
 name: lifecycle-map
 argument-hint: "[event-inventory-file]"
-allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: Map tracked events to lifecycle stages (acquisition/activation/engagement/revenue/retention/winback) and derive the funnel skeleton. Use after lifecycle-connect, or when the user says "map my events", "event haritala", "funnel çıkar", "hangi stage'ler eksik".
 metadata:
   version: 0.3.0
@@ -921,7 +915,6 @@ After `stage-map.json` is written and `finalize_run.py start` has opened the run
 ---
 name: lifecycle-qa
 argument-hint: "[journey-id]"
-allowed-tools: Bash(python3 "${extensionPath}/scripts/*)
 description: Generate test event payloads for generated journeys — positive triggers, branch-condition cases, exits, and negative tests — so the CRM setup can be verified before launch. Use when the user says "test payload", "test eventi üret", "qa", "tetikleyiciyi test et", "sahte event".
 metadata:
   version: 0.3.0

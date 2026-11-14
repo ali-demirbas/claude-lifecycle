@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-14
+
+### Fixed
+- **Moving from `claude-lifecycle`:** the README now says to remove the old marketplace too; without that the new name is "not found in marketplace".
+- **Stage skills no longer ask for approval on every call.** The `allowed-tools` lines added in 0.4.0 made each skill call itself need permission, so they are removed.
+- **Plugin settings on CLIs that do not fill them in:** a literal `${user_config.…}` is treated as unset, with the defaults applied.
+- **The write hook** no longer reports a portfolio written before its journeys as a violation.
+- CI also validates `plugin.json` on its own. The evals guide names the new router.
+
+### Note
+- Canvases built with 0.3.0 fail the template drift check, because the renamed text is part of the fixed template. Rebuild them with `scripts/build_canvas.py`.
+
 ## [0.4.0] - 2026-11-14
 
 ### Changed

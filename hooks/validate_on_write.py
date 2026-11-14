@@ -153,6 +153,11 @@ def main():
                 fails = [l.strip() for l in out[i + 1:] if re.match(r"\s+\d+\.", l)]
             except StopIteration:
                 fails = [l for l in out if l.strip()][-5:]
+        if mode == "portfolio":
+            # a registry written before its member journeys is not a violation yet; finish re-checks it
+            fails = [l for l in fails if "not found" not in l]
+            if not fails:
+                return 0
         shown = fails[:MAX_FAIL_LINES]
         msg = [INSTRUCTION.format(path=fp)] + shown
         if len(fails) > len(shown):

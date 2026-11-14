@@ -1,7 +1,6 @@
 ---
 name: lifecycle-map
 argument-hint: "[event-inventory-file]"
-allowed-tools: Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/*)
 description: Map tracked events to lifecycle stages (acquisition/activation/engagement/revenue/retention/winback) and derive the funnel skeleton. Use after lifecycle-connect, or when the user says "map my events", "event haritala", "funnel çıkar", "hangi stage'ler eksik".
 metadata:
   version: 0.3.0
