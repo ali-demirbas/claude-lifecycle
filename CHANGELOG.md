@@ -11,6 +11,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - **Stage skills no longer ask for approval on every call.** The `allowed-tools` lines added in 0.4.0 made each skill call itself need permission, so they are removed.
 - **Plugin settings on CLIs that do not fill them in:** a literal `${user_config.…}` is treated as unset, with the defaults applied.
 - **The write hook** no longer reports a portfolio written before its journeys as a violation.
+- The write hook also watches the folder set as `output_dir` in the plugin settings.
 - CI also validates `plugin.json` on its own. The evals guide names the new router.
 
 ### Note

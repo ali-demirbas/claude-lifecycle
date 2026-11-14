@@ -42,17 +42,28 @@ INSTRUCTION = ("[lifecycle-journey-builder] validate_output.py found violations 
                "unconsented channel, frequency cap) are reported to the user, not silently fixed.")
 
 
+def output_names():
+    """Folder names that hold run outputs: `output`, plus the plugin's output_dir
+    setting (Claude Code passes it to hooks as CLAUDE_PLUGIN_OPTION_OUTPUT_DIR)."""
+    names = {"output"}
+    custom = os.environ.get("CLAUDE_PLUGIN_OPTION_OUTPUT_DIR", "").strip().rstrip("/\\")
+    if custom:
+        names.add(os.path.basename(custom))
+    return names
+
+
 def in_output_tree(parts):
-    if "output" in parts:
+    if output_names() & set(parts):
         return True
     return any(parts[i] == "evals" and parts[i + 1] == "out" for i in range(len(parts) - 1))
 
 
 def output_root(path):
-    """Nearest ancestor directory named `output` (where output/brands/ lives)."""
+    """Nearest ancestor output folder (where brands/ lives)."""
+    names = output_names()
     d = os.path.dirname(path)
     while True:
-        if os.path.basename(d) == "output":
+        if os.path.basename(d) in names:
             return d
         parent = os.path.dirname(d)
         if parent == d:
