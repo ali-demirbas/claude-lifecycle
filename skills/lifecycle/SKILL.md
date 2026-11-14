@@ -47,7 +47,7 @@ Phrasing that turns out genuinely ambiguous more than once is worth contributing
 connect → map → (intake if needed) → journeys → copy → export (on request)
 ```
 
-**Plugin settings** (set in `/config`; empty means unset): brand `${user_config.brand}`, output base `${user_config.output_dir}`, language `${user_config.language}`. Every `output/...` path in this and the stage skills is relative to that output base (default `output`).
+**Plugin settings** (set with `/plugin configure`; a value that is empty, or still reads literally as `${user_config.…}` because this Claude Code version does not fill it in, is unset: then the output base is `output` and the language follows the user): brand `${user_config.brand}`, output base `${user_config.output_dir}`, language `${user_config.language}`. Every `output/...` path in this and the stage skills is relative to that output base (default `output`).
 
 0. **Check for an existing brand config first:** if `output/brands/` in the working folder has a file for this company, load it before asking anything — it pre-fills intake and carries the inheritance chain (CLAUDE.md rule 8).
 1. **Determine the data tier before anything else.**

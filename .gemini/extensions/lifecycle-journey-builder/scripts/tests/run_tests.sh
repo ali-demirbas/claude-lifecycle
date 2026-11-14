@@ -476,6 +476,12 @@ expect 0 "hook: valid journey under output/ passes"                    hook_run 
 expect 2 "hook: broken journey under output/ is fed back (exit 2)"     hook_run "$HT/output/proj/broken.json"
 expect_contains "hook: broken journey feedback carries the FAIL lines" "Channel Consent Violation" hook_run "$HT/output/proj/broken.json"
 expect 0 "hook: a file outside output/ is not validated"               hook_run "$HT/elsewhere/broken.json"
+mkdir -p "$HT/output/early"; printf '{"brand":"x","journeys":[{"id":"x-cart-01","file":"missing.json"}]}' > "$HT/output/early/portfolio.json"
+expect 0 "hook: a portfolio written before its journeys is not a violation yet" hook_run "$HT/output/early/portfolio.json"
+mkdir -p "$HT/crm-out/proj"; cp "$HT/output/proj/broken.json" "$HT/crm-out/proj/broken.json"
+expect 0 "hook: a custom output folder is ignored when not configured"  hook_run "$HT/crm-out/proj/broken.json"
+hook_run_custom() { hook_in "$1" | CLAUDE_PLUGIN_OPTION_OUTPUT_DIR=crm-out python3 "$HK/validate_on_write.py"; }
+expect 2 "hook: the configured output_dir folder is validated"          hook_run_custom "$HT/crm-out/proj/broken.json"
 # shellcheck disable=SC2016  # $1 is meant to expand inside the sh -c child
 expect 0 "hook: malformed stdin never crashes the session"             sh -c 'echo "{not json" | python3 "$1"' _ "$HK/validate_on_write.py"
 rm -rf "$HT"

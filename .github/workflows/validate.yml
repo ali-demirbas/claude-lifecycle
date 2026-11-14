@@ -34,7 +34,9 @@ jobs:
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
       - name: Validate plugin manifest
-        run: claude plugin validate .
+        run: |
+          claude plugin validate .
+          claude plugin validate .claude-plugin/plugin.json
 
   # A separate job, not another step: a shell defect in the validators must not
   # be reported as (or hidden behind) a content failure, and the two run in

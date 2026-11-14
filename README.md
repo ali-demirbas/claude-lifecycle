@@ -60,7 +60,7 @@ On Claude Code older than 2.1.275, add the marketplace first:
 /plugin install lifecycle-journey-builder@lifecycle-journey-builder
 ```
 
-Installed it before 0.4.0 as `claude-lifecycle`? Current Claude Code versions reserve names that start with `claude-`, so remove the old install (`/plugin uninstall claude-lifecycle`) and install it again under the new name. Skills are now called as `/lifecycle-journey-builder:lifecycle`.
+Installed it before 0.4.0 as `claude-lifecycle`? Current Claude Code versions reserve names that start with `claude-`, and your marketplace is still registered under the old name, so remove both and add them again: `/plugin uninstall claude-lifecycle`, `/plugin marketplace remove claude-lifecycle`, then the two commands above. Skills are now called as `/lifecycle-journey-builder:lifecycle`.
 
 Or run it from a local clone without installing (the scripts need Python 3.9+ and `pip install -r requirements.txt`):
 

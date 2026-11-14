@@ -42,17 +42,28 @@ INSTRUCTION = ("[lifecycle-journey-builder] validate_output.py found violations 
                "unconsented channel, frequency cap) are reported to the user, not silently fixed.")
 
 
+def output_names():
+    """Folder names that hold run outputs: `output`, plus the plugin's output_dir
+    setting (Claude Code passes it to hooks as CLAUDE_PLUGIN_OPTION_OUTPUT_DIR)."""
+    names = {"output"}
+    custom = os.environ.get("CLAUDE_PLUGIN_OPTION_OUTPUT_DIR", "").strip().rstrip("/\\")
+    if custom:
+        names.add(os.path.basename(custom))
+    return names
+
+
 def in_output_tree(parts):
-    if "output" in parts:
+    if output_names() & set(parts):
         return True
     return any(parts[i] == "evals" and parts[i + 1] == "out" for i in range(len(parts) - 1))
 
 
 def output_root(path):
-    """Nearest ancestor directory named `output` (where output/brands/ lives)."""
+    """Nearest ancestor output folder (where brands/ lives)."""
+    names = output_names()
     d = os.path.dirname(path)
     while True:
-        if os.path.basename(d) == "output":
+        if os.path.basename(d) in names:
             return d
         parent = os.path.dirname(d)
         if parent == d:
@@ -153,6 +164,11 @@ def main():
                 fails = [l.strip() for l in out[i + 1:] if re.match(r"\s+\d+\.", l)]
             except StopIteration:
                 fails = [l for l in out if l.strip()][-5:]
+        if mode == "portfolio":
+            # a registry written before its member journeys is not a violation yet; finish re-checks it
+            fails = [l for l in fails if "not found" not in l]
+            if not fails:
+                return 0
         shown = fails[:MAX_FAIL_LINES]
         msg = [INSTRUCTION.format(path=fp)] + shown
         if len(fails) > len(shown):
