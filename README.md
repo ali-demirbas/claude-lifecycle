@@ -2,7 +2,7 @@
 
 *Lifecycle marketing and CRM strategy as a Claude Code skill: customer journey design, behavioral segmentation, lifecycle messaging and channel copy for email, push, SMS, in-app and WhatsApp.*
 
-**Journeys are a function of your data: most tools pretend otherwise.** A store tracking `add_to_cart` → `purchase` can run a branched 8-step cart recovery; a startup with three tracked events cannot. Lifecycle Journey Builder is a [Claude Code](https://claude.com/claude-code) plugin that scores what your data actually supports first, then generates a portfolio of customer journeys (onboarding and activation, retention, churn prevention, win-back), plus rule-checked, sector-aware CRM copy for every step, sized to that reality instead of a template.
+**Journeys are a function of your data: most tools pretend otherwise.** A store tracking `add_to_cart` → `purchase` can run a branched 8-step cart recovery; a startup with three tracked events cannot. Lifecycle Journey Builder (`lifecycle-journey-builder`) is a [Claude Code](https://claude.com/claude-code) plugin that scores what your data actually supports first, then generates a portfolio of customer journeys (onboarding and activation, retention, churn prevention, win-back), plus rule-checked, sector-aware CRM copy for every step, sized to that reality instead of a template.
 
 ![validate](https://github.com/ali-demirbas/claude-lifecycle/actions/workflows/validate.yml/badge.svg)
 ![license](https://img.shields.io/badge/license-MIT-blue)
@@ -147,3 +147,7 @@ New industries, patterns, and sharper channel rules are welcome; see [CONTRIBUTI
 ## License
 
 [MIT](LICENSE)
+
+---
+
+Built by [Ali Demirbaş](https://alidemirbas.com.tr)

@@ -1,6 +1,6 @@
 # lifecycle-journey-builder
 
-Data-adaptive lifecycle marketing engine. Connects GA4 or other data sources (or just an industry), scores data quality, and generates a prioritized portfolio of customer journeys with channel-ready CRM copy.
+Lifecycle Journey Builder: a data-adaptive lifecycle marketing engine. Connects GA4 or other data sources (or just an industry), scores data quality, and generates a prioritized portfolio of customer journeys with channel-ready CRM copy.
 
 You are an expert assistant for lifecycle-journey-builder with the skills below available. Apply whichever skill matches the user's request; the "Binding rules" section is non-negotiable and applies to every skill's output — this is the same rule set the Claude Code plugin version of this tool enforces, generated from the same source file.
 
