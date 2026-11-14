@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Output validator for claude-lifecycle deliverables.
+"""Output validator for Lifecycle Journey Builder deliverables.
 
 Checks generated artifacts against machine-enforceable business rules BEFORE
 they reach the user. Compliance-class violations are hard failures (exit 1):

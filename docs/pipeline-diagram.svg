@@ -1,5 +1,5 @@
 <svg viewBox="0 0 1650 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pd-title pd-desc">
-<title id="pd-title">claude-lifecycle pipeline</title>
+<title id="pd-title">Lifecycle Journey Builder pipeline</title>
 <desc id="pd-desc">Three data-input tiers feed a Connect stage that scores a 0-100 Data Quality Score, then a Map stage turns events into a stage map. An "enough context?" check either routes to a short Intake or straight to the Journeys portfolio engine. Journeys produces both channel Copy (write, review, fix loop) and a Tracking Plan for blocked journeys, both converging on Export as JSON, Mermaid, or CSV.</desc>
 <style>
   :root {

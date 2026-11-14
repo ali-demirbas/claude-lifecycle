@@ -2,6 +2,8 @@
 
 The deterministic layer (`scripts/validate_*.py`) checks that outputs are *well-formed and compliant*. This suite checks that the engine's **decisions are correct**: what gets generated, what gets blocked, how deep, who is suppressed. Wording is never tested — decisions are.
 
+> **Not a `claude plugin eval` suite.** That command also looks in `evals/` by default, for `case.yaml` or `prompt.md` cases, and finds none here. These cases run through `scripts/run_evals.py` and are checked by `scripts/eval_check.py`. Moving them to a separate folder needs the manifest's eval-directory setting, which older CLIs reject, so they stay here for now.
+
 ## Case authoring rules (every case must satisfy all)
 
 1. **Single purpose.** One case tests exactly one rule/decision. If a case fails, you must know which rule broke.

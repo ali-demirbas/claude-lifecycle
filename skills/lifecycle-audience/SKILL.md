@@ -1,6 +1,7 @@
 ---
 name: lifecycle-audience
 argument-hint: "[journey-id]"
+allowed-tools: Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/*)
 description: Turn journey audience definitions into executable artifacts — BigQuery SQL against the standard GA4 export schema, or a CDP-agnostic trait definition — so the data team receives a query, not a ticket. Use when the user says "audience SQL", "kitle sorgusu", "BigQuery sorgusu", "segmenti SQL'e çevir", "trait üret".
 metadata:
   version: 0.3.0

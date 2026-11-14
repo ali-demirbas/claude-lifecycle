@@ -34,7 +34,7 @@ SOURCES = [
     ("docs/real-world-validation.md", "Real-world validation"),
 ]
 
-HEADER = """# claude-lifecycle — full text
+HEADER = """# Lifecycle Journey Builder — full text
 
 > Single-file bundle of this project's core documentation, generated from the
 > repository by scripts/build_llms_full.py. A lifecycle marketing and CRM

@@ -1,4 +1,4 @@
-# claude-lifecycle
+# Lifecycle Journey Builder
 
 > A lifecycle marketing and CRM engine that runs inside Claude Code. It scores what a company's analytics data actually supports before designing anything, then generates a portfolio of customer journeys sized to that reality — onboarding and activation, retention, churn prevention, win-back — with rule-checked, sector-aware copy for every step and a tracking plan naming the events that would unlock the journeys the data cannot yet support. Open source, MIT.
 

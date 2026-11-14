@@ -36,6 +36,7 @@ __pycache__/
 
 # Eval run outputs are per-run artifacts
 evals/out/
+evals/results/
 
 # iCloud Drive sync-conflict copies ("name 2.ext") — never part of the repo
 * 2.*

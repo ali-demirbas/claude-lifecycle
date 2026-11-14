@@ -1,6 +1,7 @@
 ---
 name: lifecycle-export
 argument-hint: "[json|mermaid|csv|report]"
+allowed-tools: Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/*)
 description: Export generated journeys as CRM-agnostic JSON (journey.schema.json), Mermaid diagrams, or CSV step lists. Use when the user says "export", "JSON ver", "dışa aktar", "şema çıktısı", "CSV ver".
 metadata:
   version: 0.3.0

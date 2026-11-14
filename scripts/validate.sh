@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Repo consistency validation for claude-lifecycle.
+# Repo consistency validation for Lifecycle Journey Builder.
 # Checks skill/pattern/industry/lexicon frontmatter, cross-file references,
 # JSON schema validity, example conformance, internal markdown links, and
 # ${CLAUDE_PLUGIN_ROOT} path references.

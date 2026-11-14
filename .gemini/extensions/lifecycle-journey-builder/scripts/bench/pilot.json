@@ -1,0 +1,34 @@
+{
+  "purpose": "Pilot: one run each of A1, A2, B. A1 vs A2 = same scope, old vs new code. A2 vs B = scope change only (same code). Repeats only if the pilot is comparable.",
+  "fixed": {
+    "cli_version": "2.1.117",
+    "model": "claude-sonnet-4-6",
+    "effort": "default (no --effort flag, as in the preserved baseline)",
+    "environment": "default config (same as the preserved baseline); the isolated variant is experiment C, reported separately",
+    "case": "evals/cases/44-ecom-low-volume-existing-welcome",
+    "outdir": "evals/out/bench",
+    "permission_mode": "acceptEdits",
+    "allowed_tools": ["Read", "Write", "Edit", "Glob", "Grep", "Agent", "Skill", "Bash(python3 *)", "Bash(ls *)", "Bash(mkdir *)", "Bash(cat *)", "Bash(wc *)"],
+    "cli_max_budget_usd": 5,
+    "guard_cap_usd": 4.5,
+    "order": ["A1", "A2", "B"],
+    "worktree_per_run": true
+  },
+  "runs": {
+    "A1": {"commit": "1ff9b09", "scope": "S1", "prompt": "S1"},
+    "A2": {"commit": "HEAD", "scope": "S1", "prompt": "S1"},
+    "B":  {"commit": "HEAD", "scope": "S2", "prompt": "S2"}
+  },
+  "prompts": {
+    "S1": "/lifecycle-journey-builder:lifecycle\n\nBu bir test koşusu, kimse izlemiyor; soru sorup bekleme.\nİstek: Bu e-ticaret mağazası için portföy değerlendirmesi yap; journey olarak yalnızca sepet terk (abandoned-cart) journey'sini kur. Kapsam sabittir:\n1. Sektör playbook'undaki P0 ve P1 pattern'lerinin her biri (abandoned-cart, browse-abandonment, post-purchase, winback, welcome-onboarding, replenishment, back-in-stock, price-drop, upsell-cross-sell) için uygunluk kararı ver ve her birini bu adla portfolio.json'a yaz: kurulan, engellenen ya da ertelenen, gerekçesiyle.\n2. Journey olarak yalnızca ecom-abandoned-cart-01'i üret (JSON + doküman). Başka journey üretme.\n3. portfolio.json, portföy dokümanı, dossier.md, veri değerlendirmesi ve canvas üret. Metin (copy) yazma.\n4. Bu bir tek-journey isteği değildir; portföy kapsamı incelenecek.\n- Veri: evals/cases/44-ecom-low-volume-existing-welcome/input.csv\n- Kullanıcının cevapları: evals/cases/44-ecom-low-volume-existing-welcome/intake.md (bunu kullanıcı konuşuyor say; cevaplanmayan güvenli tercihlerde dokümante edilmiş varsayılanı kullan ve dossier'e yaz)\n- Tüm çıktıları evals/out/bench/ altına yaz (output/ değil).\n- Normal kuralları ve doğrulama kapılarını eksiksiz uygula.",
+    "S2": "/lifecycle-journey-builder:lifecycle\n\nBu bir test koşusu, kimse izlemiyor; soru sorup bekleme.\nİstek: Bu e-ticaret mağazası için SADECE sepet terk (abandoned-cart) journey'sini kur. Başka journey üretme, metin (copy) yazma.\n- Veri: evals/cases/44-ecom-low-volume-existing-welcome/input.csv\n- Kullanıcının cevapları: evals/cases/44-ecom-low-volume-existing-welcome/intake.md (bunu kullanıcı konuşuyor say; cevaplanmayan güvenli tercihlerde dokümante edilmiş varsayılanı kullan ve dossier'e yaz)\n- Tüm çıktıları evals/out/bench/ altına yaz (output/ değil): veri değerlendirmesi, journey JSON + doc, portfolio.json, dossier.md, canvas.\n- Normal kuralları ve doğrulama kapılarını eksiksiz uygula."
+  },
+  "comparable_if": [
+    "check_scope.py: A1 and A2 in scope S1, B in scope S2 (A2 on the single-journey path = not comparable)",
+    "same CLI version, same commit as declared, modelUsage contains claude-sonnet-4-6 for the main work in all three",
+    "guard did not fire and the CLI did not stop on its budget",
+    "transcript totals reconcile with the CLI result to the token (else per-stage numbers are not trusted)",
+    "first-call prompt cache state is the same class (all warm or all cold); the warm prefix size is reported per run",
+    "assessment cache absent at start in every run (fresh worktree)"
+  ]
+}

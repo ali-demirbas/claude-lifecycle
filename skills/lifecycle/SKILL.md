@@ -10,7 +10,7 @@ metadata:
 
 # Lifecycle — Router
 
-You are the entry point of the claude-lifecycle engine. Parse the user's intent and route to the right sub-skill. Read `${CLAUDE_PLUGIN_ROOT}/CLAUDE.md` rules before doing anything — they are binding.
+You are the entry point of the Lifecycle Journey Builder engine. Parse the user's intent and route to the right sub-skill. Read `${CLAUDE_PLUGIN_ROOT}/CLAUDE.md` rules before doing anything — they are binding.
 
 ## When NOT to use this directly
 
@@ -47,6 +47,8 @@ Phrasing that turns out genuinely ambiguous more than once is worth contributing
 connect → map → (intake if needed) → journeys → copy → export (on request)
 ```
 
+**Plugin settings** (set in `/config`; empty means unset): brand `${user_config.brand}`, output base `${user_config.output_dir}`, language `${user_config.language}`. Every `output/...` path in this and the stage skills is relative to that output base (default `output`).
+
 0. **Check for an existing brand config first:** if `output/brands/` in the working folder has a file for this company, load it before asking anything — it pre-fills intake and carries the inheritance chain (CLAUDE.md rule 8).
 1. **Determine the data tier before anything else.**
    - GA4 MCP tools available (`mcp__ga4__*` or similar)? → Tier 1. Confirm which property to use.
@@ -55,9 +57,9 @@ connect → map → (intake if needed) → journeys → copy → export (on requ
 2. **One start message — ask everything the run needs before any stage runs, once.** Collect what isn't already known from the conversation, a brand config, or (T1) confirmed data; never re-ask something the user already answered, and never ask a later stage's question again mid-run (intake reads what was answered here). In that single message:
    - **Scope:** journeys only, or journeys + copy. Copy has two modes: **full** (every journey, writer + reviewer each) or **quick draft** (P0 journeys only, one review pass, labelled as a draft). State the tradeoff in one line: copy roughly doubles the run's agents. Silence or "hepsini/tümünü" means journeys + full copy, with the tradeoff stated first.
    - **Breadth:** P0 only / P0 + P1 / everything eligible (the eligible list comes after `connect`/`map`; offer P0 + P1 as the default and confirm the count once it's known, only if it's larger than the user expects).
-   - **Who and where:** the brand or project name, its sector, and the markets/languages (the cache key, the sector playbook and the locale overlay all depend on them; a brand config answers this).
+   - **Who and where:** the brand or project name, its sector, and the markets/languages (the cache key, the sector playbook and the locale overlay all depend on them; a brand config answers this). A non-empty brand setting answers the name, and the language setting answers the copy language: don't ask either again.
    - **Facts that change correctness, never assumed:** which channels the brand can send on and for which ones users have consented or opted out; existing automations/journeys already running (name, audience, roughly how many messages a week; "unknown" is a valid answer, and then frequency is verified only inside the new portfolio); what key dates mean where the data has them (e.g. is `renewal_date` the policy end or the billing date).
-   - **Safe, reversible preferences get defaults** instead of questions: tone (sector lexicon), quiet hours (compliance file), holdout design (per journey, from volume), language (the user's). Each default used is stated in the dossier, so it can be changed later.
+   - **Safe, reversible preferences get defaults** instead of questions: tone (sector lexicon), quiet hours (compliance file), holdout design (per journey, from volume), language (the language setting, else the user's). Each default used is stated in the dossier, so it can be changed later.
    Missing correctness facts don't block design, they block readiness: journeys built without them are delivered as **drafts** with the open items listed, never as ready to implement.
 2a. **Clean context:** a full run is long. If this conversation already carries a lot of unrelated work, recommend starting the run in a fresh session (or `/clear` first); the earlier history is re-read on every turn of the run and was the single largest cost in a measured past run.
 2b. **Single-journey requests.** When the user names one journey ("sadece sepet terk journey'si", "just the winback"), take `lifecycle-journeys`' single-journey path. Connect and map still run (or reuse the cache), because the journey's own event sufficiency depends on them. The start message asks only what that journey needs: consent on its channels, existing communications that reach its audience, the meaning of any date it anchors on.

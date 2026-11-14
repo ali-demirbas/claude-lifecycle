@@ -1,5 +1,5 @@
 /* Lab UI 1.0.0 - the visual language of alidemirbas.com.tr/lab, for the HTML
-   every Lab tool writes (claude-lifecycle, dashboard-builder, the Google Ads
+   every Lab tool writes (Lifecycle Journey Builder, dashboard-builder, the Google Ads
    change-history dashboard, ab-test-playbook).
    Source: design-system/lab-ui/ in the site repo. Tools keep a vendored copy
    and inline it into each self-contained output between the lab-ui markers;

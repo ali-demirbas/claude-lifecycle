@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-14
+
+### Changed
+- **The plugin is now `lifecycle-journey-builder` ("Lifecycle Journey Builder").** Current Claude Code versions refuse plugin names that start with `claude-`. Skills are called as `/lifecycle-journey-builder:lifecycle`. If you installed `claude-lifecycle`, uninstall it and install the new name (README, Install). The repository URL is unchanged.
+- **Rules reach installed users.** A plugin-root CLAUDE.md is not loaded after install, so the session-start hook now carries the twelve non-negotiable rules; a test keeps the two lists in step.
+- copy-reviewer and event-analyst run on a lighter model; journey-architect has a turn cap. Skills that run the bundled scripts pre-approve them.
+
+### Added
+- **Validation on write.** A hook runs `scripts/validate_output.py` whenever a journey JSON, portfolio, copy doc or dossier under `output/` is written. A violation comes back to Claude as feedback to fix before continuing; an unverified result comes back as a list to show the user.
+- **Plugin settings** asked once at install: brand, output folder and language. The router skips those questions when they are set.
+- A one-minute demo GIF at the top of the README, and `docs/directory-submission.md` with the listing fields, privacy statement and pre-submission check.
+- CI runs `claude plugin validate .`.
+
 ## [0.3.0] - 2026-11-10
 
 What changes for users is below. Migrating existing outputs: [docs/migration-0.3.0.md](docs/migration-0.3.0.md). Every fixed defect, with where it lived and the test that catches it: [docs/audit/0.3.0-findings.md](docs/audit/0.3.0-findings.md).
